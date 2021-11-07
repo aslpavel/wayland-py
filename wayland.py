@@ -119,7 +119,7 @@ class Connection:
         name, proxy = entry
         if proxy is None:
             proxy = self.create_proxy(interface)
-            self._registry("bind", proxy)
+            self._registry("bind", name, proxy)
             self._registry_globals[interface.name] = (name, proxy)
         return proxy
 
@@ -259,7 +259,7 @@ class Connection:
     def _display_on_error(self, proxy: "Proxy", code: int, message: str) -> bool:
         """Handler for `wl_display.error` event"""
         # TODO: add error handling
-        print(f"\x1b[91mERROR: proxy={proxy} code={code} message={message}\x1b[m")
+        print(f"\x1b[91mERROR: proxy='{proxy}' code='{code}' message='{message}'\x1b[m")
         return True
 
     def _display_on_delete(self, id: Id) -> bool:
@@ -474,8 +474,11 @@ class Interface:
             self._events_by_name[name] = (OpCode(opcode), args)
 
     def pack(
-        self, request: str, args: Tuple[Any, ...]
+        self,
+        request: str,
+        args: Tuple[Any, ...],
     ) -> Tuple[OpCode, bytes, List[int]]:
+        """Convert request and its arguments into OpCode, data and fds"""
         desc = self._requests_by_name.get(request)
         if desc is None:
             raise AttributeError(f"unknow request name: {self.name}.{request}")
@@ -505,6 +508,7 @@ class Interface:
         opcode: OpCode,
         data: bytes,
     ) -> Tuple[str, List[Any]]:
+        """Unpack opcode and data into request name and list of arguments"""
         if opcode >= len(self._events):
             raise RuntimeError(f"[{self.name}] received unknown event {opcode}")
         name, args_desc = self._events[opcode]
@@ -598,8 +602,16 @@ WL_CALLBACK = Interface(
     requests=[],
     events=[("done", [ArgUInt("callback_data")])],
 )
+WL_SHM = Interface(
+    name="wl_shm",
+    requests=[
+        ("create_pool", [ArgNewId("id", "wl_shm_pool"), ArgFd("fd"), ArgUInt("size")])
+    ],
+    events=[("format", [ArgUInt("format")])],
+)
 INTERFACES: Dict[str, Interface] = {
-    interface.name: interface for interface in [WL_DISPLAY, WL_REGISTRY]
+    interface.name: interface
+    for interface in [WL_DISPLAY, WL_REGISTRY, WL_CALLBACK, WL_SHM]
 }
 
 
@@ -656,9 +668,21 @@ async def main():
     conn = Connection()
     done = conn.run()
     await conn.sync()
+
     for interface in conn._registry_globals:
         print(interface)
+
+    wl_shm = conn.get_global(WL_SHM)
+    wl_shm.on("format", print_message)
+
+    await asyncio.sleep(0.1)
+    await conn.sync()
     conn.terminate()
+
+
+def print_message(*args: Any):
+    print(args)
+    return True
 
 
 if __name__ == "__main__":
