@@ -2,15 +2,16 @@
 # pyright: scrict
 """Basic wayland client implementation
 """
-import pdb
 import asyncio
 import io
 import logging
+import os
 import socket
 from abc import abstractmethod
-from asyncio import CancelledError, Future, StreamReader, StreamWriter, Task
+from asyncio import CancelledError, Future, Task
 from collections import deque
 from struct import Struct
+from weakref import WeakSet
 from typing import (
     Any,
     Callable,
@@ -56,6 +57,7 @@ class Connection:
         "_display",
         "_registry",
         "_registry_globals",
+        "_futures",
     ]
 
     _path: str
@@ -70,9 +72,18 @@ class Connection:
     _display: "Proxy"
     _registry: "Proxy"
     _registry_globals: Dict[str, Tuple[int, Optional["Proxy"]]]
+    _futures: WeakSet[Future[Any]]
 
     def __init__(self, path: Optional[str] = None):
-        self._path = path or "/run/user/1000/wayland-1"
+        if path is not None:
+            self._path = path
+        else:
+            runtime_dir = os.getenv("XDG_RUNTIME_DIR")
+            if runtime_dir is None:
+                raise RuntimeError("XDG_RUNTIME_DIR is not set")
+            display = os.getenv("WAYLAND_DISPLAY", "wayland-0")
+            self._path = os.path.join(runtime_dir, display)
+
         self._id_last = Id(0)
         self._id_free = []
         self._proxies = {}
@@ -81,6 +92,7 @@ class Connection:
         self._fds_queue = deque()
         self._is_terminated = False
         self._run_task = None
+        self._futures = WeakSet()
 
         self._display = self.create_proxy(WL_DISPLAY)
         self._display.on("error", self._on_display_error)
@@ -98,6 +110,8 @@ class Connection:
 
     def create_proxy(self, interface: "Interface") -> "Proxy":
         """Create new proxy object"""
+        if self._is_terminated:
+            raise RuntimeError("connection has already been terminated")
         # allocate id
         id: Id
         if self._id_free:
@@ -122,13 +136,16 @@ class Connection:
             self._registry_globals[interface.name] = (name, proxy)
         return proxy
 
-    def sync(self) -> "Sync":
-        """Create synchronization scope
+    async def sync(self) -> None:
+        """Ensures all requests are processed
 
-        This async contextmanager can be used as a berrier to ensure
-        all previous requests and resulting events have been handled.
+        This funciton can be used as a berrier to ensure all previous
+        requests and resulting events have been handled.
         """
-        return Sync(self)
+        callback = self.create_proxy(WL_CALLBACK)
+        done = callback.on_async("done")
+        self.display("sync", callback)
+        await done
 
     @property
     def is_terminated(self):
@@ -144,10 +161,16 @@ class Connection:
         self._is_terminated = True
         if self._run_task is not None:
             self._run_task.cancel(term_msg)
+
         proxies = self._proxies.copy()
-        proxies.clear()
+        self._proxies.clear()
         for proxy in proxies.values():
             proxy._events.cancel(term_msg)
+
+        futures = self._futures.copy()
+        self._futures.clear()
+        for future in futures:
+            future.cancel("connection has been terminated")
 
     def run(self) -> Task[None]:
         """Start running wayland connection"""
@@ -159,7 +182,7 @@ class Connection:
 
     async def _run(self) -> None:
         """Start running wayland connection"""
-        writer: Optional[StreamWriter] = None
+        sock: Optional[socket.socket] = None
         try:
             sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM, 0)
             sock.connect(self._path)
@@ -176,8 +199,8 @@ class Connection:
             logging.exception("wayland io task failed")
             raise
         finally:
-            if writer is not None:
-                writer.close()
+            if sock is not None:
+                sock.close()
             self.terminate()
 
     async def _writer(self, sock: socket.socket) -> None:
@@ -315,28 +338,6 @@ async def _wait_writeable(fd: int) -> None:
         await writable
     finally:
         loop.remove_writer(fd)
-
-
-class Sync:
-    __slots__ = ["connection", "done"]
-    connection: Connection
-    done: Future[List[Any]]
-
-    def __init__(self, connection: Connection) -> None:
-        self.connection = connection
-        callback = connection.create_proxy(WL_CALLBACK)
-        self.done = callback.on_async("done")
-        connection.display("sync", callback)
-
-    def __await__(self) -> Generator[Any, None, List[Any]]:
-        return self.done.__await__()
-
-    async def __aenter__(self) -> "Sync":
-        return self
-
-    async def __aexit__(self, _et: Any, ev: Any, _tb: Any):
-        if ev is None and not self.connection.is_terminated:
-            await self.done
 
 
 class Arg:
@@ -566,6 +567,7 @@ class Proxy:
             return False
 
         future: Future[List[Any]] = asyncio.get_running_loop().create_future()
+        self._connection._futures.add(future)
         self._events.on(on_resolve)
         return future
 
@@ -668,7 +670,7 @@ class Event(Generic[E]):
 
 async def main():
     conn = Connection()
-    done = conn.run()
+    conn.run()
     await conn.sync()
 
     print("interfaces:")
@@ -678,7 +680,6 @@ async def main():
     wl_shm = conn.get_global(WL_SHM)
     wl_shm.on("format", print_message)
 
-    await asyncio.sleep(0.1)
     await conn.sync()
     conn.terminate()
 
