@@ -26,7 +26,6 @@ from typing import (
     Set,
     Tuple,
     TypeVar,
-    Union,
 )
 
 Id = NewType("Id", int)
@@ -84,12 +83,12 @@ class Connection:
         self._run_task = None
 
         self._display = self.create_proxy(WL_DISPLAY)
-        self._display.on("error", self._display_on_error)
-        self._display.on("delete_id", self._display_on_delete)
+        self._display.on("error", self._on_display_error)
+        self._display.on("delete_id", self._on_display_delete_id)
 
         self._registry = self.create_proxy(WL_REGISTRY)
-        self._registry.on("global", self._registry_on_global)
-        self._registry.on("global_remove", self._registry_on_global_remove)
+        self._registry.on("global", self._on_registry_global)
+        self._registry.on("global_remove", self._on_registry_global_remove)
         self._registry_globals = {}
         self._display("get_registry", self._registry)
 
@@ -256,23 +255,25 @@ class Connection:
             proxy._events((name, args))
         raise CancelledError()
 
-    def _display_on_error(self, proxy: "Proxy", code: int, message: str) -> bool:
+    def _on_display_error(self, proxy: "Proxy", code: int, message: str) -> bool:
         """Handler for `wl_display.error` event"""
         # TODO: add error handling
         print(f"\x1b[91mERROR: proxy='{proxy}' code='{code}' message='{message}'\x1b[m")
         return True
 
-    def _display_on_delete(self, id: Id) -> bool:
+    def _on_display_delete_id(self, id: Id) -> bool:
         """Handler for `wl_display.delete_id` evet"""
         self._proxies.pop(id, None)
         self._id_free.append(id)
         return True
 
-    def _registry_on_global(self, name: int, interface: str, _version: int) -> bool:
+    def _on_registry_global(self, name: int, interface: str, _version: int) -> bool:
+        """Register name in registry globals"""
         self._registry_globals[interface] = (name, None)
         return True
 
-    def _registry_on_global_remove(self, target_name: int):
+    def _on_registry_global_remove(self, target_name: int):
+        """Unregister name from registry globals"""
         for interface, (name, proxy) in self._registry_globals.items():
             if target_name == name:
                 self._registry_globals.pop(interface)
@@ -282,6 +283,7 @@ class Connection:
         return True
 
     def _recv_fd(self) -> Optional[int]:
+        """Pop next descriptor from file descriptor queue"""
         if self._fds_queue:
             return self._fds_queue.popleft()
 
@@ -669,8 +671,9 @@ async def main():
     done = conn.run()
     await conn.sync()
 
+    print("interfaces:")
     for interface in conn._registry_globals:
-        print(interface)
+        print("   ", interface)
 
     wl_shm = conn.get_global(WL_SHM)
     wl_shm.on("format", print_message)
