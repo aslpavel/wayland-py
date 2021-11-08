@@ -71,7 +71,7 @@ class Connection:
     _is_terminated: bool
     _display: "Proxy"
     _registry: "Proxy"
-    _registry_globals: Dict[str, Tuple[int, Optional["Proxy"]]]
+    _registry_globals: Dict[str, Tuple[int, int, Optional["Proxy"]]]  # (name, verison, proxy)
     _futures: WeakSet[Future[Any]]
 
     def __init__(self, path: Optional[str] = None):
@@ -129,11 +129,11 @@ class Connection:
         entry = self._registry_globals.get(interface.name)
         if entry is None:
             raise RuntimeError(f"no globals provide: {interface}")
-        name, proxy = entry
+        name, version, proxy = entry
         if proxy is None:
             proxy = self.create_proxy(interface)
-            self._registry("bind", name, proxy)
-            self._registry_globals[interface.name] = (name, proxy)
+            self._registry("bind", name, interface.name, version, proxy)
+            self._registry_globals[interface.name] = (name, version, proxy)
         return proxy
 
     async def sync(self) -> None:
@@ -290,14 +290,14 @@ class Connection:
         self._id_free.append(id)
         return True
 
-    def _on_registry_global(self, name: int, interface: str, _version: int) -> bool:
+    def _on_registry_global(self, name: int, interface: str, version: int) -> bool:
         """Register name in registry globals"""
-        self._registry_globals[interface] = (name, None)
+        self._registry_globals[interface] = (name, version, None)
         return True
 
     def _on_registry_global_remove(self, target_name: int):
         """Unregister name from registry globals"""
-        for interface, (name, proxy) in self._registry_globals.items():
+        for interface, (name, _version, proxy) in self._registry_globals.items():
             if target_name == name:
                 self._registry_globals.pop(interface)
                 if proxy is not None:
@@ -594,7 +594,9 @@ WL_DISPLAY = Interface(
 WL_REGISTRY = Interface(
     name="wl_registry",
     requests=[
-        ("bind", [ArgUInt("name"), ArgNewId("id", None)]),
+        # whenever new_id does not specify interface it implies, that three arguments
+        # must be used instead (name: str, version: uint, id: new_id)
+        ("bind", [ArgUInt("name"), ArgStr("interface"), ArgUInt("version"), ArgNewId("id", None)]),
     ],
     events=[
         ("global", [ArgUInt("name"), ArgStr("interface"), ArgUInt("version")]),
@@ -678,15 +680,17 @@ async def main():
         print("   ", interface)
 
     wl_shm = conn.get_global(WL_SHM)
-    wl_shm.on("format", print_message)
+    wl_shm.on("format", print_message("wl_shm format:"))
 
     await conn.sync()
     conn.terminate()
 
 
-def print_message(*args: Any):
-    print(args)
-    return True
+def print_message(msg) -> Callable[..., bool]:
+    def print_message_handler(*args: Any) -> bool:
+        print(msg, args)
+        return True
+    return print_message_handler
 
 
 if __name__ == "__main__":
