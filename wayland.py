@@ -8,7 +8,7 @@ import logging
 import os
 import socket
 from abc import abstractmethod
-from asyncio import CancelledError, Future, Task
+from asyncio import Future
 from collections import deque
 from struct import Struct
 from weakref import WeakSet
@@ -184,12 +184,6 @@ class Connection:
         if self._socket is not None:
             self._socket.close()
 
-        # cacnel proxies
-        proxies = self._proxies.copy()
-        self._proxies.clear()
-        for proxy in proxies.values():
-            proxy._events.cancel(term_msg)
-
         # cancel futures
         futures = self._futures.copy()
         self._futures.clear()
@@ -306,21 +300,35 @@ class Connection:
             if proxy is None:
                 logging.error("unhandled message: %s", message)
                 continue
-            name, args = proxy._interface.unpack(
+            args = proxy._interface.unpack(
                 self,
                 message.opcode,
                 message.data,
             )
-            proxy._events((name, args))
+            proxy._dispatch(opcode, args)
+
+    def _recv_fd(self) -> Optional[int]:
+        """Pop next descriptor from file descriptor queue"""
+        if self._read_fds:
+            return self._read_fds.popleft()
+        return None
+
+    def _submit_message(self, message: Message) -> None:
+        """Submit message for writing"""
+        if message.id not in self._proxies:
+            raise RuntimeError("object has already been deleted")
+        self._write_queue.append(message)
+        self._writer_enable()
 
     def _on_display_error(self, proxy: "Proxy", code: int, message: str) -> bool:
-        """Handler for `wl_display.error` event"""
+        """Handle for `wl_display.error` event"""
         # TODO: add error handling
         print(f"\x1b[91mERROR: proxy='{proxy}' code='{code}' message='{message}'\x1b[m")
+        self.terminate()
         return True
 
     def _on_display_delete_id(self, id: Id) -> bool:
-        """Handler for `wl_display.delete_id` evet"""
+        """Unregister proxy"""
         self._proxies.pop(id, None)
         self._id_free.append(id)
         return True
@@ -339,19 +347,6 @@ class Connection:
                     self._proxies.pop(proxy._id)
                 break
         return True
-
-    def _recv_fd(self) -> Optional[int]:
-        """Pop next descriptor from file descriptor queue"""
-        if self._read_fds:
-            return self._read_fds.popleft()
-        return None
-
-    def _submit_message(self, message: Message) -> None:
-        """Submit message for writing"""
-        if message.id not in self._proxies:
-            raise RuntimeError("object has already been deleted")
-        self._write_queue.append(message)
-        self._writer_enable()
 
 
 class Arg:
@@ -527,71 +522,84 @@ class Interface:
         connection: Connection,
         opcode: OpCode,
         data: bytes,
-    ) -> Tuple[str, List[Any]]:
+    ) -> List[Any]:
         """Unpack opcode and data into request name and list of arguments"""
         if opcode >= len(self._events):
             raise RuntimeError(f"[{self.name}] received unknown event {opcode}")
-        name, args_desc = self._events[opcode]
+        _name, args_desc = self._events[opcode]
         read = io.BytesIO(data)
         args: List[Any] = []
         for arg_desc in args_desc:
             args.append(arg_desc.unpack(read, connection))
-        return name, args
+        return args
 
     def __repr__(self) -> str:
         return self.name
 
 
+EventHandler = Callable[..., bool]
+
+
 class Proxy:
-    __slots__ = ["_id", "_interface", "_connection", "_is_deleted", "_events"]
+    __slots__ = ["_id", "_interface", "_connection", "_is_deleted", "_handlers"]
     _id: Id
     _interface: Interface
     _connection: Connection
-    _events: "Event[Tuple[str, List[Any]]]"
+    _handlers: List[Optional[EventHandler]]
 
     def __init__(self, id: Id, interface: Interface, connection: Connection) -> None:
         self._id = id
         self._interface = interface
         self._connection = connection
         self._is_deleted = False
-        self._events = Event()
+        self._handlers = [None] * len(interface._events)
 
     def __call__(self, request: str, *args: Any) -> None:
         opcode, data, fds = self._interface.pack(request, args)
         self._connection._submit_message(Message(self._id, opcode, data, fds))
 
-    def on(self, name: str, callback: Callable[..., bool]) -> None:
-        if name not in self._interface._events_by_name:
-            raise ValueError(f"[{self._interface.name}] does not have event '{name}'")
-
-        def on_named(event: Tuple[str, List[Any]]) -> bool:
-            event_name, event_args = event
-            if event_name != name:
-                return True
-            return callback(*event_args)
-
-        self._events.on(on_named)
+    def on(self, name: str, handler: EventHandler) -> Optional[EventHandler]:
+        """Register handler for the event"""
+        entry = self._interface._events_by_name.get(name)
+        if entry is None:
+            raise ValueError(f"[{self}] does not have event '{name}'")
+        opcode, _args = entry
+        old_handler, self._handlers[opcode] = self._handlers[opcode], handler
+        return old_handler
 
     def on_async(self, name: str) -> Future[List[Any]]:
-        if name not in self._interface._events_by_name:
-            raise ValueError(f"[{self._interface.name}] does not have event '{name}'")
+        """Create future which is resolved on event"""
 
-        def on_resolve(event: Tuple[str, List[Any]]) -> bool:
-            event_name, event_args = event
-            if event_name != name:
-                return True
-            future.set_result(event_args)
+        def handler(args: List[Any]) -> bool:
+            future.set_result(args)
             return False
 
+        self.on(name, handler)
         future: Future[List[Any]] = asyncio.get_running_loop().create_future()
         self._connection._futures.add(future)
-        self._events.on(on_resolve)
+
         return future
+
+    def _dispatch(self, opcode: OpCode, args: List[Any]):
+        """Dispatch event to the handler"""
+        handler = self._handlers[opcode]
+        if handler is None:
+            return
+        try:
+            if not handler(*args):
+                self._handlers[opcode] = None
+        except Exception:
+            name = self._interface._events[opcode][0]
+            logging.exception(f"[{self}.{name}] handler raised and error")
+            self._handlers[opcode] = None
 
     """
     def __getattr__(self, name: str) -> Callable[..., Any]:
         return lambda *args: self(name, *args)
     """
+
+    def __str__(self) -> str:
+        return repr(self)
 
     def __repr__(self) -> str:
         return f"{self._interface.name}@{self._id}"
