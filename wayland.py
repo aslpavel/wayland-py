@@ -490,17 +490,14 @@ class Interface:
 
     def pack(
         self,
-        request: str,
+        opcode: OpCode,
         args: Tuple[Any, ...],
-    ) -> Tuple[OpCode, bytes, List[int]]:
+    ) -> Tuple[bytes, List[int]]:
         """Convert request and its arguments into OpCode, data and fds"""
-        desc = self._requests_by_name.get(request)
-        if desc is None:
-            raise AttributeError(f"unknow request name: {self.name}.{request}")
-        opcode, args_desc = desc
+        name, args_desc = self._requests[opcode]
         if len(args) != len(args_desc):
             raise TypeError(
-                f"{self.name}.{request} takes {len(args_desc)} arguments ({len(args)} given)"
+                f"{self.name}.{name} takes {len(args_desc)} arguments ({len(args)} given)"
             )
         write = io.BytesIO()
         fds: List[int] = []
@@ -515,7 +512,7 @@ class Interface:
                 else:
                     raise TypeError(f"[{arg_desc.name}] expected file descriptor")
                 fds.append(fd)
-        return opcode, write.getvalue(), fds
+        return write.getvalue(), fds
 
     def unpack(
         self,
@@ -554,16 +551,20 @@ class Proxy:
         self._is_deleted = False
         self._handlers = [None] * len(interface._events)
 
-    def __call__(self, request: str, *args: Any) -> None:
-        opcode, data, fds = self._interface.pack(request, args)
+    def __call__(self, name: str, *args: Any) -> None:
+        desc = self._interface._requests_by_name.get(name)
+        if desc is None:
+            raise ValueError(f"[{self}] does not have request '{name}'")
+        opcode, _args_desc = desc
+        data, fds = self._interface.pack(opcode, args)
         self._connection._submit_message(Message(self._id, opcode, data, fds))
 
     def on(self, name: str, handler: EventHandler) -> Optional[EventHandler]:
         """Register handler for the event"""
-        entry = self._interface._events_by_name.get(name)
-        if entry is None:
+        desc = self._interface._events_by_name.get(name)
+        if desc is None:
             raise ValueError(f"[{self}] does not have event '{name}'")
-        opcode, _args = entry
+        opcode, _args_desc = desc
         old_handler, self._handlers[opcode] = self._handlers[opcode], handler
         return old_handler
 
