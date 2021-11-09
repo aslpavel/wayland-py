@@ -49,8 +49,11 @@ class Connection:
         "_id_last",
         "_id_free",
         "_proxies",
+        "_socket",
+        "_loop",
+        "_write_fds",
+        "_write_buff",
         "_write_queue",
-        "_write_notify",
         "_fds_queue",
         "_run_task",
         "_is_terminated",
@@ -64,8 +67,14 @@ class Connection:
     _id_last: Id
     _id_free: List[Id]
     _proxies: Dict[Id, "Proxy"]
+
+    _socket: Optional[socket.socket]
+    _loop: asyncio.AbstractEventLoop
+
+    _write_fds: List[int]
+    _write_buff: bytearray
     _write_queue: Deque[Message]
-    _write_notify: "Event[None]"
+
     _fds_queue: Deque[int]
     _run_task: Optional[Future[Any]]
     _is_terminated: bool
@@ -87,8 +96,14 @@ class Connection:
         self._id_last = Id(0)
         self._id_free = []
         self._proxies = {}
+
+        self._socket = None
+        self._loop = asyncio.get_running_loop()
+
+        self._write_fds = []
+        self._write_buff = bytearray()
         self._write_queue = deque()
-        self._write_notify = Event()
+
         self._fds_queue = deque()
         self._is_terminated = False
         self._run_task = None
@@ -172,6 +187,10 @@ class Connection:
         for future in futures:
             future.cancel("connection has been terminated")
 
+        self._writer_disable()
+        if self._socket is not None:
+            self._socket.close()
+
     def run(self) -> Task[None]:
         """Start running wayland connection"""
         if self._is_terminated:
@@ -182,14 +201,13 @@ class Connection:
 
     async def _run(self) -> None:
         """Start running wayland connection"""
-        sock: Optional[socket.socket] = None
         try:
-            sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM, 0)
-            sock.connect(self._path)
-            sock.setblocking(False)
+            self._socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM, 0)
+            self._socket.connect(self._path)
+            self._socket.setblocking(False)
+            self._writer_enable()
             self._run_task = asyncio.gather(
-                self._reader(sock),
-                self._writer(sock),
+                self._reader(self._socket),
             )
             await self.sync()
             await self._run_task
@@ -199,43 +217,53 @@ class Connection:
             logging.exception("wayland io task failed")
             raise
         finally:
-            if sock is not None:
-                sock.close()
             self.terminate()
 
-    async def _writer(self, sock: socket.socket) -> None:
-        """Write queued messages to the socket"""
-        fds = []
-        buff = bytearray()
-        while not self._is_terminated:
-            # wait for messages to be send
-            if not self._write_queue:
-                await self._write_notify
 
-            # pack messages
-            buff.clear()
-            while self._write_queue:
-                message = self._write_queue.popleft()
-                buff.extend(
-                    MSG_HEADER.pack(
-                        message.id,
-                        message.opcode,
-                        MSG_HEADER.size + len(message.data),
-                    )
+    def _writer_enable(self) -> None:
+        if self._is_terminated:
+            raise RuntimeError("connection has beend terminated")
+        if self._socket is not None:
+            self._loop.add_writer(self._socket, self._writer)
+
+    def _writer_disable(self):
+        if self._socket is not None:
+            self._loop.remove_writer(self._socket)
+
+    def _writer(self) -> None:
+        if self._is_terminated or self._socket is None:
+            self._writer_disable()
+            return
+
+        # pack queued messages
+        while self._write_queue:
+            message = self._write_queue.popleft()
+            self._write_buff.extend(
+                MSG_HEADER.pack(
+                    message.id,
+                    message.opcode,
+                    MSG_HEADER.size + len(message.data),
                 )
-                buff.extend(message.data)
-                fds.extend(message.fds)
+            )
+            self._write_buff.extend(message.data)
+            self._write_fds.extend(message.fds)
 
-            # send messages
+        # send messages
+        try:
             offset = 0
-            while offset < len(buff):
+            while offset < len(self._write_buff):
                 try:
-                    offset += socket.send_fds(sock, [buff[offset:]], fds)
-                    fds.clear()
+                    offset += socket.send_fds(self._socket, [self._write_buff[offset:]], self._write_fds)
+                    self._write_fds.clear()
                 except BlockingIOError:
-                    await _wait_writeable(sock.fileno())
-                    continue
-        raise CancelledError()
+                    break
+        except Exception:
+            logging.exception("failed to write to wayland socket")
+            self._writer_disable()
+        finally:
+            self._write_buff = self._write_buff[offset:]
+            if not self._write_buff and not self._write_queue:
+                self._writer_disable()
 
     async def _reader(self, sock: socket.socket) -> None:
         """Read and dispatch messages from the socket"""
@@ -315,7 +343,7 @@ class Connection:
         if message.id not in self._proxies:
             raise RuntimeError("object has already been deleted")
         self._write_queue.append(message)
-        self._write_notify(None)
+        self._writer_enable()
 
 
 async def _wait_readable(fd: int) -> None:
@@ -327,17 +355,6 @@ async def _wait_readable(fd: int) -> None:
         await readable
     finally:
         loop.remove_reader(fd)
-
-
-async def _wait_writeable(fd: int) -> None:
-    """Wait for file descriptor to become writable"""
-    loop = asyncio.get_running_loop()
-    writable = loop.create_future()
-    try:
-        loop.add_writer(fd, writable.set_result, None)
-        await writable
-    finally:
-        loop.remove_writer(fd)
 
 
 class Arg:
