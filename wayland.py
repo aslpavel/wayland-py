@@ -46,44 +46,47 @@ class Message(NamedTuple):
 class Connection:
     __slots__ = [
         "_path",
+        "_socket",
+        "_loop",
+        "_is_terminated",
+        "_write_buff",
+        "_write_fds",
+        "_write_queue",
+        "_read_buff",
+        "_read_fds",
         "_id_last",
         "_id_free",
         "_proxies",
-        "_socket",
-        "_loop",
-        "_write_fds",
-        "_write_buff",
-        "_write_queue",
-        "_fds_queue",
-        "_run_task",
-        "_is_terminated",
+        "_futures",
         "_display",
         "_registry",
         "_registry_globals",
-        "_futures",
     ]
 
     _path: str
-    _id_last: Id
-    _id_free: List[Id]
-    _proxies: Dict[Id, "Proxy"]
-
     _socket: Optional[socket.socket]
     _loop: asyncio.AbstractEventLoop
+    _is_terminated: bool
 
     _write_fds: List[int]
     _write_buff: bytearray
     _write_queue: Deque[Message]
 
-    _fds_queue: Deque[int]
-    _run_task: Optional[Future[Any]]
-    _is_terminated: bool
-    _display: "Proxy"
-    _registry: "Proxy"
-    _registry_globals: Dict[str, Tuple[int, int, Optional["Proxy"]]]  # (name, verison, proxy)
+    _read_buff: bytearray
+    _read_fds: Deque[int]
+
+    _id_last: Id
+    _id_free: List[Id]
+    _proxies: Dict[Id, "Proxy"]
     _futures: WeakSet[Future[Any]]
 
-    def __init__(self, path: Optional[str] = None):
+    _display: "Proxy"
+    _registry: "Proxy"
+    _registry_globals: Dict[
+        str, Tuple[int, int, Optional["Proxy"]]
+    ]  # (name, verison, proxy)
+
+    def __init__(self, path: Optional[str] = None) -> None:
         if path is not None:
             self._path = path
         else:
@@ -92,21 +95,20 @@ class Connection:
                 raise RuntimeError("XDG_RUNTIME_DIR is not set")
             display = os.getenv("WAYLAND_DISPLAY", "wayland-0")
             self._path = os.path.join(runtime_dir, display)
-
-        self._id_last = Id(0)
-        self._id_free = []
-        self._proxies = {}
-
         self._socket = None
         self._loop = asyncio.get_running_loop()
+        self._is_terminated = False
 
         self._write_fds = []
         self._write_buff = bytearray()
         self._write_queue = deque()
 
-        self._fds_queue = deque()
-        self._is_terminated = False
-        self._run_task = None
+        self._read_fds = deque()
+        self._read_buff = bytearray()
+
+        self._id_last = Id(0)
+        self._id_free = []
+        self._proxies = {}
         self._futures = WeakSet()
 
         self._display = self.create_proxy(WL_DISPLAY)
@@ -163,62 +165,46 @@ class Connection:
         await done
 
     @property
-    def is_terminated(self):
-        self._is_terminated
+    def is_terminated(self) -> bool:
+        return self._is_terminated
 
     def terminate(self, msg: Optional[Any] = None) -> None:
         """Teminate wayland connection"""
+        is_terminated, self._is_terminated = self._is_terminated, True
+        if is_terminated:
+            return
+
         term_msg = "wayland connection has been terminated"
         if msg is not None:
             term_msg = msg
-        if self._is_terminated:
-            return
-        self._is_terminated = True
-        if self._run_task is not None:
-            self._run_task.cancel(term_msg)
 
+        # disconnect
+        self._writer_disable()
+        self._reader_disable()
+        if self._socket is not None:
+            self._socket.close()
+
+        # cacnel proxies
         proxies = self._proxies.copy()
         self._proxies.clear()
         for proxy in proxies.values():
             proxy._events.cancel(term_msg)
 
+        # cancel futures
         futures = self._futures.copy()
         self._futures.clear()
         for future in futures:
-            future.cancel("connection has been terminated")
+            future.cancel(term_msg)
 
-        self._writer_disable()
-        if self._socket is not None:
-            self._socket.close()
-
-    def run(self) -> Task[None]:
+    async def connect(self) -> "Connection":
         """Start running wayland connection"""
-        if self._is_terminated:
-            raise RuntimeError("connection has already been terminated")
-        if self._run_task is not None:
-            raise RuntimeError("connection is already running")
-        return asyncio.create_task(self._run(), name="wayland io task")
-
-    async def _run(self) -> None:
-        """Start running wayland connection"""
-        try:
-            self._socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM, 0)
-            self._socket.connect(self._path)
-            self._socket.setblocking(False)
-            self._writer_enable()
-            self._run_task = asyncio.gather(
-                self._reader(self._socket),
-            )
-            await self.sync()
-            await self._run_task
-        except (CancelledError, ConnectionResetError):
-            pass
-        except Exception:
-            logging.exception("wayland io task failed")
-            raise
-        finally:
-            self.terminate()
-
+        self._socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM, 0)
+        self._socket.connect(self._path)
+        self._socket.setblocking(False)
+        self._writer_enable()
+        self._reader_enable()
+        await self.sync()
+        return self
 
     def _writer_enable(self) -> None:
         if self._is_terminated:
@@ -226,11 +212,12 @@ class Connection:
         if self._socket is not None:
             self._loop.add_writer(self._socket, self._writer)
 
-    def _writer_disable(self):
+    def _writer_disable(self) -> None:
         if self._socket is not None:
             self._loop.remove_writer(self._socket)
 
     def _writer(self) -> None:
+        """Write pending messages"""
         if self._is_terminated or self._socket is None:
             self._writer_disable()
             return
@@ -253,45 +240,66 @@ class Connection:
             offset = 0
             while offset < len(self._write_buff):
                 try:
-                    offset += socket.send_fds(self._socket, [self._write_buff[offset:]], self._write_fds)
+                    offset += socket.send_fds(
+                        self._socket, [self._write_buff[offset:]], self._write_fds
+                    )
                     self._write_fds.clear()
                 except BlockingIOError:
                     break
         except Exception:
-            logging.exception("failed to write to wayland socket")
-            self._writer_disable()
+            error_msg = "failed to write to wayland socket"
+            logging.exception(error_msg)
+            self.terminate(error_msg)
         finally:
             self._write_buff = self._write_buff[offset:]
             if not self._write_buff and not self._write_queue:
                 self._writer_disable()
 
-    async def _reader(self, sock: socket.socket) -> None:
-        """Read and dispatch messages from the socket"""
-        size: int = MSG_HEADER.size  # required size
-        buff = bytearray()
+    def _reader_enable(self) -> None:
+        if self._is_terminated:
+            raise RuntimeError("connection has beend terminated")
+        if self._socket is not None:
+            self._loop.add_reader(self._socket, self._reader)
 
-        while not self._is_terminated:
-            # receive data until required size is received
-            while len(buff) < size:
-                try:
-                    data, fds_new, _flags, _address = socket.recv_fds(sock, 4096, 32)
-                    if not data:
-                        raise CancelledError()
-                    self._fds_queue.extend(fds_new)
-                    buff.extend(data)
-                except BlockingIOError:
-                    await _wait_readable(sock.fileno())
-                    continue
+    def _reader_disable(self) -> None:
+        if self._socket is not None:
+            self._loop.remove_reader(self._socket)
 
+    def _reader(self) -> None:
+        """Read incomming messages"""
+        if self._is_terminated or self._socket is None:
+            self._reader_disable()
+            return
+
+        # reading data
+        while True:
+            try:
+                data, fds, _flags, _address = socket.recv_fds(self._socket, 4096, 32)
+                if not data:
+                    self.terminate("connection closed")
+                self._read_fds.extend(fds)
+                self._read_buff.extend(data)
+            except BlockingIOError:
+                break
+            except Exception:
+                error_msg = "failed to read from wayland socket"
+                logging.exception(error_msg)
+                self.terminate(error_msg)
+                return
+
+        while len(self._read_buff) >= MSG_HEADER.size:
             # unpack message
-            id, opcode, size = MSG_HEADER.unpack(buff[: MSG_HEADER.size])
-            if len(buff) < size:
-                continue
-            message = Message(Id(id), OpCode(opcode), buff[MSG_HEADER.size : size], [])
-
+            id, opcode, size = MSG_HEADER.unpack(self._read_buff[: MSG_HEADER.size])
+            if len(self._read_buff) < size:
+                return
+            message = Message(
+                Id(id),
+                OpCode(opcode),
+                self._read_buff[MSG_HEADER.size : size],
+                [],
+            )
             # consume data and reset size
-            buff = buff[size:]
-            size = MSG_HEADER.size
+            self._read_buff = self._read_buff[size:]
 
             # dispatch event
             proxy = self._proxies.get(message.id)
@@ -304,7 +312,6 @@ class Connection:
                 message.data,
             )
             proxy._events((name, args))
-        raise CancelledError()
 
     def _on_display_error(self, proxy: "Proxy", code: int, message: str) -> bool:
         """Handler for `wl_display.error` event"""
@@ -323,7 +330,7 @@ class Connection:
         self._registry_globals[interface] = (name, version, None)
         return True
 
-    def _on_registry_global_remove(self, target_name: int):
+    def _on_registry_global_remove(self, target_name: int) -> bool:
         """Unregister name from registry globals"""
         for interface, (name, _version, proxy) in self._registry_globals.items():
             if target_name == name:
@@ -335,26 +342,16 @@ class Connection:
 
     def _recv_fd(self) -> Optional[int]:
         """Pop next descriptor from file descriptor queue"""
-        if self._fds_queue:
-            return self._fds_queue.popleft()
+        if self._read_fds:
+            return self._read_fds.popleft()
+        return None
 
-    def _submit_message(self, message: Message):
+    def _submit_message(self, message: Message) -> None:
         """Submit message for writing"""
         if message.id not in self._proxies:
             raise RuntimeError("object has already been deleted")
         self._write_queue.append(message)
         self._writer_enable()
-
-
-async def _wait_readable(fd: int) -> None:
-    """Wait for file descriptor to become readable"""
-    loop = asyncio.get_running_loop()
-    readable = loop.create_future()
-    try:
-        loop.add_reader(fd, readable.set_result, None)
-        await readable
-    finally:
-        loop.remove_reader(fd)
 
 
 class Arg:
@@ -389,6 +386,9 @@ class ArgNewId(Arg):
                 f"interface (given '{value._interface.name}'')"
             )
         write.write(self.struct.pack(value._id))
+
+    def unpack(self, _read: io.BytesIO, _connection: Connection) -> Any:
+        raise NotImplementedError()
 
     def __repr__(self) -> str:
         return f"ArgNewId({self.name}, {self.interface})"
@@ -564,7 +564,7 @@ class Proxy:
         if name not in self._interface._events_by_name:
             raise ValueError(f"[{self._interface.name}] does not have event '{name}'")
 
-        def on_named(event: Tuple[str, List[Any]]):
+        def on_named(event: Tuple[str, List[Any]]) -> bool:
             event_name, event_args = event
             if event_name != name:
                 return True
@@ -613,7 +613,15 @@ WL_REGISTRY = Interface(
     requests=[
         # whenever new_id does not specify interface it implies, that three arguments
         # must be used instead (name: str, version: uint, id: new_id)
-        ("bind", [ArgUInt("name"), ArgStr("interface"), ArgUInt("version"), ArgNewId("id", None)]),
+        (
+            "bind",
+            [
+                ArgUInt("name"),
+                ArgStr("interface"),
+                ArgUInt("version"),
+                ArgNewId("id", None),
+            ],
+        ),
     ],
     events=[
         ("global", [ArgUInt("name"), ArgStr("interface"), ArgUInt("version")]),
@@ -687,10 +695,8 @@ class Event(Generic[E]):
         return f"Events(handlers={len(self._handlers)}, futures={len(self._futures)})"
 
 
-async def main():
-    conn = Connection()
-    conn.run()
-    await conn.sync()
+async def main() -> None:
+    conn = await Connection().connect()
 
     print("interfaces:")
     for interface in conn._registry_globals:
@@ -703,10 +709,11 @@ async def main():
     conn.terminate()
 
 
-def print_message(msg) -> Callable[..., bool]:
+def print_message(msg: str) -> Callable[..., bool]:
     def print_message_handler(*args: Any) -> bool:
         print(msg, args)
         return True
+
     return print_message_handler
 
 
