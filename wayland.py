@@ -695,8 +695,8 @@ def load_protocol(path: str) -> Dict[str, Interface]:
             if child.tag in {"request", "event"}:
                 name = child.get("name")
                 if name is None:
-                    raise ValueError(f"[{iface}] {child.tag} without a name")
-                args = []
+                    raise ValueError(f"[{iface_name}] {child.tag} without a name")
+                args: List[Arg] = []
                 for arg_node in child:
                     if arg_node.tag != "arg":
                         continue
