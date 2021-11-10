@@ -7,6 +7,7 @@ import io
 import logging
 import os
 import socket
+from xml.etree import ElementTree
 from abc import abstractmethod
 from asyncio import Future
 from collections import deque
@@ -363,6 +364,12 @@ class Arg:
     def unpack(self, read: io.BytesIO, connection: Connection) -> Any:
         pass
 
+    def __str__(self):
+        return f"{self.__class__.__name__}({self.name})"
+
+    def __repr__(self):
+        return str(self)
+
 
 class ArgUInt(Arg):
     struct: ClassVar[Struct] = Struct("I")
@@ -457,7 +464,7 @@ class ArgArray(Arg):
 
     def unpack(self, read: io.BytesIO, _connection: Connection) -> Any:
         size = self.struct.unpack(read.read(self.struct.size))[0]
-        value = read.read(size).decode()
+        value = read.read(size)
         read.read(-size % 4)
         return value
 
@@ -472,7 +479,7 @@ class ArgNewId(Arg):
 
     def pack(self, write: io.BytesIO, value: Any) -> None:
         if not isinstance(value, Proxy):
-            raise ValueError(f"[{self.name}] proxy object expected {value}")
+            raise ValueError(f"[{self.name}] proxy object expected got {value}")
         if self.interface is not None and self.interface != value._interface.name:
             raise ValueError(
                 f"[{self.name}] proxy object must implement '{self.interface}' "
@@ -483,7 +490,7 @@ class ArgNewId(Arg):
     def unpack(self, _read: io.BytesIO, _connection: Connection) -> Any:
         raise NotImplementedError()
 
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
         return f"ArgNewId({self.name}, {self.interface})"
 
 
@@ -511,6 +518,9 @@ class ArgObject(Arg):
         if proxy is None:
             raise RuntimeError("[{self.name}] unknown incomming object")
         return proxy
+
+    def __str__(self) -> str:
+        return f"ArgObject({self.name}, {self.interface})"
 
 
 class ArgFd(Arg):
@@ -592,7 +602,7 @@ class Interface:
         return args
 
     def __repr__(self) -> str:
-        return self.name
+        return f"{self.name}(requests={self._requests}, events={self._events})"
 
 
 EventHandler = Callable[..., bool]
@@ -667,53 +677,83 @@ class Proxy:
         return f"{self._interface.name}@{self._id}"
 
 
-WL_DISPLAY = Interface(
-    name="wl_display",
-    requests=[
-        ("sync", [ArgNewId("callback", "wl_callback")]),
-        ("get_registry", [ArgNewId("registry", "wl_registry")]),
-    ],
-    events=[
-        ("error", [ArgObject("object_id", None), ArgUInt("code"), ArgStr("message")]),
-        ("delete_id", [ArgUInt("id")]),
-    ],
-)
-WL_REGISTRY = Interface(
-    name="wl_registry",
-    requests=[
-        # whenever new_id does not specify interface it implies, that three arguments
-        # must be used instead (name: str, version: uint, id: new_id)
-        (
-            "bind",
-            [
-                ArgUInt("name"),
-                ArgStr("interface"),
-                ArgUInt("version"),
-                ArgNewId("id", None),
-            ],
-        ),
-    ],
-    events=[
-        ("global", [ArgUInt("name"), ArgStr("interface"), ArgUInt("version")]),
-        ("global_remove", [ArgUInt("name")]),
-    ],
-)
-WL_CALLBACK = Interface(
-    name="wl_callback",
-    requests=[],
-    events=[("done", [ArgUInt("callback_data")])],
-)
-WL_SHM = Interface(
-    name="wl_shm",
-    requests=[
-        ("create_pool", [ArgNewId("id", "wl_shm_pool"), ArgFd("fd"), ArgUInt("size")])
-    ],
-    events=[("format", [ArgUInt("format")])],
-)
-INTERFACES: Dict[str, Interface] = {
-    interface.name: interface
-    for interface in [WL_DISPLAY, WL_REGISTRY, WL_CALLBACK, WL_SHM]
-}
+def load_protocol(path: str) -> Dict[str, Interface]:
+    """Load interfaces from protocol XML file"""
+    tree = ElementTree.parse(path)
+
+    ifaces: Dict[str, Interface] = {}
+    for node in tree.getroot():
+        if node.tag != "interface":
+            continue
+        iface_name = node.get("name")
+        if iface_name is None:
+            raise ValueError("interface must have name attribute")
+        events = []
+        requests = []
+
+        for child in node:
+            if child.tag in {"request", "event"}:
+                name = child.get("name")
+                if name is None:
+                    raise ValueError(f"[{iface}] {child.tag} without a name")
+                args = []
+                for arg_node in child:
+                    if arg_node.tag != "arg":
+                        continue
+                    arg_name = arg_node.get("name")
+                    if arg_name is None:
+                        raise ValueError(
+                            f"[{iface_name}.{name}] argument without a name"
+                        )
+                    arg_type = arg_node.get("type")
+                    if arg_type is None:
+                        raise ValueError(
+                            f"[{iface_name}.{name}] argument without a type"
+                        )
+                    if arg_type == "uint":
+                        # TODO: enum support
+                        args.append(ArgUInt(arg_name))
+                    elif arg_type == "int":
+                        args.append(ArgInt(arg_name))
+                    elif arg_type == "fixed":
+                        args.append(ArgFixed(arg_name))
+                    elif arg_type == "string":
+                        args.append(ArgStr(arg_name))
+                    elif arg_type == "array":
+                        args.append(ArgArray(arg_name))
+                    elif arg_type == "fd":
+                        args.append(ArgFd(arg_name))
+                    elif arg_type == "object":
+                        args.append(ArgObject(arg_name, arg_node.get("interface")))
+                    elif arg_type == "new_id":
+                        arg_iface = arg_node.get("interface")
+                        if arg_iface is not None:
+                            args.append(ArgNewId(arg_name, arg_iface))
+                        else:
+                            # new_id without interface is unpacked into 3 arguments
+                            # (interface_name: str, version: uint, id: new_id)
+                            args.append(ArgStr("interface"))
+                            args.append(ArgUInt("version"))
+                            args.append(ArgNewId("interface", None))
+
+                if child.tag == "request":
+                    requests.append((name, args))
+                else:
+                    events.append((name, args))
+
+            elif child.tag == "enum":
+                pass
+
+        iface = Interface(iface_name, requests, events)
+        ifaces[iface_name] = iface
+    return ifaces
+
+
+WAYLAND_PROTO = load_protocol("wayland.xml")
+WL_DISPLAY = WAYLAND_PROTO["wl_display"]
+WL_REGISTRY = WAYLAND_PROTO["wl_registry"]
+WL_CALLBACK = WAYLAND_PROTO["wl_callback"]
+WL_SHM = WAYLAND_PROTO["wl_shm"]
 
 
 E = TypeVar("E")
