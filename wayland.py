@@ -32,7 +32,6 @@ from typing import (
     Tuple,
     TypeVar,
     cast,
-    overload,
 )
 
 Id = NewType("Id", int)
@@ -369,10 +368,10 @@ class Arg:
     def unpack(self, read: io.BytesIO, connection: Connection) -> Any:
         pass
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.__class__.__name__}({self.name})"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return str(self)
 
 
@@ -657,7 +656,7 @@ class Proxy:
 
         return future
 
-    def _dispatch(self, opcode: OpCode, args: List[Any]):
+    def _dispatch(self, opcode: OpCode, args: List[Any]) -> None:
         """Dispatch event to the handler"""
         handler = self._handlers[opcode]
         if handler is None:
@@ -771,7 +770,7 @@ def create_shm(size: int, fd: Optional[int] = None) -> mmap:
     if fd is None:
         name = secrets.token_hex(16)
         flags = os.O_RDWR | os.O_CREAT | os.O_EXCL
-        fd = cast(int, shm_open(name, flags, 0o600))
+        fd = shm_open(name, flags, 0o600)
         try:
             os.ftruncate(fd, size)
             shm = mmap(fd, size)
