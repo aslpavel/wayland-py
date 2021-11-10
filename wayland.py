@@ -364,6 +364,104 @@ class Arg:
         pass
 
 
+class ArgUInt(Arg):
+    struct: ClassVar[Struct] = Struct("I")
+
+    def pack(self, write: io.BytesIO, value: Any) -> None:
+        if not isinstance(value, int) or value < 0:
+            raise ValueError(f"[{self.name}] unsigend integer expected")
+        write.write(self.struct.pack(value))
+
+    def unpack(self, read: io.BytesIO, _connection: Connection) -> Any:
+        return self.struct.unpack(read.read(self.struct.size))[0]
+
+
+class ArgInt(Arg):
+    struct: ClassVar[Struct] = Struct("i")
+
+    def pack(self, write: io.BytesIO, value: Any) -> None:
+        if not isinstance(value, int):
+            raise ValueError(f"[{self.name}] signed integer expected")
+        write.write(self.struct.pack(value))
+
+    def unpack(self, read: io.BytesIO, _connection: Connection) -> Any:
+        return self.struct.unpack(read.read(self.struct.size))[0]
+
+
+class ArgFixed(Arg):
+    """Signed 24.8 floating point value"""
+
+    struct: ClassVar[Struct] = Struct("i")
+
+    def pack(self, write: io.BytesIO, value: Any) -> None:
+        if not isinstance(value, (int, float)):
+            raise ValueError(f"[{self.name}]  float expected")
+        value = (int(value) << 8) + int((value % 1.0) * 256)
+        write.write(self.struct.pack(value))
+
+    def unpack(self, read: io.BytesIO, _conneciton: Connection) -> Any:
+        value = self.struct.unpack(read.read(self.struct.size))[0]
+        return float(value >> 8) + ((value & 0xFF) / 256.0)
+
+
+class ArgStr(Arg):
+    """String argument
+
+    String is zero teminated and 32-bit aligned
+    """
+
+    struct: ClassVar[Struct] = Struct("I")
+
+    def pack(self, write: io.BytesIO, value: Any) -> None:
+        data: bytes
+        if isinstance(value, str):
+            data = value.encode()
+        elif isinstance(value, bytes):
+            data = value
+        else:
+            raise ValueError(f"[{self.name}] string or bytes expected")
+        size = len(data) + 1  # null terminated length
+        write.write(self.struct.pack(size))
+        write.write(data)
+        # null terminated and padded to 32-bit
+        padding = (-size % 4) + 1
+        write.write(b"\x00" * padding)
+
+    def unpack(self, read: io.BytesIO, _connection: Connection) -> Any:
+        size = self.struct.unpack(read.read(self.struct.size))[0]
+        value = read.read(size - 1).decode()
+        read.read((-size % 4) + 1)
+        return value
+
+
+class ArgArray(Arg):
+    """Bytes argument
+
+    Bytes are 32-bit aligned
+    """
+
+    struct: ClassVar[Struct] = Struct("I")
+
+    def pack(self, write: io.BytesIO, value: Any) -> None:
+        data: bytes
+        if isinstance(value, str):
+            data = value.encode()
+        elif isinstance(value, bytes):
+            data = value
+        else:
+            raise ValueError(f"[{self.name}] string or bytes expected")
+        size = len(data)
+        write.write(self.struct.pack(size))
+        write.write(data)
+        write.write(b"\x00" * (-size % 4))
+
+    def unpack(self, read: io.BytesIO, _connection: Connection) -> Any:
+        size = self.struct.unpack(read.read(self.struct.size))[0]
+        value = read.read(size).decode()
+        read.read(-size % 4)
+        return value
+
+
 class ArgNewId(Arg):
     struct: ClassVar[Struct] = Struct("I")
     interface: Optional[str]
@@ -387,18 +485,6 @@ class ArgNewId(Arg):
 
     def __repr__(self) -> str:
         return f"ArgNewId({self.name}, {self.interface})"
-
-
-class ArgUInt(Arg):
-    struct: ClassVar[Struct] = Struct("I")
-
-    def pack(self, write: io.BytesIO, value: Any) -> None:
-        if not isinstance(value, int) or value < 0:
-            raise ValueError(f"[{self.name}] unsigend integer expected")
-        write.write(self.struct.pack(value))
-
-    def unpack(self, read: io.BytesIO, _connection: Connection) -> Any:
-        return self.struct.unpack(read.read(self.struct.size))[0]
 
 
 class ArgObject(Arg):
@@ -427,34 +513,9 @@ class ArgObject(Arg):
         return proxy
 
 
-class ArgStr(Arg):
-    struct: ClassVar[Struct] = Struct("I")
-
-    def pack(self, write: io.BytesIO, value: Any) -> None:
-        data: bytes
-        if isinstance(value, str):
-            data = value.encode()
-        elif isinstance(value, bytes):
-            data = value
-        else:
-            raise ValueError(f"[{self.name}] string or bytes expected")
-        size = len(data) + 1  # null terminated length
-        write.write(self.struct.pack(size))
-        write.write(data)
-        # null terminated and padded to 32-bit
-        padding = (-size % 4) + 1
-        write.write(b"\x00" * padding)
-
-    def unpack(self, read: io.BytesIO, _connection: Connection) -> Any:
-        size = self.struct.unpack(read.read(self.struct.size))[0]
-        value = read.read(size - 1).decode()
-        read.read((-size % 4) + 1)
-        return value
-
-
 class ArgFd(Arg):
     def pack(self, _write: io.BytesIO, _value: Any) -> None:
-        # noop for file descriptor
+        # not actually writing anything, magic happanes on the _writer side
         pass
 
     def unpack(self, _read: io.BytesIO, connection: Connection) -> Any:
