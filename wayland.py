@@ -594,7 +594,7 @@ class Interface:
                 else:
                     raise TypeError(
                         f"[{self.name}.{name}({arg_desc.name})] "
-                        "expected file descriptor"
+                        f"expected file descriptor '{arg}'"
                     )
                 fds.append(fd)
         return write.getvalue(), fds
@@ -784,25 +784,52 @@ WL_SHM = WAYLAND_PROTO["wl_shm"]
 WL_SHM_POOL = WAYLAND_PROTO["wl_shm_pool"]
 
 
-def shm_create(size: int, fd: Optional[int] = None) -> mmap:
+class SharedMemory:
     """Create shared memory file
 
     This can be send over to wayland compositor, or converted to numpy array:
-        shm = create_shm(8192)
+        shm = SharedMemory(8192)
         array = numpy.ndarray(shape=(32,32), dtype=float, shm)
     """
-    if fd is None:
-        name = secrets.token_hex(16)
-        flags = os.O_RDWR | os.O_CREAT | os.O_EXCL
-        fd = shm_open(name, flags, 0o600)
-        try:
-            os.ftruncate(fd, size)
-            shm = mmap(fd, size)
-            shm_unlink(name)
-            return shm
-        finally:
-            os.close(fd)
-    return mmap(fd, size)
+
+    __slots__ = ["_fd", "_mmap", "_is_closed"]
+    _fd: int
+    _mmap: mmap
+    _is_closed: bool
+
+    def __init__(self, size: int, fd: Optional[int] = None) -> None:
+        self._is_closed = False
+        if fd is None:
+            name = secrets.token_hex(16)
+            flags = os.O_RDWR | os.O_CREAT | os.O_EXCL
+            self._fd = shm_open(name, flags, 0o600)
+            try:
+                os.ftruncate(self._fd, size)
+                self._mmap = mmap(self._fd, size)
+            finally:
+                shm_unlink(name)
+        else:
+            self._fd = fd
+            self._mmap = mmap(self._fd, size)
+
+    def fileno(self) -> int:
+        if self._is_closed:
+            raise RuntimeError("shared memory file is closed")
+        return self._fd
+
+    @property
+    def buf(self) -> mmap:
+        return self._mmap
+
+    def close(self):
+        is_closed, self._is_closed = self._is_closed, True
+        if is_closed:
+            return
+        os.close(self._fd)
+        self._mmap.close()
+
+    def __del__(self):
+        return self.close()
 
 
 E = TypeVar("E")
@@ -865,10 +892,13 @@ async def main() -> None:
     height = 480
     stride = width * 4
     size = stride * height
-    buf_mem = shm_create(size)
+    buf_mem = SharedMemory(size)
 
     wl_shm = conn.get_global(WL_SHM)
     wl_shm.on("format", print_message("wl_shm"))
+
+    pool = conn.create_proxy(WL_SHM_POOL)
+    wl_shm("create_pool", pool, buf_mem, size)
 
     await conn.sync()
     conn.terminate()
