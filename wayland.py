@@ -31,7 +31,6 @@ from typing import (
     Set,
     Tuple,
     TypeVar,
-    cast,
 )
 
 Id = NewType("Id", int)
@@ -117,6 +116,7 @@ class Connection:
         self._futures = WeakSet()
 
         self._display = self.create_proxy(WL_DISPLAY)
+        self._display._is_attached = True  # display is always attached
         self._display.on("error", self._on_display_error)
         self._display.on("delete_id", self._on_display_delete_id)
 
@@ -276,6 +276,7 @@ class Connection:
                 data, fds, _flags, _address = socket.recv_fds(self._socket, 4096, 32)
                 if not data:
                     self.terminate("connection closed")
+                    break
                 self._read_fds.extend(fds)
                 self._read_buff.extend(data)
             except BlockingIOError:
@@ -484,6 +485,9 @@ class ArgNewId(Arg):
     def pack(self, write: io.BytesIO, value: Any) -> None:
         if not isinstance(value, Proxy):
             raise ValueError(f"[{self.name}] proxy object expected got {value}")
+        if value._is_attached:
+            raise ValueError(f"[{self.name}] proxy has already been attached")
+        value._is_attached = True
         if self.interface is not None and self.interface != value._interface.name:
             raise ValueError(
                 f"[{self.name}] proxy object must implement '{self.interface}' "
@@ -568,11 +572,14 @@ class Interface:
         opcode: OpCode,
         args: Tuple[Any, ...],
     ) -> Tuple[bytes, List[int]]:
-        """Convert request and its arguments into OpCode, data and fds"""
+        """Pack arguments for the specified opcode
+
+        Returns bytes data and descritpros to be send
+        """
         name, args_desc = self._requests[opcode]
         if len(args) != len(args_desc):
             raise TypeError(
-                f"{self.name}.{name} takes {len(args_desc)} arguments ({len(args)} given)"
+                f"[{self.name}.{name}] takes {len(args_desc)} arguments ({len(args)} given)"
             )
         write = io.BytesIO()
         fds: List[int] = []
@@ -585,7 +592,10 @@ class Interface:
                 elif isinstance(arg, int):
                     fd = arg
                 else:
-                    raise TypeError(f"[{arg_desc.name}] expected file descriptor")
+                    raise TypeError(
+                        f"[{self.name}.{name}({arg_desc.name})] "
+                        "expected file descriptor"
+                    )
                 fds.append(fd)
         return write.getvalue(), fds
 
@@ -613,10 +623,19 @@ EventHandler = Callable[..., bool]
 
 
 class Proxy:
-    __slots__ = ["_id", "_interface", "_connection", "_is_deleted", "_handlers"]
+    __slots__ = [
+        "_id",
+        "_interface",
+        "_connection",
+        "_is_deleted",
+        "_is_attached",
+        "_handlers",
+    ]
     _id: Id
     _interface: Interface
     _connection: Connection
+    _is_deleted: bool
+    _is_attached: bool
     _handlers: List[Optional[EventHandler]]
 
     def __init__(self, id: Id, interface: Interface, connection: Connection) -> None:
@@ -624,9 +643,13 @@ class Proxy:
         self._interface = interface
         self._connection = connection
         self._is_deleted = False
+        self._is_attached = False
         self._handlers = [None] * len(interface._events)
 
     def __call__(self, name: str, *args: Any) -> None:
+        # print(f"{self._interface.name}.{name}{args}")
+        if not self._is_attached:
+            raise RuntimeError(f"[{self}.{name}({args}) proxy is not attached]")
         desc = self._interface._requests_by_name.get(name)
         if desc is None:
             raise ValueError(f"[{self}] does not have request '{name}'")
@@ -758,9 +781,10 @@ WL_DISPLAY = WAYLAND_PROTO["wl_display"]
 WL_REGISTRY = WAYLAND_PROTO["wl_registry"]
 WL_CALLBACK = WAYLAND_PROTO["wl_callback"]
 WL_SHM = WAYLAND_PROTO["wl_shm"]
+WL_SHM_POOL = WAYLAND_PROTO["wl_shm_pool"]
 
 
-def create_shm(size: int, fd: Optional[int] = None) -> mmap:
+def shm_create(size: int, fd: Optional[int] = None) -> mmap:
     """Create shared memory file
 
     This can be send over to wayland compositor, or converted to numpy array:
@@ -837,8 +861,14 @@ async def main() -> None:
     for interface in conn._registry_globals:
         print("   ", interface)
 
+    width = 640
+    height = 480
+    stride = width * 4
+    size = stride * height
+    buf_mem = shm_create(size)
+
     wl_shm = conn.get_global(WL_SHM)
-    wl_shm.on("format", print_message("wl_shm format:"))
+    wl_shm.on("format", print_message("wl_shm"))
 
     await conn.sync()
     conn.terminate()
