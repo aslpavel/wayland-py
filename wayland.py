@@ -5,8 +5,11 @@
 import asyncio
 import io
 import logging
+from mmap import mmap
 import os
 import socket
+import secrets
+from _posixshmem import shm_open, shm_unlink
 from xml.etree import ElementTree
 from abc import abstractmethod
 from asyncio import Future
@@ -28,6 +31,8 @@ from typing import (
     Set,
     Tuple,
     TypeVar,
+    cast,
+    overload,
 )
 
 Id = NewType("Id", int)
@@ -754,6 +759,27 @@ WL_DISPLAY = WAYLAND_PROTO["wl_display"]
 WL_REGISTRY = WAYLAND_PROTO["wl_registry"]
 WL_CALLBACK = WAYLAND_PROTO["wl_callback"]
 WL_SHM = WAYLAND_PROTO["wl_shm"]
+
+
+def create_shm(size: int, fd: Optional[int] = None) -> mmap:
+    """Create shared memory file
+
+    This can be send over to wayland compositor, or converted to numpy array:
+        shm = create_shm(8192)
+        array = numpy.ndarray(shape=(32,32), dtype=float, shm)
+    """
+    if fd is None:
+        name = secrets.token_hex(16)
+        flags = os.O_RDWR | os.O_CREAT | os.O_EXCL
+        fd = cast(int, shm_open(name, flags, 0o600))
+        try:
+            os.ftruncate(fd, size)
+            shm = mmap(fd, size)
+            shm_unlink(name)
+            return shm
+        finally:
+            os.close(fd)
+    return mmap(fd, size)
 
 
 E = TypeVar("E")
