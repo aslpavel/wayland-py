@@ -22,15 +22,12 @@ from typing import (
     ClassVar,
     Deque,
     Dict,
-    Generator,
-    Generic,
     List,
     NamedTuple,
     NewType,
     Optional,
     Set,
     Tuple,
-    TypeVar,
 )
 
 Id = NewType("Id", int)
@@ -53,6 +50,7 @@ class Connection:
         "_socket",
         "_loop",
         "_is_terminated",
+        "_on_terminated",
         "_write_buff",
         "_write_fds",
         "_write_queue",
@@ -71,6 +69,7 @@ class Connection:
     _socket: Optional[socket.socket]
     _loop: asyncio.AbstractEventLoop
     _is_terminated: bool
+    _on_terminated: asyncio.Event
 
     _write_fds: List[int]
     _write_buff: bytearray
@@ -102,6 +101,7 @@ class Connection:
         self._socket = None
         self._loop = asyncio.get_running_loop()
         self._is_terminated = False
+        self._on_terminated = asyncio.Event()
 
         self._write_fds = []
         self._write_buff = bytearray()
@@ -173,6 +173,9 @@ class Connection:
     def is_terminated(self) -> bool:
         return self._is_terminated
 
+    async def on_terminated(self) -> None:
+        await self._on_terminated.wait()
+
     def terminate(self, msg: Optional[Any] = None) -> None:
         """Teminate wayland connection"""
         is_terminated, self._is_terminated = self._is_terminated, True
@@ -194,6 +197,9 @@ class Connection:
         self._futures.clear()
         for future in futures:
             future.cancel(term_msg)
+
+        # notify termination
+        self._on_terminated.set()
 
     async def connect(self) -> "Connection":
         """Start running wayland connection"""
@@ -335,7 +341,8 @@ class Connection:
 
     def _on_display_delete_id(self, id: Id) -> bool:
         """Unregister proxy"""
-        self._proxies.pop(id, None)
+        proxy = self._proxies.pop(id, None)
+        print("delete:", proxy)
         self._id_free.append(id)
         return True
 
@@ -666,15 +673,15 @@ class Proxy:
         old_handler, self._handlers[opcode] = self._handlers[opcode], handler
         return old_handler
 
-    def on_async(self, name: str) -> Future[List[Any]]:
+    def on_async(self, name: str) -> Future[Tuple[Any, ...]]:
         """Create future which is resolved on event"""
 
-        def handler(args: List[Any]) -> bool:
+        def handler(*args: Any) -> bool:
             future.set_result(args)
             return False
 
         self.on(name, handler)
-        future: Future[List[Any]] = asyncio.get_running_loop().create_future()
+        future: Future[Tuple[Any, ...]] = asyncio.get_running_loop().create_future()
         self._connection._futures.add(future)
 
         return future
@@ -776,14 +783,6 @@ def load_protocol(path: str) -> Dict[str, Interface]:
     return ifaces
 
 
-WAYLAND_PROTO = load_protocol("wayland.xml")
-WL_DISPLAY = WAYLAND_PROTO["wl_display"]
-WL_REGISTRY = WAYLAND_PROTO["wl_registry"]
-WL_CALLBACK = WAYLAND_PROTO["wl_callback"]
-WL_SHM = WAYLAND_PROTO["wl_shm"]
-WL_SHM_POOL = WAYLAND_PROTO["wl_shm_pool"]
-
-
 class SharedMemory:
     """Create shared memory file
 
@@ -832,76 +831,72 @@ class SharedMemory:
         return self.close()
 
 
-E = TypeVar("E")
+WAYLAND_PROTO = load_protocol("wayland.xml")
+WL_DISPLAY = WAYLAND_PROTO["wl_display"]
+WL_REGISTRY = WAYLAND_PROTO["wl_registry"]
+WL_CALLBACK = WAYLAND_PROTO["wl_callback"]
+WL_SHM = WAYLAND_PROTO["wl_shm"]
+WL_SHM_POOL = WAYLAND_PROTO["wl_shm_pool"]
+WL_BUFFER = WAYLAND_PROTO["wl_buffer"]
+WL_SURFACE = WAYLAND_PROTO["wl_surface"]
+WL_COMPOSITOR = WAYLAND_PROTO["wl_compositor"]
 
-
-class Event(Generic[E]):
-    __slots__ = ["_handlers", "_futures"]
-
-    def __init__(self) -> None:
-        self._handlers: Set[Callable[[E], bool]] = set()
-        self._futures: Set[Future[E]] = set()
-
-    def __call__(self, event: E) -> None:
-        """Raise new event"""
-        handlers = self._handlers.copy()
-        self._handlers.clear()
-        for handler in handlers:
-            try:
-                if handler(event):
-                    self._handlers.add(handler)
-            except Exception:
-                logging.exception("unhandled exception in handler %s", handler)
-        futures = self._futures.copy()
-        self._futures.clear()
-        for future in futures:
-            future.set_result(event)
-
-    def cancel(self, msg: Optional[Any] = None) -> None:
-        """Cancel all waiting futures"""
-        futures = self._futures.copy()
-        self._futures.clear()
-        for future in futures:
-            future.cancel(msg)
-
-    def on(self, handler: Callable[[E], bool]) -> None:
-        """Register event handler
-
-        Handler is kept subscribed as long as it returns True
-        """
-        self._handlers.add(handler)
-
-    def __await__(self) -> Generator[Any, None, E]:
-        """Await for next event"""
-        future: Future[E] = asyncio.get_running_loop().create_future()
-        self._futures.add(future)
-        return future.__await__()
-
-    def __repr__(self) -> str:
-        return f"Events(handlers={len(self._handlers)}, futures={len(self._futures)})"
+XDG_SHELL_PROTO = load_protocol("xdg-shell.xml")
+XDG_WM_BASE = XDG_SHELL_PROTO["xdg_wm_base"]
+XDG_SURFACE = XDG_SHELL_PROTO["xdg_surface"]
+XDG_TOPLEVEL = XDG_SHELL_PROTO["xdg_toplevel"]
 
 
 async def main() -> None:
+    # globals
     conn = await Connection().connect()
+    wl_shm = conn.get_global(WL_SHM)
+    wl_compositor = conn.get_global(WL_COMPOSITOR)
+    xdg_wm_base = conn.get_global(XDG_WM_BASE)
 
-    print("interfaces:")
-    for interface in conn._registry_globals:
-        print("   ", interface)
+    # surface
+    wl_surf = conn.create_proxy(WL_SURFACE)
+    wl_compositor("create_surface", wl_surf)
+    xdg_surf = conn.create_proxy(XDG_SURFACE)
+    xdg_wm_base("get_xdg_surface", xdg_surf, wl_surf)
+    xdg_toplevel = conn.create_proxy(XDG_TOPLEVEL)
+    xdg_surf("get_toplevel", xdg_toplevel)
+    xdg_toplevel("set_title", "wayland-py")
+    wl_surf("commit")
 
+    # memory buffer
     width = 640
     height = 480
     stride = width * 4
     size = stride * height
     buf_mem = SharedMemory(size)
 
-    wl_shm = conn.get_global(WL_SHM)
-    wl_shm.on("format", print_message("wl_shm"))
+    # draw
+    for y in range(height):
+        for x in range(width):
+            offset = y * stride + x * 4
+            if (x + int(y / 8) * 8) % 16 < 8:
+                buf_mem.buf[offset : offset + 4] = b"\x66\x66\x66\xff"
+            else:
+                buf_mem.buf[offset : offset + 4] = b"\xee\xee\xee\xff"
 
+    # create wl_buffer
     pool = conn.create_proxy(WL_SHM_POOL)
     wl_shm("create_pool", pool, buf_mem, size)
+    buf = conn.create_proxy(WL_BUFFER)
+    pool("create_buffer", buf, 0, width, height, stride, 1)
+    pool("destroy")
 
-    await conn.sync()
-    conn.terminate()
+    def on_configure(serial: int) -> bool:
+        print("draw")
+        xdg_surf("ack_configure", serial)
+        wl_surf("attach", buf, 0, 0)
+        wl_surf("commit")
+        return True
+
+    xdg_surf.on("configure", on_configure)
+
+    await conn.on_terminated()
 
 
 def print_message(msg: str) -> Callable[..., bool]:

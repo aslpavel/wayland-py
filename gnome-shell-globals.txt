@@ -1,0 +1,39 @@
+interfaces:
+    wl_drm
+    wl_compositor
+    wl_shm
+    wl_output
+    zxdg_output_manager_v1
+    wl_data_device_manager
+    zwp_primary_selection_device_manager_v1
+    gtk_primary_selection_device_manager
+    wl_subcompositor
+    xdg_wm_base
+    zxdg_shell_v6
+    wl_shell
+    gtk_shell1
+    wp_viewporter
+    zwp_pointer_gestures_v1
+    zwp_tablet_manager_v2
+    wl_seat
+    zwp_relative_pointer_manager_v1
+    zwp_pointer_constraints_v1
+    zxdg_exporter_v1
+    zxdg_importer_v1
+    zwp_linux_dmabuf_v1
+    zwp_keyboard_shortcuts_inhibit_manager_v1
+    zwp_text_input_manager_v3
+    gtk_text_input_manager
+    wp_presentation
+    wl_eglstream_controller
+wl_shm format: (0,)
+wl_shm format: (1,)
+wl_shm format: (909199186,)
+wl_shm format: (808669761,)
+wl_shm format: (808669784,)
+wl_shm format: (808665665,)
+wl_shm format: (808665688,)
+wl_shm format: (1211388481,)
+wl_shm format: (1211388504,)
+wl_shm format: (1211384385,)
+wl_shm format: (1211384408,)
