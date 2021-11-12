@@ -11,7 +11,7 @@ import socket
 import secrets
 from _posixshmem import shm_open, shm_unlink
 from xml.etree import ElementTree
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 from asyncio import Future
 from collections import deque
 from struct import Struct
@@ -26,7 +26,6 @@ from typing import (
     NamedTuple,
     NewType,
     Optional,
-    Set,
     Tuple,
 )
 
@@ -362,7 +361,7 @@ class Connection:
         return True
 
 
-class Arg:
+class Arg(ABC):
     name: str
 
     def __init__(self, name: str):
