@@ -1,7 +1,7 @@
-#!/usr/bin/env python
-# pyright: scrict
 """Basic wayland client implementation
 """
+# private variables used between classes in file
+# pyright: reportPrivateUsage=false
 import asyncio
 import io
 import logging
@@ -26,7 +26,6 @@ from typing import (
     NamedTuple,
     NewType,
     Optional,
-    Set,
     Tuple,
 )
 
@@ -279,7 +278,7 @@ class Connection:
         # reading data
         while True:
             try:
-                data, fds, _flags, _address = socket.recv_fds(self._socket, 4096, 32)
+                data, fds, _, _ = socket.recv_fds(self._socket, 4096, 32)
                 if not data:
                     self.terminate("connection closed")
                     break
@@ -353,7 +352,7 @@ class Connection:
 
     def _on_registry_global_remove(self, target_name: int) -> bool:
         """Unregister name from registry globals"""
-        for interface, (name, _version, proxy) in self._registry_globals.items():
+        for interface, (name, _, proxy) in self._registry_globals.items():
             if target_name == name:
                 self._registry_globals.pop(interface)
                 if proxy is not None:
@@ -391,7 +390,7 @@ class ArgUInt(Arg):
             raise ValueError(f"[{self.name}] unsigend integer expected")
         write.write(self.struct.pack(value))
 
-    def unpack(self, read: io.BytesIO, _connection: Connection) -> Any:
+    def unpack(self, read: io.BytesIO, connection: Connection) -> Any:
         return self.struct.unpack(read.read(self.struct.size))[0]
 
 
@@ -403,7 +402,7 @@ class ArgInt(Arg):
             raise ValueError(f"[{self.name}] signed integer expected")
         write.write(self.struct.pack(value))
 
-    def unpack(self, read: io.BytesIO, _connection: Connection) -> Any:
+    def unpack(self, read: io.BytesIO, connection: Connection) -> Any:
         return self.struct.unpack(read.read(self.struct.size))[0]
 
 
@@ -418,7 +417,7 @@ class ArgFixed(Arg):
         value = (int(value) << 8) + int((value % 1.0) * 256)
         write.write(self.struct.pack(value))
 
-    def unpack(self, read: io.BytesIO, _conneciton: Connection) -> Any:
+    def unpack(self, read: io.BytesIO, connection: Connection) -> Any:
         value = self.struct.unpack(read.read(self.struct.size))[0]
         return float(value >> 8) + ((value & 0xFF) / 256.0)
 
@@ -446,7 +445,7 @@ class ArgStr(Arg):
         padding = (-size % 4) + 1
         write.write(b"\x00" * padding)
 
-    def unpack(self, read: io.BytesIO, _connection: Connection) -> Any:
+    def unpack(self, read: io.BytesIO, connection: Connection) -> Any:
         size = self.struct.unpack(read.read(self.struct.size))[0]
         value = read.read(size - 1).decode()
         read.read((-size % 4) + 1)
@@ -474,7 +473,7 @@ class ArgArray(Arg):
         write.write(data)
         write.write(b"\x00" * (-size % 4))
 
-    def unpack(self, read: io.BytesIO, _connection: Connection) -> Any:
+    def unpack(self, read: io.BytesIO, connection: Connection) -> Any:
         size = self.struct.unpack(read.read(self.struct.size))[0]
         value = read.read(size)
         read.read(-size % 4)
@@ -502,7 +501,7 @@ class ArgNewId(Arg):
             )
         write.write(self.struct.pack(value._id))
 
-    def unpack(self, _read: io.BytesIO, _connection: Connection) -> Any:
+    def unpack(self, read: io.BytesIO, connection: Connection) -> Any:
         raise NotImplementedError()
 
     def __str__(self) -> str:
@@ -539,11 +538,11 @@ class ArgObject(Arg):
 
 
 class ArgFd(Arg):
-    def pack(self, _write: io.BytesIO, _value: Any) -> None:
+    def pack(self, write: io.BytesIO, value: Any) -> None:
         # not actually writing anything, magic happanes on the _writer side
         pass
 
-    def unpack(self, _read: io.BytesIO, connection: Connection) -> Any:
+    def unpack(self, read: io.BytesIO, connection: Connection) -> Any:
         fd = connection._recv_fd()
         if fd is None:
             raise RuntimeError(f"[{self.name}] expected file descriptor")
@@ -551,12 +550,12 @@ class ArgFd(Arg):
 
 
 class Interface:
-    __slots__ = ["name", "_events", "_requests", "_requests_by_name", "_events_by_name"]
+    __slots__ = ["name", "events", "requests", "requests_by_name", "events_by_name"]
     name: str
-    _events: List[Tuple[str, List[Arg]]]
-    _events_by_name: Dict[str, Tuple[OpCode, List[Arg]]]
-    _requests: List[Tuple[str, List[Arg]]]
-    _requests_by_name: Dict[str, Tuple[OpCode, List[Arg]]]
+    events: List[Tuple[str, List[Arg]]]
+    events_by_name: Dict[str, Tuple[OpCode, List[Arg]]]
+    requests: List[Tuple[str, List[Arg]]]
+    requests_by_name: Dict[str, Tuple[OpCode, List[Arg]]]
 
     def __init__(
         self,
@@ -565,14 +564,14 @@ class Interface:
         events: List[Tuple[str, List[Arg]]],
     ) -> None:
         self.name = name
-        self._requests = requests
-        self._events = events
-        self._requests_by_name = {}
+        self.requests = requests
+        self.events = events
+        self.requests_by_name = {}
         for opcode, (name, args) in enumerate(requests):
-            self._requests_by_name[name] = (OpCode(opcode), args)
-        self._events_by_name = {}
+            self.requests_by_name[name] = (OpCode(opcode), args)
+        self.events_by_name = {}
         for opcode, (name, args) in enumerate(events):
-            self._events_by_name[name] = (OpCode(opcode), args)
+            self.events_by_name[name] = (OpCode(opcode), args)
 
     def pack(
         self,
@@ -583,7 +582,7 @@ class Interface:
 
         Returns bytes data and descritpros to be send
         """
-        name, args_desc = self._requests[opcode]
+        name, args_desc = self.requests[opcode]
         if len(args) != len(args_desc):
             raise TypeError(
                 f"[{self.name}.{name}] takes {len(args_desc)} arguments ({len(args)} given)"
@@ -613,9 +612,9 @@ class Interface:
         data: bytes,
     ) -> List[Any]:
         """Unpack opcode and data into request name and list of arguments"""
-        if opcode >= len(self._events):
+        if opcode >= len(self.events):
             raise RuntimeError(f"[{self.name}] received unknown event {opcode}")
-        _name, args_desc = self._events[opcode]
+        _, args_desc = self.events[opcode]
         read = io.BytesIO(data)
         args: List[Any] = []
         for arg_desc in args_desc:
@@ -623,7 +622,7 @@ class Interface:
         return args
 
     def __repr__(self) -> str:
-        return f"{self.name}(requests={self._requests}, events={self._events})"
+        return f"{self.name}(requests={self.requests}, events={self.events})"
 
 
 EventHandler = Callable[..., bool]
@@ -651,25 +650,25 @@ class Proxy:
         self._connection = connection
         self._is_deleted = False
         self._is_attached = False
-        self._handlers = [None] * len(interface._events)
+        self._handlers = [None] * len(interface.events)
 
     def __call__(self, name: str, *args: Any) -> None:
         # print(f"{self._interface.name}.{name}{args}")
         if not self._is_attached:
             raise RuntimeError(f"[{self}.{name}({args}) proxy is not attached]")
-        desc = self._interface._requests_by_name.get(name)
+        desc = self._interface.requests_by_name.get(name)
         if desc is None:
             raise ValueError(f"[{self}] does not have request '{name}'")
-        opcode, _args_desc = desc
+        opcode, _ = desc
         data, fds = self._interface.pack(opcode, args)
         self._connection._submit_message(Message(self._id, opcode, data, fds))
 
     def on(self, name: str, handler: EventHandler) -> Optional[EventHandler]:
         """Register handler for the event"""
-        desc = self._interface._events_by_name.get(name)
+        desc = self._interface.events_by_name.get(name)
         if desc is None:
             raise ValueError(f"[{self}] does not have event '{name}'")
-        opcode, _args_desc = desc
+        opcode, _ = desc
         old_handler, self._handlers[opcode] = self._handlers[opcode], handler
         return old_handler
 
@@ -695,7 +694,7 @@ class Proxy:
             if not handler(*args):
                 self._handlers[opcode] = None
         except Exception:
-            name = self._interface._events[opcode][0]
+            name = self._interface.events[opcode][0]
             logging.exception(f"[{self}.{name}] handler raised and error")
             self._handlers[opcode] = None
 
@@ -722,8 +721,8 @@ def load_protocol(path: str) -> Dict[str, Interface]:
         iface_name = node.get("name")
         if iface_name is None:
             raise ValueError("interface must have name attribute")
-        events = []
-        requests = []
+        events: List[Tuple[str, List[Arg]]] = []
+        requests: List[Tuple[str, List[Arg]]] = []
 
         for child in node:
             if child.tag in {"request", "event"}:
@@ -820,14 +819,14 @@ class SharedMemory:
     def buf(self) -> mmap:
         return self._mmap
 
-    def close(self):
+    def close(self) -> None:
         is_closed, self._is_closed = self._is_closed, True
         if is_closed:
             return
         os.close(self._fd)
         self._mmap.close()
 
-    def __del__(self):
+    def __del__(self) -> None:
         return self.close()
 
 
@@ -845,67 +844,3 @@ XDG_SHELL_PROTO = load_protocol("xdg-shell.xml")
 XDG_WM_BASE = XDG_SHELL_PROTO["xdg_wm_base"]
 XDG_SURFACE = XDG_SHELL_PROTO["xdg_surface"]
 XDG_TOPLEVEL = XDG_SHELL_PROTO["xdg_toplevel"]
-
-
-async def main() -> None:
-    # globals
-    conn = await Connection().connect()
-    wl_shm = conn.get_global(WL_SHM)
-    wl_compositor = conn.get_global(WL_COMPOSITOR)
-    xdg_wm_base = conn.get_global(XDG_WM_BASE)
-
-    # surface
-    wl_surf = conn.create_proxy(WL_SURFACE)
-    wl_compositor("create_surface", wl_surf)
-    xdg_surf = conn.create_proxy(XDG_SURFACE)
-    xdg_wm_base("get_xdg_surface", xdg_surf, wl_surf)
-    xdg_toplevel = conn.create_proxy(XDG_TOPLEVEL)
-    xdg_surf("get_toplevel", xdg_toplevel)
-    xdg_toplevel("set_title", "wayland-py")
-    wl_surf("commit")
-
-    # memory buffer
-    width = 640
-    height = 480
-    stride = width * 4
-    size = stride * height
-    buf_mem = SharedMemory(size)
-
-    # draw
-    for y in range(height):
-        for x in range(width):
-            offset = y * stride + x * 4
-            if (x + int(y / 8) * 8) % 16 < 8:
-                buf_mem.buf[offset : offset + 4] = b"\x66\x66\x66\xff"
-            else:
-                buf_mem.buf[offset : offset + 4] = b"\xee\xee\xee\xff"
-
-    # create wl_buffer
-    pool = conn.create_proxy(WL_SHM_POOL)
-    wl_shm("create_pool", pool, buf_mem, size)
-    buf = conn.create_proxy(WL_BUFFER)
-    pool("create_buffer", buf, 0, width, height, stride, 1)
-    pool("destroy")
-
-    def on_configure(serial: int) -> bool:
-        print("draw")
-        xdg_surf("ack_configure", serial)
-        wl_surf("attach", buf, 0, 0)
-        wl_surf("commit")
-        return True
-
-    xdg_surf.on("configure", on_configure)
-
-    await conn.on_terminated()
-
-
-def print_message(msg: str) -> Callable[..., bool]:
-    def print_message_handler(*args: Any) -> bool:
-        print(msg, args)
-        return True
-
-    return print_message_handler
-
-
-if __name__ == "__main__":
-    asyncio.run(main())
