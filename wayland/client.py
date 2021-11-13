@@ -26,9 +26,13 @@ from typing import (
     NamedTuple,
     NewType,
     Optional,
+    Protocol,
     Tuple,
+    TypeVar,
+    Union,
 )
 
+P = TypeVar("P", bound="Proxy")
 Id = NewType("Id", int)
 OpCode = NewType("OpCode", int)
 MSG_HEADER = Struct("IHH")
@@ -133,15 +137,16 @@ class Connection:
         """Create new proxy object"""
         if self._is_terminated:
             raise RuntimeError("connection has already been terminated")
-        # allocate id
-        id: Id
-        if self._id_free:
-            id = self._id_free.pop()
-        else:
-            self._id_last = Id(self._id_last + 1)
-            id = self._id_last
-        # register proxy
+        id = self._id_alloc()
         proxy = Proxy(id, interface, self)
+        self._proxies[id] = proxy
+        return proxy
+
+    def create_proxy_typed(self, create: Callable[[Id, "Connection"], P]) -> P:
+        if self._is_terminated:
+            raise RuntimeError("connection has already been terminated")
+        id = self._id_alloc()
+        proxy = create(id, self)
         self._proxies[id] = proxy
         return proxy
 
@@ -318,13 +323,20 @@ class Connection:
             )
             proxy._dispatch(opcode, args)
 
-    def _recv_fd(self) -> Optional[int]:
+    def _id_alloc(self) -> Id:
+        if self._id_free:
+            return self._id_free.pop()
+        else:
+            self._id_last = Id(self._id_last + 1)
+            return self._id_last
+
+    def _fd_recv(self) -> Optional[int]:
         """Pop next descriptor from file descriptor queue"""
         if self._read_fds:
             return self._read_fds.popleft()
         return None
 
-    def _submit_message(self, message: Message) -> None:
+    def _message_submit(self, message: Message) -> None:
         """Submit message for writing"""
         if message.id not in self._proxies:
             raise RuntimeError("object has already been deleted")
@@ -362,6 +374,7 @@ class Connection:
 
 
 class Arg(ABC):
+    type_name: ClassVar[str]
     name: str
 
     def __init__(self, name: str):
@@ -376,13 +389,14 @@ class Arg(ABC):
         pass
 
     def __str__(self) -> str:
-        return f"{self.__class__.__name__}({self.name})"
+        return f'{self.__class__.__name__}("{self.name}")'
 
     def __repr__(self) -> str:
         return str(self)
 
 
 class ArgUInt(Arg):
+    type_name: ClassVar[str] = "int"
     struct: ClassVar[Struct] = Struct("I")
 
     def pack(self, write: io.BytesIO, value: Any) -> None:
@@ -395,6 +409,7 @@ class ArgUInt(Arg):
 
 
 class ArgInt(Arg):
+    type_name: ClassVar[str] = "int"
     struct: ClassVar[Struct] = Struct("i")
 
     def pack(self, write: io.BytesIO, value: Any) -> None:
@@ -409,6 +424,7 @@ class ArgInt(Arg):
 class ArgFixed(Arg):
     """Signed 24.8 floating point value"""
 
+    type_name: ClassVar[str] = "float"
     struct: ClassVar[Struct] = Struct("i")
 
     def pack(self, write: io.BytesIO, value: Any) -> None:
@@ -428,6 +444,7 @@ class ArgStr(Arg):
     String is zero teminated and 32-bit aligned
     """
 
+    type_name: ClassVar[str] = "str"
     struct: ClassVar[Struct] = Struct("I")
 
     def pack(self, write: io.BytesIO, value: Any) -> None:
@@ -458,6 +475,7 @@ class ArgArray(Arg):
     Bytes are 32-bit aligned
     """
 
+    type_name: ClassVar[str] = "bytes"
     struct: ClassVar[Struct] = Struct("I")
 
     def pack(self, write: io.BytesIO, value: Any) -> None:
@@ -481,6 +499,7 @@ class ArgArray(Arg):
 
 
 class ArgNewId(Arg):
+    type_name: ClassVar[str] = "Proxy"
     struct: ClassVar[Struct] = Struct("I")
     interface: Optional[str]
 
@@ -505,7 +524,8 @@ class ArgNewId(Arg):
         raise NotImplementedError()
 
     def __str__(self) -> str:
-        return f"ArgNewId({self.name}, {self.interface})"
+        interface = f'"{self.interface}"' if self.interface is not None else "None"
+        return f'ArgNewId("{self.name}", {interface})'
 
 
 class ArgObject(Arg):
@@ -534,16 +554,19 @@ class ArgObject(Arg):
         return proxy
 
     def __str__(self) -> str:
-        return f"ArgObject({self.name}, {self.interface})"
+        interface = f'"{self.interface}"' if self.interface is not None else "None"
+        return f'ArgObject("{self.name}", {interface})'
 
 
 class ArgFd(Arg):
+    type_name: ClassVar[str] = "Fd"
+
     def pack(self, write: io.BytesIO, value: Any) -> None:
         # not actually writing anything, magic happanes on the _writer side
         pass
 
     def unpack(self, read: io.BytesIO, connection: Connection) -> Any:
-        fd = connection._recv_fd()
+        fd = connection._fd_recv()
         if fd is None:
             raise RuntimeError(f"[{self.name}] expected file descriptor")
         return fd
@@ -661,7 +684,7 @@ class Proxy:
             raise ValueError(f"[{self}] does not have request '{name}'")
         opcode, _ = desc
         data, fds = self._interface.pack(opcode, args)
-        self._connection._submit_message(Message(self._id, opcode, data, fds))
+        self._connection._message_submit(Message(self._id, opcode, data, fds))
 
     def on(self, name: str, handler: EventHandler) -> Optional[EventHandler]:
         """Register handler for the event"""
@@ -697,11 +720,6 @@ class Proxy:
             name = self._interface.events[opcode][0]
             logging.exception(f"[{self}.{name}] handler raised and error")
             self._handlers[opcode] = None
-
-    """
-    def __getattr__(self, name: str) -> Callable[..., Any]:
-        return lambda *args: self(name, *args)
-    """
 
     def __str__(self) -> str:
         return repr(self)
@@ -765,9 +783,9 @@ def load_protocol(path: str) -> Dict[str, Interface]:
                         else:
                             # new_id without interface is unpacked into 3 arguments
                             # (interface_name: str, version: uint, id: new_id)
-                            args.append(ArgStr("interface"))
-                            args.append(ArgUInt("version"))
-                            args.append(ArgNewId("interface", None))
+                            args.append(ArgStr(f"{arg_name}_interface"))
+                            args.append(ArgUInt(f"{arg_name}_version"))
+                            args.append(ArgNewId(arg_name, None))
 
                 if child.tag == "request":
                     requests.append((name, args))
@@ -780,6 +798,14 @@ def load_protocol(path: str) -> Dict[str, Interface]:
         iface = Interface(iface_name, requests, events)
         ifaces[iface_name] = iface
     return ifaces
+
+
+class _Fd(Protocol):
+    def fileno(self) -> int:
+        ...
+
+
+Fd = Union[_Fd, int]
 
 
 class SharedMemory:
@@ -795,7 +821,7 @@ class SharedMemory:
     _mmap: mmap
     _is_closed: bool
 
-    def __init__(self, size: int, fd: Optional[int] = None) -> None:
+    def __init__(self, size: int, fd: Optional[Fd] = None) -> None:
         self._is_closed = False
         if fd is None:
             name = secrets.token_hex(16)
@@ -807,7 +833,10 @@ class SharedMemory:
             finally:
                 shm_unlink(name)
         else:
-            self._fd = fd
+            if isinstance(fd, int):
+                self._fd = fd
+            else:
+                self._fd = fd.fileno()
             self._mmap = mmap(self._fd, size)
 
     def fileno(self) -> int:
