@@ -529,6 +529,7 @@ class ArgNewId(Arg):
 
 
 class ArgObject(Arg):
+    type_name: ClassVar[str] = "Proxy"
     struct: ClassVar[Struct] = Struct("I")
     interface: Optional[str]
 

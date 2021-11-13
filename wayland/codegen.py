@@ -12,7 +12,7 @@ def generate_client(path: str) -> str:
         "# Auto generated do not edit manualy\n"
         "# fmt: off\n"
         "# pyright: reportPrivateUsage=false\n"
-        "from typing import ClassVar\n"
+        "from typing import Callable, ClassVar, Optional\n"
         "from wayland.client import (\n"
         "    ArgUInt,\n"
         "    ArgInt,\n"
@@ -63,7 +63,7 @@ def generate_client(path: str) -> str:
 
         # define events
         for opcode, (event, args_desc) in enumerate(interface.events):
-            _generate_event(module, opcode, event, args_desc)
+            _generate_events(module, opcode, event, args_desc)
 
     module.write("# fmt: on")
     return module.getvalue()
@@ -141,13 +141,29 @@ def _generate_request(
     )
 
 
-def _generate_event(
+def _generate_events(
     module: io.StringIO,
     opcode: int,
     event: str,
     args_desc: List[Arg],
 ) -> None:
-    pass
+    args_types: List[str] = []
+    for arg_desc in args_desc:
+        if isinstance(arg_desc, (ArgObject, ArgNewId)):
+            if arg_desc.interface is None:
+                args_types.append(arg_desc.type_name)
+            else:
+                args_types.append(f'"{arg_desc.interface}"')
+        else:
+            args_types.append(arg_desc.type_name)
+    handler_sig = "Callable[[{}], bool]".format(", ".join(args_types))
+    print(
+        f"    def on_{event}(self, handler: {handler_sig}) -> Optional[{handler_sig}]:\n"
+        f"        _opcode = OpCode({opcode})\n"
+        f"        old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler\n"
+        f"        return old_handler\n",
+        file=module,
+    )
 
 
 if __name__ == "__main__":
