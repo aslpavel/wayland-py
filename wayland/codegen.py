@@ -19,7 +19,7 @@ def generate_client(
     else:
         wayland_client = "wayland.client"
     print(
-        "# Auto generated do not edit manualy\n"
+        "# Auto generated do not edit manually\n"
         "# fmt: off\n"
         "# pyright: reportPrivateUsage=false\n"
         "from enum import Enum\n"
@@ -63,7 +63,7 @@ def generate_client(
         # define init
         print(
             f"    def __init__(self, id: Id, connection: Connection) -> None:\n"
-            f"        super().__init__(id, self.interface, connection)\n",
+            f"        super().__init__(id, connection, self.interface)\n",
             file=module,
         )
 

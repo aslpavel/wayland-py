@@ -1,4 +1,4 @@
-# Auto generated do not edit manualy
+# Auto generated do not edit manually
 # fmt: off
 # pyright: reportPrivateUsage=false
 from enum import Enum
@@ -52,7 +52,7 @@ class wl_display(Proxy):
     )
 
     def __init__(self, id: Id, connection: Connection) -> None:
-        super().__init__(id, self.interface, connection)
+        super().__init__(id, connection, self.interface)
 
     def sync(self) -> "wl_callback":
         _opcode = OpCode(0)
@@ -99,7 +99,7 @@ class wl_registry(Proxy):
     )
 
     def __init__(self, id: Id, connection: Connection) -> None:
-        super().__init__(id, self.interface, connection)
+        super().__init__(id, connection, self.interface)
 
     def bind(self, name: int, id_interface: str, id_version: int, id: Proxy) -> None:
         _opcode = OpCode(0)
@@ -134,7 +134,7 @@ class wl_callback(Proxy):
     )
 
     def __init__(self, id: Id, connection: Connection) -> None:
-        super().__init__(id, self.interface, connection)
+        super().__init__(id, connection, self.interface)
 
     def on_done(self, handler: Callable[[int], bool]) -> Optional[Callable[[int], bool]]:
         _opcode = OpCode(0)
@@ -155,7 +155,7 @@ class wl_compositor(Proxy):
     )
 
     def __init__(self, id: Id, connection: Connection) -> None:
-        super().__init__(id, self.interface, connection)
+        super().__init__(id, connection, self.interface)
 
     def create_surface(self) -> "wl_surface":
         _opcode = OpCode(0)
@@ -186,7 +186,7 @@ class wl_shm_pool(Proxy):
     )
 
     def __init__(self, id: Id, connection: Connection) -> None:
-        super().__init__(id, self.interface, connection)
+        super().__init__(id, connection, self.interface)
 
     def create_buffer(self, offset: int, width: int, height: int, stride: int, format: "wl_shm.enum_format") -> "wl_buffer":
         _opcode = OpCode(0)
@@ -332,7 +332,7 @@ class wl_shm(Proxy):
     )
 
     def __init__(self, id: Id, connection: Connection) -> None:
-        super().__init__(id, self.interface, connection)
+        super().__init__(id, connection, self.interface)
 
     def create_pool(self, fd: Fd, size: int) -> "wl_shm_pool":
         _opcode = OpCode(0)
@@ -471,7 +471,7 @@ class wl_buffer(Proxy):
     )
 
     def __init__(self, id: Id, connection: Connection) -> None:
-        super().__init__(id, self.interface, connection)
+        super().__init__(id, connection, self.interface)
 
     def destroy(self) -> None:
         _opcode = OpCode(0)
@@ -510,7 +510,7 @@ class wl_data_offer(Proxy):
     )
 
     def __init__(self, id: Id, connection: Connection) -> None:
-        super().__init__(id, self.interface, connection)
+        super().__init__(id, connection, self.interface)
 
     def accept(self, serial: int, mime_type: str) -> None:
         _opcode = OpCode(0)
@@ -588,7 +588,7 @@ class wl_data_source(Proxy):
     )
 
     def __init__(self, id: Id, connection: Connection) -> None:
-        super().__init__(id, self.interface, connection)
+        super().__init__(id, connection, self.interface)
 
     def offer(self, mime_type: str) -> None:
         _opcode = OpCode(0)
@@ -666,7 +666,7 @@ class wl_data_device(Proxy):
     )
 
     def __init__(self, id: Id, connection: Connection) -> None:
-        super().__init__(id, self.interface, connection)
+        super().__init__(id, connection, self.interface)
 
     def start_drag(self, source: "wl_data_source", origin: "wl_surface", icon: "wl_surface", serial: int) -> None:
         _opcode = OpCode(0)
@@ -739,7 +739,7 @@ class wl_data_device_manager(Proxy):
     )
 
     def __init__(self, id: Id, connection: Connection) -> None:
-        super().__init__(id, self.interface, connection)
+        super().__init__(id, connection, self.interface)
 
     def create_data_source(self) -> "wl_data_source":
         _opcode = OpCode(0)
@@ -777,7 +777,7 @@ class wl_shell(Proxy):
     )
 
     def __init__(self, id: Id, connection: Connection) -> None:
-        super().__init__(id, self.interface, connection)
+        super().__init__(id, connection, self.interface)
 
     def get_shell_surface(self, surface: "wl_surface") -> "wl_shell_surface":
         _opcode = OpCode(0)
@@ -834,7 +834,7 @@ class wl_shell_surface(Proxy):
     )
 
     def __init__(self, id: Id, connection: Connection) -> None:
-        super().__init__(id, self.interface, connection)
+        super().__init__(id, connection, self.interface)
 
     def pong(self, serial: int) -> None:
         _opcode = OpCode(0)
@@ -960,7 +960,7 @@ class wl_surface(Proxy):
     )
 
     def __init__(self, id: Id, connection: Connection) -> None:
-        super().__init__(id, self.interface, connection)
+        super().__init__(id, connection, self.interface)
 
     def destroy(self) -> None:
         _opcode = OpCode(0)
@@ -1064,7 +1064,7 @@ class wl_seat(Proxy):
     )
 
     def __init__(self, id: Id, connection: Connection) -> None:
-        super().__init__(id, self.interface, connection)
+        super().__init__(id, connection, self.interface)
 
     def get_pointer(self) -> "wl_pointer":
         _opcode = OpCode(0)
@@ -1151,7 +1151,7 @@ class wl_pointer(Proxy):
     )
 
     def __init__(self, id: Id, connection: Connection) -> None:
-        super().__init__(id, self.interface, connection)
+        super().__init__(id, connection, self.interface)
 
     def set_cursor(self, serial: int, surface: "wl_surface", hotspot_x: int, hotspot_y: int) -> None:
         _opcode = OpCode(0)
@@ -1254,7 +1254,7 @@ class wl_keyboard(Proxy):
     )
 
     def __init__(self, id: Id, connection: Connection) -> None:
-        super().__init__(id, self.interface, connection)
+        super().__init__(id, connection, self.interface)
 
     def release(self) -> None:
         _opcode = OpCode(0)
@@ -1320,7 +1320,7 @@ class wl_touch(Proxy):
     )
 
     def __init__(self, id: Id, connection: Connection) -> None:
-        super().__init__(id, self.interface, connection)
+        super().__init__(id, connection, self.interface)
 
     def release(self) -> None:
         _opcode = OpCode(0)
@@ -1402,7 +1402,7 @@ class wl_output(Proxy):
     )
 
     def __init__(self, id: Id, connection: Connection) -> None:
-        super().__init__(id, self.interface, connection)
+        super().__init__(id, connection, self.interface)
 
     def release(self) -> None:
         _opcode = OpCode(0)
@@ -1467,7 +1467,7 @@ class wl_region(Proxy):
     )
 
     def __init__(self, id: Id, connection: Connection) -> None:
-        super().__init__(id, self.interface, connection)
+        super().__init__(id, connection, self.interface)
 
     def destroy(self) -> None:
         _opcode = OpCode(0)
@@ -1504,7 +1504,7 @@ class wl_subcompositor(Proxy):
     )
 
     def __init__(self, id: Id, connection: Connection) -> None:
-        super().__init__(id, self.interface, connection)
+        super().__init__(id, connection, self.interface)
 
     def destroy(self) -> None:
         _opcode = OpCode(0)
@@ -1543,7 +1543,7 @@ class wl_subsurface(Proxy):
     )
 
     def __init__(self, id: Id, connection: Connection) -> None:
-        super().__init__(id, self.interface, connection)
+        super().__init__(id, connection, self.interface)
 
     def destroy(self) -> None:
         _opcode = OpCode(0)

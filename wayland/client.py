@@ -30,6 +30,7 @@ from typing import (
     Protocol as Proto,
     Set,
     Tuple,
+    Type,
     TypeVar,
     Union,
 )
@@ -140,11 +141,11 @@ class Connection:
         if self._is_terminated:
             raise RuntimeError("connection has already been terminated")
         id = self._id_alloc()
-        proxy = Proxy(id, interface, self)
+        proxy = Proxy(id, self, interface)
         self._proxies[id] = proxy
         return proxy
 
-    def create_proxy_typed(self, proxy_type: Callable[[Id, "Connection"], P]) -> P:
+    def create_proxy_typed(self, proxy_type: Type[P]) -> P:
         """Create proxy by proxy type"""
         if self._is_terminated:
             raise RuntimeError("connection has already been terminated")
@@ -163,6 +164,23 @@ class Connection:
             proxy = self.create_proxy(interface)
             self._registry("bind", name, interface.name, version, proxy)
             self._registry_globals[interface.name] = (name, version, proxy)
+        return proxy
+
+    def get_global_typed(self, proxy_type: Type[P]) -> P:
+        """Get global by proxy type"""
+        if not hasattr(proxy_type, "interface"):
+            raise TypeError("cannot get untyped proxy")
+        interface = proxy_type.interface
+        entry = self._registry_globals.get(interface.name)
+        if entry is None:
+            raise RuntimeError(f"no globals provide: {interface}")
+        name, version, proxy = entry
+        if proxy is None:
+            proxy = self.create_proxy_typed(proxy_type)
+            self._registry("bind", name, interface.name, version, proxy)
+            self._registry_globals[interface.name] = (name, version, proxy)
+        if not isinstance(proxy, proxy_type):
+            raise ValueError("global has already been bound by untyped proxy")
         return proxy
 
     async def sync(self) -> None:
@@ -687,6 +705,7 @@ class Proxy:
         "_is_attached",
         "_handlers",
     ]
+    interface: ClassVar[Interface]
     _id: Id
     _interface: Interface
     _connection: Connection
@@ -694,7 +713,15 @@ class Proxy:
     _is_attached: bool
     _handlers: List[Optional[EventHandler]]
 
-    def __init__(self, id: Id, interface: Interface, connection: Connection) -> None:
+    def __init__(
+        self,
+        id: Id,
+        connection: Connection,
+        interface: Optional[Interface] = None,
+    ) -> None:
+        if interface is None:
+            # interface must always be provided and only seem optional for typechecker
+            raise RuntimeError("interface must be providied")
         self._id = id
         self._interface = interface
         self._connection = connection

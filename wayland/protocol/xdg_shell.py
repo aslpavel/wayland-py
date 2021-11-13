@@ -1,4 +1,4 @@
-# Auto generated do not edit manualy
+# Auto generated do not edit manually
 # fmt: off
 # pyright: reportPrivateUsage=false
 from enum import Enum
@@ -39,7 +39,7 @@ class xdg_wm_base(Proxy):
     )
 
     def __init__(self, id: Id, connection: Connection) -> None:
-        super().__init__(id, self.interface, connection)
+        super().__init__(id, connection, self.interface)
 
     def destroy(self) -> None:
         _opcode = OpCode(0)
@@ -136,7 +136,7 @@ class xdg_positioner(Proxy):
     )
 
     def __init__(self, id: Id, connection: Connection) -> None:
-        super().__init__(id, self.interface, connection)
+        super().__init__(id, connection, self.interface)
 
     def destroy(self) -> None:
         _opcode = OpCode(0)
@@ -255,7 +255,7 @@ class xdg_surface(Proxy):
     )
 
     def __init__(self, id: Id, connection: Connection) -> None:
-        super().__init__(id, self.interface, connection)
+        super().__init__(id, connection, self.interface)
 
     def destroy(self) -> None:
         _opcode = OpCode(0)
@@ -348,7 +348,7 @@ class xdg_toplevel(Proxy):
     )
 
     def __init__(self, id: Id, connection: Connection) -> None:
-        super().__init__(id, self.interface, connection)
+        super().__init__(id, connection, self.interface)
 
     def destroy(self) -> None:
         _opcode = OpCode(0)
@@ -486,7 +486,7 @@ class xdg_popup(Proxy):
     )
 
     def __init__(self, id: Id, connection: Connection) -> None:
-        super().__init__(id, self.interface, connection)
+        super().__init__(id, connection, self.interface)
 
     def destroy(self) -> None:
         _opcode = OpCode(0)
