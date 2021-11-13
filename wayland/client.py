@@ -9,6 +9,7 @@ from mmap import mmap
 import os
 import socket
 import secrets
+from enum import Enum
 from _posixshmem import shm_open, shm_unlink
 from xml.etree import ElementTree
 from abc import ABC, abstractmethod
@@ -398,14 +399,27 @@ class Arg(ABC):
 class ArgUInt(Arg):
     type_name: ClassVar[str] = "int"
     struct: ClassVar[Struct] = Struct("I")
+    enum: Optional[str]
+
+    def __init__(self, name: str, enum: Optional[str] = None):
+        super().__init__(name)
+        self.enum = enum
 
     def pack(self, write: io.BytesIO, value: Any) -> None:
         if not isinstance(value, int) or value < 0:
             raise ValueError(f"[{self.name}] unsigend integer expected")
-        write.write(self.struct.pack(value))
+        if isinstance(value, Enum):
+            write.write(self.struct.pack(value.value))
+        else:
+            write.write(self.struct.pack(value))
 
     def unpack(self, read: io.BytesIO, connection: Connection) -> Any:
         return self.struct.unpack(read.read(self.struct.size))[0]
+
+    def __str__(self) -> str:
+        if self.enum:
+            return f'ArgUInt("{self.name}", "{self.enum}")'
+        return f'ArgUInt("{self.name}")'
 
 
 class ArgInt(Arg):
@@ -774,8 +788,8 @@ def load_protocol(path: str) -> Dict[str, Interface]:
                             f"[{iface_name}.{name}] argument without a type"
                         )
                     if arg_type == "uint":
-                        # TODO: enum support
-                        args.append(ArgUInt(arg_name))
+                        enum_name = arg_node.get("enum")
+                        args.append(ArgUInt(arg_name, enum_name))
                     elif arg_type == "int":
                         args.append(ArgInt(arg_name))
                     elif arg_type == "fixed":
@@ -893,7 +907,7 @@ class SharedMemory:
         return self.close()
 
 
-WAYLAND_PROTO = load_protocol("wayland.xml")
+WAYLAND_PROTO = load_protocol("protocol/wayland.xml")
 WL_DISPLAY = WAYLAND_PROTO["wl_display"]
 WL_REGISTRY = WAYLAND_PROTO["wl_registry"]
 WL_CALLBACK = WAYLAND_PROTO["wl_callback"]
@@ -903,7 +917,7 @@ WL_BUFFER = WAYLAND_PROTO["wl_buffer"]
 WL_SURFACE = WAYLAND_PROTO["wl_surface"]
 WL_COMPOSITOR = WAYLAND_PROTO["wl_compositor"]
 
-XDG_SHELL_PROTO = load_protocol("xdg-shell.xml")
+XDG_SHELL_PROTO = load_protocol("protocol/xdg-shell.xml")
 XDG_WM_BASE = XDG_SHELL_PROTO["xdg_wm_base"]
 XDG_SURFACE = XDG_SHELL_PROTO["xdg_surface"]
 XDG_TOPLEVEL = XDG_SHELL_PROTO["xdg_toplevel"]

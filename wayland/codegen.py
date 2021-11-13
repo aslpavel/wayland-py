@@ -1,7 +1,7 @@
 import io
 import argparse
 from typing import List
-from .client import Arg, ArgFd, ArgNewId, ArgObject, load_protocol
+from .client import Arg, ArgFd, ArgNewId, ArgObject, ArgUInt, load_protocol
 
 
 def generate_client(path: str) -> str:
@@ -105,6 +105,14 @@ def _generate_request(
             results_desc.append(arg_desc)
         elif isinstance(arg_desc, ArgFd):
             args_types.append(f"{arg_desc.name}: Fd")
+        elif isinstance(arg_desc, ArgUInt):
+            if arg_desc.enum is None:
+                args_types.append(f"{arg_desc.name}: {arg_desc.type_name}")
+            else:
+                chunks = arg_desc.enum.split(".")
+                chunks[-1] = f"enum_{chunks[-1]}"
+                enum_name = ".".join(chunks)
+                args_types.append(f'{arg_desc.name}: "{enum_name}"')
         else:
             args_types.append(f"{arg_desc.name}: {arg_desc.type_name}")
 
