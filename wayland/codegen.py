@@ -1,39 +1,41 @@
 import io
+import sys
 import argparse
-from typing import List
-from .client import Arg, ArgFd, ArgNewId, ArgObject, ArgUInt, load_protocol
+from pathlib import Path
+from typing import Dict, List, Set
+from .client import Arg, ArgFd, ArgNewId, ArgObject, ArgUInt, Protocol
 
 
-def generate_client(path: str) -> str:
+def generate_client(
+    proto: Protocol,
+    reliative: bool,
+    deps: Set[str],
+) -> str:
     """Generate client proxies from protocol"""
-    interfaces = load_protocol(path)
+    interfaces = proto.interfaces
     module = io.StringIO()
+    if reliative:
+        wayland_client = "..client"
+    else:
+        wayland_client = "wayland.client"
     print(
         "# Auto generated do not edit manualy\n"
         "# fmt: off\n"
         "# pyright: reportPrivateUsage=false\n"
         "from enum import Enum\n"
         "from typing import Callable, ClassVar, Optional\n"
-        "from wayland.client import (\n"
-        "    ArgUInt,\n"
-        "    ArgInt,\n"
-        "    ArgFixed,\n"
-        "    ArgStr,\n"
-        "    ArgArray,\n"
-        "    ArgNewId,\n"
-        "    ArgObject,\n"
-        "    ArgFd,\n"
-        "    Connection,\n"
-        "    Fd,\n"
-        "    Id,\n"
-        "    Interface,\n"
-        "    Message,\n"
-        "    OpCode,\n"
-        "    Proxy,\n"
-        ")",
+        f"from {wayland_client} import *",
         file=module,
     )
-    print("\n", file=module)
+    for dep in deps:
+        print(f"from .{dep} import *", file=module)
+    print(file=module)
+
+    print("__all__ = [", file=module)
+    for iface_name in interfaces:
+        print(f'    "{iface_name}",'.format(iface_name), file=module)
+    print("]\n", file=module)
+
     for iface_name, interface in interfaces.items():
         # define class
         print(f"class {iface_name}(Proxy):", file=module)
@@ -190,8 +192,37 @@ def _generate_events(
     )
 
 
-if __name__ == "__main__":
+def main() -> None:
     args = argparse.ArgumentParser()
-    args.add_argument("protocol_xml", help="input protocol xml file")
+    args.add_argument("--protocol_xml", required=False, help="input protocol xml file")
     opts = args.parse_args()
-    print(generate_client(opts.protocol_xml))
+
+    if opts.protocol_xml:
+        protocol = Protocol.load(opts.protocol_xml)
+        print(generate_client(protocol, reliative=False, deps=set()))
+        return
+
+    protocols: List[Protocol] = []
+    path = Path("protocol")
+    for proto_file in path.iterdir():
+        if proto_file.suffix != ".xml":
+            continue
+        protocols.append(Protocol.load(str(proto_file)))
+
+    deps: Dict[str, Set[str]] = {proto.name: set() for proto in protocols}
+    for protocol in protocols:
+        for extern in protocol.extern:
+            for dep in protocols:
+                if extern in dep.interfaces:
+                    deps[protocol.name].add(dep.name)
+
+    target = Path(__file__).parent / "protocol"
+    for protocol in protocols:
+        print(protocol.name, file=sys.stderr)
+        module = generate_client(protocol, reliative=True, deps=deps[protocol.name])
+        module_file = target / f"{protocol.name}.py"
+        module_file.write_text(module)
+
+
+if __name__ == "__main__":
+    main()

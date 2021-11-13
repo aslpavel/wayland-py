@@ -27,7 +27,8 @@ from typing import (
     NamedTuple,
     NewType,
     Optional,
-    Protocol,
+    Protocol as Proto,
+    Set,
     Tuple,
     TypeVar,
     Union,
@@ -143,11 +144,12 @@ class Connection:
         self._proxies[id] = proxy
         return proxy
 
-    def create_proxy_typed(self, create: Callable[[Id, "Connection"], P]) -> P:
+    def create_proxy_typed(self, proxy_type: Callable[[Id, "Connection"], P]) -> P:
+        """Create proxy by proxy type"""
         if self._is_terminated:
             raise RuntimeError("connection has already been terminated")
         id = self._id_alloc()
-        proxy = create(id, self)
+        proxy = proxy_type(id, self)
         self._proxies[id] = proxy
         return proxy
 
@@ -753,102 +755,134 @@ class Proxy:
         return f"{self._interface.name}@{self._id}"
 
 
-def load_protocol(path: str) -> Dict[str, Interface]:
-    """Load interfaces from protocol XML file"""
-    tree = ElementTree.parse(path)
+class Protocol:
+    __slots__ = ["name", "interfaces", "extern"]
+    name: str
+    interfaces: Dict[str, Interface]
+    extern: Set[str]
 
-    ifaces: Dict[str, Interface] = {}
-    for node in tree.getroot():
-        if node.tag != "interface":
-            continue
-        iface_name = node.get("name")
-        if iface_name is None:
-            raise ValueError("interface must have name attribute")
-        events: List[Tuple[str, List[Arg]]] = []
-        requests: List[Tuple[str, List[Arg]]] = []
-        enums: Dict[str, Dict[str, int]] = {}
+    def __init__(self, name: str, interfaces: Dict[str, Interface], extern: Set[str]):
+        self.name = name
+        self.interfaces = interfaces
+        self.extern = extern
 
-        for child in node:
-            if child.tag in {"request", "event"}:
-                name = child.get("name")
-                if name is None:
-                    raise ValueError(f"[{iface_name}] {child.tag} without a name")
-                args: List[Arg] = []
-                for arg_node in child:
-                    if arg_node.tag != "arg":
-                        continue
-                    arg_name = arg_node.get("name")
-                    if arg_name is None:
-                        raise ValueError(
-                            f"[{iface_name}.{name}] argument without a name"
-                        )
-                    arg_type = arg_node.get("type")
-                    if arg_type is None:
-                        raise ValueError(
-                            f"[{iface_name}.{name}] argument without a type"
-                        )
-                    if arg_type == "uint":
-                        enum_name = arg_node.get("enum")
-                        args.append(ArgUInt(arg_name, enum_name))
-                    elif arg_type == "int":
-                        args.append(ArgInt(arg_name))
-                    elif arg_type == "fixed":
-                        args.append(ArgFixed(arg_name))
-                    elif arg_type == "string":
-                        args.append(ArgStr(arg_name))
-                    elif arg_type == "array":
-                        args.append(ArgArray(arg_name))
-                    elif arg_type == "fd":
-                        args.append(ArgFd(arg_name))
-                    elif arg_type == "object":
-                        args.append(ArgObject(arg_name, arg_node.get("interface")))
-                    elif arg_type == "new_id":
-                        arg_iface = arg_node.get("interface")
-                        if arg_iface is not None:
-                            args.append(ArgNewId(arg_name, arg_iface))
-                        else:
-                            # new_id without interface is unpacked into 3 arguments
-                            # (interface_name: str, version: uint, id: new_id)
-                            args.append(ArgStr(f"{arg_name}_interface"))
-                            args.append(ArgUInt(f"{arg_name}_version"))
-                            args.append(ArgNewId(arg_name, None))
+    def __str__(self) -> str:
+        return f'<Protocol(name="{self.name}")>'
 
-                if child.tag == "request":
-                    requests.append((name, args))
-                else:
-                    events.append((name, args))
+    def __repr__(self) -> str:
+        return str(self)
 
-            elif child.tag == "enum":
-                name = child.get("name")
-                if name is None:
-                    raise ValueError(f"[{iface_name}] `{child.tag}` without a name")
-                enum: Dict[str, int] = {}
-                for var in child:
-                    if var.tag != "entry":
-                        continue
-                    var_name = var.get("name")
-                    if var_name is None:
-                        raise ValueError(
-                            f"[{iface_name}.{name}] `{var.tag}` without a name"
-                        )
-                    value_str = var.get("value")
-                    if value_str is None:
-                        raise ValueError(
-                            f"[{iface_name}.{name}] `{var.tag}` without a value"
-                        )
-                    if value_str.startswith("0x"):
-                        value = int(value_str[2:], 16)
+    def __getitem__(self, name: str) -> Interface:
+        return self.interfaces[name]
+
+    @classmethod
+    def load(cls, path: str) -> "Protocol":
+        """Load interfaces from protocol XML file"""
+        root = ElementTree.parse(path).getroot()
+
+        ifaces: Dict[str, Interface] = {}
+        extern: Set[str] = set()
+        protocol_name = root.get("name")
+        if protocol_name is None:
+            raise ValueError("protocol must define name attribute")
+
+        for node in root:
+            if node.tag != "interface":
+                continue
+            iface_name = node.get("name")
+            if iface_name is None:
+                raise ValueError("interface must have name attribute")
+            events: List[Tuple[str, List[Arg]]] = []
+            requests: List[Tuple[str, List[Arg]]] = []
+            enums: Dict[str, Dict[str, int]] = {}
+
+            for child in node:
+                if child.tag in {"request", "event"}:
+                    name = child.get("name")
+                    if name is None:
+                        raise ValueError(f"[{iface_name}] {child.tag} without a name")
+                    args: List[Arg] = []
+                    for arg_node in child:
+                        if arg_node.tag != "arg":
+                            continue
+                        arg_name = arg_node.get("name")
+                        if arg_name is None:
+                            raise ValueError(
+                                f"[{iface_name}.{name}] argument without a name"
+                            )
+                        arg_type = arg_node.get("type")
+                        if arg_type is None:
+                            raise ValueError(
+                                f"[{iface_name}.{name}] argument without a type"
+                            )
+                        if arg_type == "uint":
+                            enum_name = arg_node.get("enum")
+                            args.append(ArgUInt(arg_name, enum_name))
+                        elif arg_type == "int":
+                            args.append(ArgInt(arg_name))
+                        elif arg_type == "fixed":
+                            args.append(ArgFixed(arg_name))
+                        elif arg_type == "string":
+                            args.append(ArgStr(arg_name))
+                        elif arg_type == "array":
+                            args.append(ArgArray(arg_name))
+                        elif arg_type == "fd":
+                            args.append(ArgFd(arg_name))
+                        elif arg_type == "object":
+                            arg_iface = arg_node.get("interface")
+                            if arg_iface is not None:
+                                extern.add(arg_iface)
+                            args.append(ArgObject(arg_name, arg_iface))
+                        elif arg_type == "new_id":
+                            arg_iface = arg_node.get("interface")
+                            if arg_iface is not None:
+                                extern.add(arg_iface)
+                                args.append(ArgNewId(arg_name, arg_iface))
+                            else:
+                                # new_id without interface is unpacked into 3 arguments
+                                # (interface_name: str, version: uint, id: new_id)
+                                args.append(ArgStr(f"{arg_name}_interface"))
+                                args.append(ArgUInt(f"{arg_name}_version"))
+                                args.append(ArgNewId(arg_name, None))
+
+                    if child.tag == "request":
+                        requests.append((name, args))
                     else:
-                        value = int(value_str)
-                    enum[var_name] = value
-                enums[name] = enum
+                        events.append((name, args))
 
-        iface = Interface(iface_name, requests, events, enums)
-        ifaces[iface_name] = iface
-    return ifaces
+                elif child.tag == "enum":
+                    name = child.get("name")
+                    if name is None:
+                        raise ValueError(f"[{iface_name}] `{child.tag}` without a name")
+                    enum: Dict[str, int] = {}
+                    for var in child:
+                        if var.tag != "entry":
+                            continue
+                        var_name = var.get("name")
+                        if var_name is None:
+                            raise ValueError(
+                                f"[{iface_name}.{name}] `{var.tag}` without a name"
+                            )
+                        value_str = var.get("value")
+                        if value_str is None:
+                            raise ValueError(
+                                f"[{iface_name}.{name}] `{var.tag}` without a value"
+                            )
+                        if value_str.startswith("0x"):
+                            value = int(value_str[2:], 16)
+                        else:
+                            value = int(value_str)
+                        enum[var_name] = value
+                    enums[name] = enum
+
+            iface = Interface(iface_name, requests, events, enums)
+            ifaces[iface_name] = iface
+
+        extern -= set(ifaces)
+        return Protocol(protocol_name, ifaces, extern)
 
 
-class _Fd(Protocol):
+class _Fd(Proto):
     def fileno(self) -> int:
         ...
 
@@ -907,7 +941,7 @@ class SharedMemory:
         return self.close()
 
 
-WAYLAND_PROTO = load_protocol("protocol/wayland.xml")
+WAYLAND_PROTO = Protocol.load("protocol/wayland.xml")
 WL_DISPLAY = WAYLAND_PROTO["wl_display"]
 WL_REGISTRY = WAYLAND_PROTO["wl_registry"]
 WL_CALLBACK = WAYLAND_PROTO["wl_callback"]
@@ -917,7 +951,7 @@ WL_BUFFER = WAYLAND_PROTO["wl_buffer"]
 WL_SURFACE = WAYLAND_PROTO["wl_surface"]
 WL_COMPOSITOR = WAYLAND_PROTO["wl_compositor"]
 
-XDG_SHELL_PROTO = load_protocol("protocol/xdg-shell.xml")
+XDG_SHELL_PROTO = Protocol.load("protocol/xdg-shell.xml")
 XDG_WM_BASE = XDG_SHELL_PROTO["xdg_wm_base"]
 XDG_SURFACE = XDG_SHELL_PROTO["xdg_surface"]
 XDG_TOPLEVEL = XDG_SHELL_PROTO["xdg_toplevel"]
