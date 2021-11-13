@@ -91,9 +91,8 @@ class Connection:
 
     _display: "Proxy"
     _registry: "Proxy"
-    _registry_globals: Dict[
-        str, Tuple[int, int, Optional["Proxy"]]
-    ]  # (name, verison, proxy)
+    # interface_name -> (name, verison, proxy)
+    _registry_globals: Dict[str, Tuple[int, int, Optional["Proxy"]]]
 
     def __init__(self, path: Optional[str] = None) -> None:
         if path is not None:
@@ -427,7 +426,7 @@ class ArgUInt(Arg):
 
     def pack(self, write: io.BytesIO, value: Any) -> None:
         if not isinstance(value, int) or value < 0:
-            raise ValueError(f"[{self.name}] unsigend integer expected")
+            raise TypeError(f"[{self.name}] unsigend integer expected")
         if isinstance(value, Enum):
             write.write(self.struct.pack(value.value))
         else:
@@ -448,7 +447,7 @@ class ArgInt(Arg):
 
     def pack(self, write: io.BytesIO, value: Any) -> None:
         if not isinstance(value, int):
-            raise ValueError(f"[{self.name}] signed integer expected")
+            raise TypeError(f"[{self.name}] signed integer expected")
         write.write(self.struct.pack(value))
 
     def unpack(self, read: io.BytesIO, connection: Connection) -> Any:
@@ -463,7 +462,7 @@ class ArgFixed(Arg):
 
     def pack(self, write: io.BytesIO, value: Any) -> None:
         if not isinstance(value, (int, float)):
-            raise ValueError(f"[{self.name}]  float expected")
+            raise TypeError(f"[{self.name}]  float expected")
         value = (int(value) << 8) + int((value % 1.0) * 256)
         write.write(self.struct.pack(value))
 
@@ -488,7 +487,7 @@ class ArgStr(Arg):
         elif isinstance(value, bytes):
             data = value
         else:
-            raise ValueError(f"[{self.name}] string or bytes expected")
+            raise TypeError(f"[{self.name}] string or bytes expected")
         size = len(data) + 1  # null terminated length
         write.write(self.struct.pack(size))
         write.write(data)
@@ -519,7 +518,7 @@ class ArgArray(Arg):
         elif isinstance(value, bytes):
             data = value
         else:
-            raise ValueError(f"[{self.name}] string or bytes expected")
+            raise TypeError(f"[{self.name}] string or bytes expected")
         size = len(data)
         write.write(self.struct.pack(size))
         write.write(data)
@@ -543,12 +542,12 @@ class ArgNewId(Arg):
 
     def pack(self, write: io.BytesIO, value: Any) -> None:
         if not isinstance(value, Proxy):
-            raise ValueError(f"[{self.name}] proxy object expected got {value}")
+            raise TypeError(f"[{self.name}] proxy object expected got {value}")
         if value._is_attached:
-            raise ValueError(f"[{self.name}] proxy has already been attached")
+            raise TypeError(f"[{self.name}] proxy has already been attached")
         value._is_attached = True
         if self.interface is not None and self.interface != value._interface.name:
-            raise ValueError(
+            raise TypeError(
                 f"[{self.name}] proxy object must implement '{self.interface}' "
                 f"interface (given '{value._interface.name}'')"
             )
@@ -573,9 +572,9 @@ class ArgObject(Arg):
 
     def pack(self, write: io.BytesIO, value: Any) -> None:
         if not isinstance(value, Proxy):
-            raise ValueError(f"[{self.name}] proxy object expected {value}")
+            raise TypeError(f"[{self.name}] proxy object expected {value}")
         if self.interface is not None and self.interface != value._interface.name:
-            raise ValueError(
+            raise TypeError(
                 f"[{self.name}] proxy object must implement '{self.interface}' "
                 f"interface (given '{value._interface.name}'')"
             )
