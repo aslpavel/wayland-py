@@ -12,6 +12,7 @@ def generate_client(path: str) -> str:
         "# Auto generated do not edit manualy\n"
         "# fmt: off\n"
         "# pyright: reportPrivateUsage=false\n"
+        "from enum import Enum\n"
         "from typing import Callable, ClassVar, Optional\n"
         "from wayland.client import (\n"
         "    ArgUInt,\n"
@@ -48,6 +49,13 @@ def generate_client(path: str) -> str:
         for event, args_desc in interface.events:
             print(f'            ("{event}", {args_desc}),', file=module)
         print(f"        ],", file=module)
+        print("        enums={", file=module)
+        for enum_name, enum in interface.enums.items():
+            print('            "{}": {{'.format(enum_name), file=module)
+            for var_name, value in enum.items():
+                print('                "{}": {},'.format(var_name, value), file=module)
+            print("            },", file=module)
+        print("        },", file=module)
         print(f"    )\n", file=module)
 
         # define init
@@ -64,6 +72,14 @@ def generate_client(path: str) -> str:
         # define events
         for opcode, (event, args_desc) in enumerate(interface.events):
             _generate_events(module, opcode, event, args_desc)
+
+        # define enums
+        for enum_name, enum in interface.enums.items():
+            print(f"    class enum_{enum_name}(Enum):", file=module)
+            for var_name, value in enum.items():
+                prefix = "u" if var_name.isdigit() else ""
+                print(f"        {prefix}{var_name} = {value}", file=module)
+            print(file=module)
 
     module.write("# fmt: on")
     return module.getvalue()

@@ -574,18 +574,27 @@ class ArgFd(Arg):
 
 
 class Interface:
-    __slots__ = ["name", "events", "requests", "requests_by_name", "events_by_name"]
+    __slots__ = [
+        "name",
+        "events",
+        "requests",
+        "requests_by_name",
+        "events_by_name",
+        "enums",
+    ]
     name: str
     events: List[Tuple[str, List[Arg]]]
     events_by_name: Dict[str, Tuple[OpCode, List[Arg]]]
     requests: List[Tuple[str, List[Arg]]]
     requests_by_name: Dict[str, Tuple[OpCode, List[Arg]]]
+    enums: Dict[str, Dict[str, int]]
 
     def __init__(
         self,
         name: str,
         requests: List[Tuple[str, List[Arg]]],
         events: List[Tuple[str, List[Arg]]],
+        enums: Dict[str, Dict[str, int]],
     ) -> None:
         self.name = name
         self.requests = requests
@@ -596,6 +605,7 @@ class Interface:
         self.events_by_name = {}
         for opcode, (name, args) in enumerate(events):
             self.events_by_name[name] = (OpCode(opcode), args)
+        self.enums = enums
 
     def pack(
         self,
@@ -742,6 +752,7 @@ def load_protocol(path: str) -> Dict[str, Interface]:
             raise ValueError("interface must have name attribute")
         events: List[Tuple[str, List[Arg]]] = []
         requests: List[Tuple[str, List[Arg]]] = []
+        enums: Dict[str, Dict[str, int]] = {}
 
         for child in node:
             if child.tag in {"request", "event"}:
@@ -794,9 +805,31 @@ def load_protocol(path: str) -> Dict[str, Interface]:
                     events.append((name, args))
 
             elif child.tag == "enum":
-                pass
+                name = child.get("name")
+                if name is None:
+                    raise ValueError(f"[{iface_name}] `{child.tag}` without a name")
+                enum: Dict[str, int] = {}
+                for var in child:
+                    if var.tag != "entry":
+                        continue
+                    var_name = var.get("name")
+                    if var_name is None:
+                        raise ValueError(
+                            f"[{iface_name}.{name}] `{var.tag}` without a name"
+                        )
+                    value_str = var.get("value")
+                    if value_str is None:
+                        raise ValueError(
+                            f"[{iface_name}.{name}] `{var.tag}` without a value"
+                        )
+                    if value_str.startswith("0x"):
+                        value = int(value_str[2:], 16)
+                    else:
+                        value = int(value_str)
+                    enum[var_name] = value
+                enums[name] = enum
 
-        iface = Interface(iface_name, requests, events)
+        iface = Interface(iface_name, requests, events, enums)
         ifaces[iface_name] = iface
     return ifaces
 
