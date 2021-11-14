@@ -330,12 +330,12 @@ class ArgUInt(Arg):
         self.enum = enum
 
     def pack(self, write: io.BytesIO, value: Any) -> None:
-        if not isinstance(value, int) or value < 0:
-            raise TypeError(f"[{self.name}] unsigend integer expected")
         if isinstance(value, Enum):
             write.write(self.struct.pack(value.value))
-        else:
+        elif isinstance(value, int) and value >= 0:
             write.write(self.struct.pack(value))
+        else:
+            raise TypeError(f"[{self.name}] unsigend integer expected")
 
     def unpack(self, read: io.BytesIO, connection: Connection) -> Any:
         return self.struct.unpack(read.read(self.struct.size))[0]

@@ -2,8 +2,8 @@
 import asyncio
 from typing import Any, Callable
 from wayland.client import ClientConnection
-from wayland.protocol.wayland import WlShm, WlCompositor, WlSurface, WlShmPool, WlBuffer
-from wayland.protocol.xdg_shell import XdgWmBase, XdgSurface, XdgToplevel
+from wayland.protocol.wayland import WlShm, WlCompositor
+from wayland.protocol.xdg_shell import XdgWmBase
 from wayland import SharedMemory
 
 
@@ -15,14 +15,11 @@ async def main() -> None:
     xdg_wm_base = conn.get_global(XdgWmBase)
 
     # surface
-    wl_surf = conn.create_proxy(WlSurface)
-    wl_compositor("create_surface", wl_surf)
-    xdg_surf = conn.create_proxy(XdgSurface)
-    xdg_wm_base("get_xdg_surface", xdg_surf, wl_surf)
-    xdg_toplevel = conn.create_proxy(XdgToplevel)
-    xdg_surf("get_toplevel", xdg_toplevel)
-    xdg_toplevel("set_title", "wayland-py")
-    wl_surf("commit")
+    wl_surf = wl_compositor.create_surface()
+    xdg_surf = xdg_wm_base.get_xdg_surface(wl_surf)
+    xdg_toplevel = xdg_surf.get_toplevel()
+    xdg_toplevel.set_title("wayland-py")
+    wl_surf.commit()
 
     # memory buffer
     width = 640
@@ -41,20 +38,18 @@ async def main() -> None:
                 buf_mem.buf[offset : offset + 4] = b"\xee\xee\xee\xff"
 
     # create wl_buffer
-    pool = conn.create_proxy(WlShmPool)
-    wl_shm("create_pool", pool, buf_mem, size)
-    buf = conn.create_proxy(WlBuffer)
-    pool("create_buffer", buf, 0, width, height, stride, 1)
-    pool("destroy")
+    pool = wl_shm.create_pool(buf_mem, size)
+    buf = pool.create_buffer(0, width, height, stride, WlShm.Format.xrgb8888)
+    pool.destroy()
 
     def on_configure(serial: int) -> bool:
         print("draw")
-        xdg_surf("ack_configure", serial)
-        wl_surf("attach", buf, 0, 0)
-        wl_surf("commit")
+        xdg_surf.ack_configure(serial)
+        wl_surf.attach(buf, 0, 0)
+        wl_surf.commit()
         return True
 
-    xdg_surf.on("configure", on_configure)
+    xdg_surf.on_configure(on_configure)
 
     await conn.on_terminated()
 
