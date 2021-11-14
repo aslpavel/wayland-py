@@ -6,31 +6,31 @@ from typing import Callable, ClassVar, Optional
 from ..base import *
 
 __all__ = [
-    "wl_display",
-    "wl_registry",
-    "wl_callback",
-    "wl_compositor",
-    "wl_shm_pool",
-    "wl_shm",
-    "wl_buffer",
-    "wl_data_offer",
-    "wl_data_source",
-    "wl_data_device",
-    "wl_data_device_manager",
-    "wl_shell",
-    "wl_shell_surface",
-    "wl_surface",
-    "wl_seat",
-    "wl_pointer",
-    "wl_keyboard",
-    "wl_touch",
-    "wl_output",
-    "wl_region",
-    "wl_subcompositor",
-    "wl_subsurface",
+    "WlDisplay",
+    "WlRegistry",
+    "WlCallback",
+    "WlCompositor",
+    "WlShmPool",
+    "WlShm",
+    "WlBuffer",
+    "WlDataOffer",
+    "WlDataSource",
+    "WlDataDevice",
+    "WlDataDeviceManager",
+    "WlShell",
+    "WlShellSurface",
+    "WlSurface",
+    "WlSeat",
+    "WlPointer",
+    "WlKeyboard",
+    "WlTouch",
+    "WlOutput",
+    "WlRegion",
+    "WlSubcompositor",
+    "WlSubsurface",
 ]
 
-class wl_display(Proxy):
+class WlDisplay(Proxy):
     interface: ClassVar[Interface] = Interface(
         name="wl_display",
         requests=[
@@ -54,16 +54,16 @@ class wl_display(Proxy):
     def __init__(self, id: Id, connection: Connection) -> None:
         super().__init__(id, connection, self.interface)
 
-    def sync(self) -> "wl_callback":
+    def sync(self) -> "WlCallback":
         _opcode = OpCode(0)
-        callback = self._connection.create_proxy(wl_callback)
+        callback = self._connection.create_proxy(WlCallback)
         _data, _fds = self._interface.pack(_opcode, (callback,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return callback
 
-    def get_registry(self) -> "wl_registry":
+    def get_registry(self) -> "WlRegistry":
         _opcode = OpCode(1)
-        registry = self._connection.create_proxy(wl_registry)
+        registry = self._connection.create_proxy(WlRegistry)
         _data, _fds = self._interface.pack(_opcode, (registry,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return registry
@@ -78,13 +78,13 @@ class wl_display(Proxy):
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    class enum_error(Enum):
+    class Error(Enum):
         invalid_object = 0
         invalid_method = 1
         no_memory = 2
         implementation = 3
 
-class wl_registry(Proxy):
+class WlRegistry(Proxy):
     interface: ClassVar[Interface] = Interface(
         name="wl_registry",
         requests=[
@@ -121,7 +121,7 @@ class wl_registry(Proxy):
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-class wl_callback(Proxy):
+class WlCallback(Proxy):
     interface: ClassVar[Interface] = Interface(
         name="wl_callback",
         requests=[
@@ -141,7 +141,7 @@ class wl_callback(Proxy):
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-class wl_compositor(Proxy):
+class WlCompositor(Proxy):
     interface: ClassVar[Interface] = Interface(
         name="wl_compositor",
         requests=[
@@ -157,21 +157,21 @@ class wl_compositor(Proxy):
     def __init__(self, id: Id, connection: Connection) -> None:
         super().__init__(id, connection, self.interface)
 
-    def create_surface(self) -> "wl_surface":
+    def create_surface(self) -> "WlSurface":
         _opcode = OpCode(0)
-        id = self._connection.create_proxy(wl_surface)
+        id = self._connection.create_proxy(WlSurface)
         _data, _fds = self._interface.pack(_opcode, (id,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return id
 
-    def create_region(self) -> "wl_region":
+    def create_region(self) -> "WlRegion":
         _opcode = OpCode(1)
-        id = self._connection.create_proxy(wl_region)
+        id = self._connection.create_proxy(WlRegion)
         _data, _fds = self._interface.pack(_opcode, (id,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return id
 
-class wl_shm_pool(Proxy):
+class WlShmPool(Proxy):
     interface: ClassVar[Interface] = Interface(
         name="wl_shm_pool",
         requests=[
@@ -188,9 +188,9 @@ class wl_shm_pool(Proxy):
     def __init__(self, id: Id, connection: Connection) -> None:
         super().__init__(id, connection, self.interface)
 
-    def create_buffer(self, offset: int, width: int, height: int, stride: int, format: "wl_shm.enum_format") -> "wl_buffer":
+    def create_buffer(self, offset: int, width: int, height: int, stride: int, format: "WlShm.Format") -> "WlBuffer":
         _opcode = OpCode(0)
-        id = self._connection.create_proxy(wl_buffer)
+        id = self._connection.create_proxy(WlBuffer)
         _data, _fds = self._interface.pack(_opcode, (id, offset, width, height, stride, format,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return id
@@ -207,7 +207,7 @@ class wl_shm_pool(Proxy):
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return None
 
-class wl_shm(Proxy):
+class WlShm(Proxy):
     interface: ClassVar[Interface] = Interface(
         name="wl_shm",
         requests=[
@@ -334,9 +334,9 @@ class wl_shm(Proxy):
     def __init__(self, id: Id, connection: Connection) -> None:
         super().__init__(id, connection, self.interface)
 
-    def create_pool(self, fd: Fd, size: int) -> "wl_shm_pool":
+    def create_pool(self, fd: Fd, size: int) -> "WlShmPool":
         _opcode = OpCode(0)
-        id = self._connection.create_proxy(wl_shm_pool)
+        id = self._connection.create_proxy(WlShmPool)
         _data, _fds = self._interface.pack(_opcode, (id, fd, size,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return id
@@ -346,12 +346,12 @@ class wl_shm(Proxy):
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    class enum_error(Enum):
+    class Error(Enum):
         invalid_format = 0
         invalid_stride = 1
         invalid_fd = 2
 
-    class enum_format(Enum):
+    class Format(Enum):
         argb8888 = 0
         xrgb8888 = 1
         c8 = 538982467
@@ -457,7 +457,7 @@ class wl_shm(Proxy):
         q410 = 808531025
         q401 = 825242705
 
-class wl_buffer(Proxy):
+class WlBuffer(Proxy):
     interface: ClassVar[Interface] = Interface(
         name="wl_buffer",
         requests=[
@@ -484,7 +484,7 @@ class wl_buffer(Proxy):
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-class wl_data_offer(Proxy):
+class WlDataOffer(Proxy):
     interface: ClassVar[Interface] = Interface(
         name="wl_data_offer",
         requests=[
@@ -536,7 +536,7 @@ class wl_data_offer(Proxy):
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return None
 
-    def set_actions(self, dnd_actions: "wl_data_device_manager.enum_dnd_action", preferred_action: "wl_data_device_manager.enum_dnd_action") -> None:
+    def set_actions(self, dnd_actions: "WlDataDeviceManager.DndAction", preferred_action: "WlDataDeviceManager.DndAction") -> None:
         _opcode = OpCode(4)
         _data, _fds = self._interface.pack(_opcode, (dnd_actions, preferred_action,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
@@ -557,13 +557,13 @@ class wl_data_offer(Proxy):
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    class enum_error(Enum):
+    class Error(Enum):
         invalid_finish = 0
         invalid_action_mask = 1
         invalid_action = 2
         invalid_offer = 3
 
-class wl_data_source(Proxy):
+class WlDataSource(Proxy):
     interface: ClassVar[Interface] = Interface(
         name="wl_data_source",
         requests=[
@@ -602,7 +602,7 @@ class wl_data_source(Proxy):
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return None
 
-    def set_actions(self, dnd_actions: "wl_data_device_manager.enum_dnd_action") -> None:
+    def set_actions(self, dnd_actions: "WlDataDeviceManager.DndAction") -> None:
         _opcode = OpCode(2)
         _data, _fds = self._interface.pack(_opcode, (dnd_actions,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
@@ -638,11 +638,11 @@ class wl_data_source(Proxy):
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    class enum_error(Enum):
+    class Error(Enum):
         invalid_action_mask = 0
         invalid_source = 1
 
-class wl_data_device(Proxy):
+class WlDataDevice(Proxy):
     interface: ClassVar[Interface] = Interface(
         name="wl_data_device",
         requests=[
@@ -668,13 +668,13 @@ class wl_data_device(Proxy):
     def __init__(self, id: Id, connection: Connection) -> None:
         super().__init__(id, connection, self.interface)
 
-    def start_drag(self, source: "wl_data_source", origin: "wl_surface", icon: "wl_surface", serial: int) -> None:
+    def start_drag(self, source: "WlDataSource", origin: "WlSurface", icon: "WlSurface", serial: int) -> None:
         _opcode = OpCode(0)
         _data, _fds = self._interface.pack(_opcode, (source, origin, icon, serial,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return None
 
-    def set_selection(self, source: "wl_data_source", serial: int) -> None:
+    def set_selection(self, source: "WlDataSource", serial: int) -> None:
         _opcode = OpCode(1)
         _data, _fds = self._interface.pack(_opcode, (source, serial,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
@@ -686,12 +686,12 @@ class wl_data_device(Proxy):
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return None
 
-    def on_data_offer(self, handler: Callable[["wl_data_offer"], bool]) -> Optional[Callable[["wl_data_offer"], bool]]:
+    def on_data_offer(self, handler: Callable[["WlDataOffer"], bool]) -> Optional[Callable[["WlDataOffer"], bool]]:
         _opcode = OpCode(0)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    def on_enter(self, handler: Callable[[int, "wl_surface", float, float, "wl_data_offer"], bool]) -> Optional[Callable[[int, "wl_surface", float, float, "wl_data_offer"], bool]]:
+    def on_enter(self, handler: Callable[[int, "WlSurface", float, float, "WlDataOffer"], bool]) -> Optional[Callable[[int, "WlSurface", float, float, "WlDataOffer"], bool]]:
         _opcode = OpCode(1)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
@@ -711,15 +711,15 @@ class wl_data_device(Proxy):
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    def on_selection(self, handler: Callable[["wl_data_offer"], bool]) -> Optional[Callable[["wl_data_offer"], bool]]:
+    def on_selection(self, handler: Callable[["WlDataOffer"], bool]) -> Optional[Callable[["WlDataOffer"], bool]]:
         _opcode = OpCode(5)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    class enum_error(Enum):
+    class Error(Enum):
         role = 0
 
-class wl_data_device_manager(Proxy):
+class WlDataDeviceManager(Proxy):
     interface: ClassVar[Interface] = Interface(
         name="wl_data_device_manager",
         requests=[
@@ -741,27 +741,27 @@ class wl_data_device_manager(Proxy):
     def __init__(self, id: Id, connection: Connection) -> None:
         super().__init__(id, connection, self.interface)
 
-    def create_data_source(self) -> "wl_data_source":
+    def create_data_source(self) -> "WlDataSource":
         _opcode = OpCode(0)
-        id = self._connection.create_proxy(wl_data_source)
+        id = self._connection.create_proxy(WlDataSource)
         _data, _fds = self._interface.pack(_opcode, (id,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return id
 
-    def get_data_device(self, seat: "wl_seat") -> "wl_data_device":
+    def get_data_device(self, seat: "WlSeat") -> "WlDataDevice":
         _opcode = OpCode(1)
-        id = self._connection.create_proxy(wl_data_device)
+        id = self._connection.create_proxy(WlDataDevice)
         _data, _fds = self._interface.pack(_opcode, (id, seat,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return id
 
-    class enum_dnd_action(Enum):
+    class DndAction(Enum):
         none = 0
         copy = 1
         move = 2
         ask = 4
 
-class wl_shell(Proxy):
+class WlShell(Proxy):
     interface: ClassVar[Interface] = Interface(
         name="wl_shell",
         requests=[
@@ -779,17 +779,17 @@ class wl_shell(Proxy):
     def __init__(self, id: Id, connection: Connection) -> None:
         super().__init__(id, connection, self.interface)
 
-    def get_shell_surface(self, surface: "wl_surface") -> "wl_shell_surface":
+    def get_shell_surface(self, surface: "WlSurface") -> "WlShellSurface":
         _opcode = OpCode(0)
-        id = self._connection.create_proxy(wl_shell_surface)
+        id = self._connection.create_proxy(WlShellSurface)
         _data, _fds = self._interface.pack(_opcode, (id, surface,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return id
 
-    class enum_error(Enum):
+    class Error(Enum):
         role = 0
 
-class wl_shell_surface(Proxy):
+class WlShellSurface(Proxy):
     interface: ClassVar[Interface] = Interface(
         name="wl_shell_surface",
         requests=[
@@ -842,13 +842,13 @@ class wl_shell_surface(Proxy):
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return None
 
-    def move(self, seat: "wl_seat", serial: int) -> None:
+    def move(self, seat: "WlSeat", serial: int) -> None:
         _opcode = OpCode(1)
         _data, _fds = self._interface.pack(_opcode, (seat, serial,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return None
 
-    def resize(self, seat: "wl_seat", serial: int, edges: "enum_resize") -> None:
+    def resize(self, seat: "WlSeat", serial: int, edges: "Resize") -> None:
         _opcode = OpCode(2)
         _data, _fds = self._interface.pack(_opcode, (seat, serial, edges,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
@@ -860,25 +860,25 @@ class wl_shell_surface(Proxy):
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return None
 
-    def set_transient(self, parent: "wl_surface", x: int, y: int, flags: "enum_transient") -> None:
+    def set_transient(self, parent: "WlSurface", x: int, y: int, flags: "Transient") -> None:
         _opcode = OpCode(4)
         _data, _fds = self._interface.pack(_opcode, (parent, x, y, flags,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return None
 
-    def set_fullscreen(self, method: "enum_fullscreen_method", framerate: int, output: "wl_output") -> None:
+    def set_fullscreen(self, method: "FullscreenMethod", framerate: int, output: "WlOutput") -> None:
         _opcode = OpCode(5)
         _data, _fds = self._interface.pack(_opcode, (method, framerate, output,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return None
 
-    def set_popup(self, seat: "wl_seat", serial: int, parent: "wl_surface", x: int, y: int, flags: "enum_transient") -> None:
+    def set_popup(self, seat: "WlSeat", serial: int, parent: "WlSurface", x: int, y: int, flags: "Transient") -> None:
         _opcode = OpCode(6)
         _data, _fds = self._interface.pack(_opcode, (seat, serial, parent, x, y, flags,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return None
 
-    def set_maximized(self, output: "wl_output") -> None:
+    def set_maximized(self, output: "WlOutput") -> None:
         _opcode = OpCode(7)
         _data, _fds = self._interface.pack(_opcode, (output,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
@@ -911,7 +911,7 @@ class wl_shell_surface(Proxy):
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    class enum_resize(Enum):
+    class Resize(Enum):
         none = 0
         top = 1
         bottom = 2
@@ -922,16 +922,16 @@ class wl_shell_surface(Proxy):
         top_right = 9
         bottom_right = 10
 
-    class enum_transient(Enum):
+    class Transient(Enum):
         inactive = 1
 
-    class enum_fullscreen_method(Enum):
+    class FullscreenMethod(Enum):
         default = 0
         scale = 1
         driver = 2
         fill = 3
 
-class wl_surface(Proxy):
+class WlSurface(Proxy):
     interface: ClassVar[Interface] = Interface(
         name="wl_surface",
         requests=[
@@ -968,7 +968,7 @@ class wl_surface(Proxy):
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return None
 
-    def attach(self, buffer: "wl_buffer", x: int, y: int) -> None:
+    def attach(self, buffer: "WlBuffer", x: int, y: int) -> None:
         _opcode = OpCode(1)
         _data, _fds = self._interface.pack(_opcode, (buffer, x, y,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
@@ -980,20 +980,20 @@ class wl_surface(Proxy):
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return None
 
-    def frame(self) -> "wl_callback":
+    def frame(self) -> "WlCallback":
         _opcode = OpCode(3)
-        callback = self._connection.create_proxy(wl_callback)
+        callback = self._connection.create_proxy(WlCallback)
         _data, _fds = self._interface.pack(_opcode, (callback,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return callback
 
-    def set_opaque_region(self, region: "wl_region") -> None:
+    def set_opaque_region(self, region: "WlRegion") -> None:
         _opcode = OpCode(4)
         _data, _fds = self._interface.pack(_opcode, (region,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return None
 
-    def set_input_region(self, region: "wl_region") -> None:
+    def set_input_region(self, region: "WlRegion") -> None:
         _opcode = OpCode(5)
         _data, _fds = self._interface.pack(_opcode, (region,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
@@ -1023,22 +1023,22 @@ class wl_surface(Proxy):
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return None
 
-    def on_enter(self, handler: Callable[["wl_output"], bool]) -> Optional[Callable[["wl_output"], bool]]:
+    def on_enter(self, handler: Callable[["WlOutput"], bool]) -> Optional[Callable[["WlOutput"], bool]]:
         _opcode = OpCode(0)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    def on_leave(self, handler: Callable[["wl_output"], bool]) -> Optional[Callable[["wl_output"], bool]]:
+    def on_leave(self, handler: Callable[["WlOutput"], bool]) -> Optional[Callable[["WlOutput"], bool]]:
         _opcode = OpCode(1)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    class enum_error(Enum):
+    class Error(Enum):
         invalid_scale = 0
         invalid_transform = 1
         invalid_size = 2
 
-class wl_seat(Proxy):
+class WlSeat(Proxy):
     interface: ClassVar[Interface] = Interface(
         name="wl_seat",
         requests=[
@@ -1066,23 +1066,23 @@ class wl_seat(Proxy):
     def __init__(self, id: Id, connection: Connection) -> None:
         super().__init__(id, connection, self.interface)
 
-    def get_pointer(self) -> "wl_pointer":
+    def get_pointer(self) -> "WlPointer":
         _opcode = OpCode(0)
-        id = self._connection.create_proxy(wl_pointer)
+        id = self._connection.create_proxy(WlPointer)
         _data, _fds = self._interface.pack(_opcode, (id,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return id
 
-    def get_keyboard(self) -> "wl_keyboard":
+    def get_keyboard(self) -> "WlKeyboard":
         _opcode = OpCode(1)
-        id = self._connection.create_proxy(wl_keyboard)
+        id = self._connection.create_proxy(WlKeyboard)
         _data, _fds = self._interface.pack(_opcode, (id,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return id
 
-    def get_touch(self) -> "wl_touch":
+    def get_touch(self) -> "WlTouch":
         _opcode = OpCode(2)
-        id = self._connection.create_proxy(wl_touch)
+        id = self._connection.create_proxy(WlTouch)
         _data, _fds = self._interface.pack(_opcode, (id,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return id
@@ -1103,15 +1103,15 @@ class wl_seat(Proxy):
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    class enum_capability(Enum):
+    class Capability(Enum):
         pointer = 1
         keyboard = 2
         touch = 4
 
-    class enum_error(Enum):
+    class Error(Enum):
         missing_capability = 0
 
-class wl_pointer(Proxy):
+class WlPointer(Proxy):
     interface: ClassVar[Interface] = Interface(
         name="wl_pointer",
         requests=[
@@ -1153,7 +1153,7 @@ class wl_pointer(Proxy):
     def __init__(self, id: Id, connection: Connection) -> None:
         super().__init__(id, connection, self.interface)
 
-    def set_cursor(self, serial: int, surface: "wl_surface", hotspot_x: int, hotspot_y: int) -> None:
+    def set_cursor(self, serial: int, surface: "WlSurface", hotspot_x: int, hotspot_y: int) -> None:
         _opcode = OpCode(0)
         _data, _fds = self._interface.pack(_opcode, (serial, surface, hotspot_x, hotspot_y,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
@@ -1165,12 +1165,12 @@ class wl_pointer(Proxy):
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return None
 
-    def on_enter(self, handler: Callable[[int, "wl_surface", float, float], bool]) -> Optional[Callable[[int, "wl_surface", float, float], bool]]:
+    def on_enter(self, handler: Callable[[int, "WlSurface", float, float], bool]) -> Optional[Callable[[int, "WlSurface", float, float], bool]]:
         _opcode = OpCode(0)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    def on_leave(self, handler: Callable[[int, "wl_surface"], bool]) -> Optional[Callable[[int, "wl_surface"], bool]]:
+    def on_leave(self, handler: Callable[[int, "WlSurface"], bool]) -> Optional[Callable[[int, "WlSurface"], bool]]:
         _opcode = OpCode(1)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
@@ -1210,24 +1210,24 @@ class wl_pointer(Proxy):
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    class enum_error(Enum):
+    class Error(Enum):
         role = 0
 
-    class enum_button_state(Enum):
+    class ButtonState(Enum):
         released = 0
         pressed = 1
 
-    class enum_axis(Enum):
+    class Axis(Enum):
         vertical_scroll = 0
         horizontal_scroll = 1
 
-    class enum_axis_source(Enum):
+    class AxisSource(Enum):
         wheel = 0
         finger = 1
         continuous = 2
         wheel_tilt = 3
 
-class wl_keyboard(Proxy):
+class WlKeyboard(Proxy):
     interface: ClassVar[Interface] = Interface(
         name="wl_keyboard",
         requests=[
@@ -1267,12 +1267,12 @@ class wl_keyboard(Proxy):
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    def on_enter(self, handler: Callable[[int, "wl_surface", bytes], bool]) -> Optional[Callable[[int, "wl_surface", bytes], bool]]:
+    def on_enter(self, handler: Callable[[int, "WlSurface", bytes], bool]) -> Optional[Callable[[int, "WlSurface", bytes], bool]]:
         _opcode = OpCode(1)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    def on_leave(self, handler: Callable[[int, "wl_surface"], bool]) -> Optional[Callable[[int, "wl_surface"], bool]]:
+    def on_leave(self, handler: Callable[[int, "WlSurface"], bool]) -> Optional[Callable[[int, "WlSurface"], bool]]:
         _opcode = OpCode(2)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
@@ -1292,15 +1292,15 @@ class wl_keyboard(Proxy):
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    class enum_keymap_format(Enum):
+    class KeymapFormat(Enum):
         no_keymap = 0
         xkb_v1 = 1
 
-    class enum_key_state(Enum):
+    class KeyState(Enum):
         released = 0
         pressed = 1
 
-class wl_touch(Proxy):
+class WlTouch(Proxy):
     interface: ClassVar[Interface] = Interface(
         name="wl_touch",
         requests=[
@@ -1328,7 +1328,7 @@ class wl_touch(Proxy):
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return None
 
-    def on_down(self, handler: Callable[[int, int, "wl_surface", int, float, float], bool]) -> Optional[Callable[[int, int, "wl_surface", int, float, float], bool]]:
+    def on_down(self, handler: Callable[[int, int, "WlSurface", int, float, float], bool]) -> Optional[Callable[[int, int, "WlSurface", int, float, float], bool]]:
         _opcode = OpCode(0)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
@@ -1363,7 +1363,7 @@ class wl_touch(Proxy):
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-class wl_output(Proxy):
+class WlOutput(Proxy):
     interface: ClassVar[Interface] = Interface(
         name="wl_output",
         requests=[
@@ -1430,7 +1430,7 @@ class wl_output(Proxy):
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    class enum_subpixel(Enum):
+    class Subpixel(Enum):
         unknown = 0
         none = 1
         horizontal_rgb = 2
@@ -1438,7 +1438,7 @@ class wl_output(Proxy):
         vertical_rgb = 4
         vertical_bgr = 5
 
-    class enum_transform(Enum):
+    class Transform(Enum):
         normal = 0
         u90 = 1
         u180 = 2
@@ -1448,11 +1448,11 @@ class wl_output(Proxy):
         flipped_180 = 6
         flipped_270 = 7
 
-    class enum_mode(Enum):
+    class Mode(Enum):
         current = 1
         preferred = 2
 
-class wl_region(Proxy):
+class WlRegion(Proxy):
     interface: ClassVar[Interface] = Interface(
         name="wl_region",
         requests=[
@@ -1487,7 +1487,7 @@ class wl_region(Proxy):
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return None
 
-class wl_subcompositor(Proxy):
+class WlSubcompositor(Proxy):
     interface: ClassVar[Interface] = Interface(
         name="wl_subcompositor",
         requests=[
@@ -1512,17 +1512,17 @@ class wl_subcompositor(Proxy):
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return None
 
-    def get_subsurface(self, surface: "wl_surface", parent: "wl_surface") -> "wl_subsurface":
+    def get_subsurface(self, surface: "WlSurface", parent: "WlSurface") -> "WlSubsurface":
         _opcode = OpCode(1)
-        id = self._connection.create_proxy(wl_subsurface)
+        id = self._connection.create_proxy(WlSubsurface)
         _data, _fds = self._interface.pack(_opcode, (id, surface, parent,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return id
 
-    class enum_error(Enum):
+    class Error(Enum):
         bad_surface = 0
 
-class wl_subsurface(Proxy):
+class WlSubsurface(Proxy):
     interface: ClassVar[Interface] = Interface(
         name="wl_subsurface",
         requests=[
@@ -1557,13 +1557,13 @@ class wl_subsurface(Proxy):
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return None
 
-    def place_above(self, sibling: "wl_surface") -> None:
+    def place_above(self, sibling: "WlSurface") -> None:
         _opcode = OpCode(2)
         _data, _fds = self._interface.pack(_opcode, (sibling,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return None
 
-    def place_below(self, sibling: "wl_surface") -> None:
+    def place_below(self, sibling: "WlSurface") -> None:
         _opcode = OpCode(3)
         _data, _fds = self._interface.pack(_opcode, (sibling,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
@@ -1581,7 +1581,7 @@ class wl_subsurface(Proxy):
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return None
 
-    class enum_error(Enum):
+    class Error(Enum):
         bad_surface = 0
 
 # fmt: on

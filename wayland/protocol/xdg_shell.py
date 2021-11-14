@@ -7,14 +7,14 @@ from ..base import *
 from .wayland import *
 
 __all__ = [
-    "xdg_wm_base",
-    "xdg_positioner",
-    "xdg_surface",
-    "xdg_toplevel",
-    "xdg_popup",
+    "XdgWmBase",
+    "XdgPositioner",
+    "XdgSurface",
+    "XdgToplevel",
+    "XdgPopup",
 ]
 
-class xdg_wm_base(Proxy):
+class XdgWmBase(Proxy):
     interface: ClassVar[Interface] = Interface(
         name="xdg_wm_base",
         requests=[
@@ -47,16 +47,16 @@ class xdg_wm_base(Proxy):
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return None
 
-    def create_positioner(self) -> "xdg_positioner":
+    def create_positioner(self) -> "XdgPositioner":
         _opcode = OpCode(1)
-        id = self._connection.create_proxy(xdg_positioner)
+        id = self._connection.create_proxy(XdgPositioner)
         _data, _fds = self._interface.pack(_opcode, (id,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return id
 
-    def get_xdg_surface(self, surface: "wl_surface") -> "xdg_surface":
+    def get_xdg_surface(self, surface: "WlSurface") -> "XdgSurface":
         _opcode = OpCode(2)
-        id = self._connection.create_proxy(xdg_surface)
+        id = self._connection.create_proxy(XdgSurface)
         _data, _fds = self._interface.pack(_opcode, (id, surface,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return id
@@ -72,7 +72,7 @@ class xdg_wm_base(Proxy):
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    class enum_error(Enum):
+    class Error(Enum):
         role = 0
         defunct_surfaces = 1
         not_the_topmost_popup = 2
@@ -80,7 +80,7 @@ class xdg_wm_base(Proxy):
         invalid_surface_state = 4
         invalid_positioner = 5
 
-class xdg_positioner(Proxy):
+class XdgPositioner(Proxy):
     interface: ClassVar[Interface] = Interface(
         name="xdg_positioner",
         requests=[
@@ -156,13 +156,13 @@ class xdg_positioner(Proxy):
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return None
 
-    def set_anchor(self, anchor: "enum_anchor") -> None:
+    def set_anchor(self, anchor: "Anchor") -> None:
         _opcode = OpCode(3)
         _data, _fds = self._interface.pack(_opcode, (anchor,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return None
 
-    def set_gravity(self, gravity: "enum_gravity") -> None:
+    def set_gravity(self, gravity: "Gravity") -> None:
         _opcode = OpCode(4)
         _data, _fds = self._interface.pack(_opcode, (gravity,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
@@ -198,10 +198,10 @@ class xdg_positioner(Proxy):
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return None
 
-    class enum_error(Enum):
+    class Error(Enum):
         invalid_input = 0
 
-    class enum_anchor(Enum):
+    class Anchor(Enum):
         none = 0
         top = 1
         bottom = 2
@@ -212,7 +212,7 @@ class xdg_positioner(Proxy):
         top_right = 7
         bottom_right = 8
 
-    class enum_gravity(Enum):
+    class Gravity(Enum):
         none = 0
         top = 1
         bottom = 2
@@ -223,7 +223,7 @@ class xdg_positioner(Proxy):
         top_right = 7
         bottom_right = 8
 
-    class enum_constraint_adjustment(Enum):
+    class ConstraintAdjustment(Enum):
         none = 0
         slide_x = 1
         slide_y = 2
@@ -232,7 +232,7 @@ class xdg_positioner(Proxy):
         resize_x = 16
         resize_y = 32
 
-class xdg_surface(Proxy):
+class XdgSurface(Proxy):
     interface: ClassVar[Interface] = Interface(
         name="xdg_surface",
         requests=[
@@ -263,16 +263,16 @@ class xdg_surface(Proxy):
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return None
 
-    def get_toplevel(self) -> "xdg_toplevel":
+    def get_toplevel(self) -> "XdgToplevel":
         _opcode = OpCode(1)
-        id = self._connection.create_proxy(xdg_toplevel)
+        id = self._connection.create_proxy(XdgToplevel)
         _data, _fds = self._interface.pack(_opcode, (id,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return id
 
-    def get_popup(self, parent: "xdg_surface", positioner: "xdg_positioner") -> "xdg_popup":
+    def get_popup(self, parent: "XdgSurface", positioner: "XdgPositioner") -> "XdgPopup":
         _opcode = OpCode(2)
-        id = self._connection.create_proxy(xdg_popup)
+        id = self._connection.create_proxy(XdgPopup)
         _data, _fds = self._interface.pack(_opcode, (id, parent, positioner,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return id
@@ -294,12 +294,12 @@ class xdg_surface(Proxy):
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    class enum_error(Enum):
+    class Error(Enum):
         not_constructed = 1
         already_constructed = 2
         unconfigured_buffer = 3
 
-class xdg_toplevel(Proxy):
+class XdgToplevel(Proxy):
     interface: ClassVar[Interface] = Interface(
         name="xdg_toplevel",
         requests=[
@@ -356,7 +356,7 @@ class xdg_toplevel(Proxy):
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return None
 
-    def set_parent(self, parent: "xdg_toplevel") -> None:
+    def set_parent(self, parent: "XdgToplevel") -> None:
         _opcode = OpCode(1)
         _data, _fds = self._interface.pack(_opcode, (parent,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
@@ -374,19 +374,19 @@ class xdg_toplevel(Proxy):
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return None
 
-    def show_window_menu(self, seat: "wl_seat", serial: int, x: int, y: int) -> None:
+    def show_window_menu(self, seat: "WlSeat", serial: int, x: int, y: int) -> None:
         _opcode = OpCode(4)
         _data, _fds = self._interface.pack(_opcode, (seat, serial, x, y,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return None
 
-    def move(self, seat: "wl_seat", serial: int) -> None:
+    def move(self, seat: "WlSeat", serial: int) -> None:
         _opcode = OpCode(5)
         _data, _fds = self._interface.pack(_opcode, (seat, serial,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return None
 
-    def resize(self, seat: "wl_seat", serial: int, edges: "enum_resize_edge") -> None:
+    def resize(self, seat: "WlSeat", serial: int, edges: "ResizeEdge") -> None:
         _opcode = OpCode(6)
         _data, _fds = self._interface.pack(_opcode, (seat, serial, edges,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
@@ -416,7 +416,7 @@ class xdg_toplevel(Proxy):
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return None
 
-    def set_fullscreen(self, output: "wl_output") -> None:
+    def set_fullscreen(self, output: "WlOutput") -> None:
         _opcode = OpCode(11)
         _data, _fds = self._interface.pack(_opcode, (output,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
@@ -444,7 +444,7 @@ class xdg_toplevel(Proxy):
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    class enum_resize_edge(Enum):
+    class ResizeEdge(Enum):
         none = 0
         top = 1
         bottom = 2
@@ -455,7 +455,7 @@ class xdg_toplevel(Proxy):
         top_right = 9
         bottom_right = 10
 
-    class enum_state(Enum):
+    class State(Enum):
         maximized = 1
         fullscreen = 2
         resizing = 3
@@ -465,7 +465,7 @@ class xdg_toplevel(Proxy):
         tiled_top = 7
         tiled_bottom = 8
 
-class xdg_popup(Proxy):
+class XdgPopup(Proxy):
     interface: ClassVar[Interface] = Interface(
         name="xdg_popup",
         requests=[
@@ -494,13 +494,13 @@ class xdg_popup(Proxy):
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return None
 
-    def grab(self, seat: "wl_seat", serial: int) -> None:
+    def grab(self, seat: "WlSeat", serial: int) -> None:
         _opcode = OpCode(1)
         _data, _fds = self._interface.pack(_opcode, (seat, serial,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return None
 
-    def reposition(self, positioner: "xdg_positioner", token: int) -> None:
+    def reposition(self, positioner: "XdgPositioner", token: int) -> None:
         _opcode = OpCode(2)
         _data, _fds = self._interface.pack(_opcode, (positioner, token,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
@@ -521,7 +521,7 @@ class xdg_popup(Proxy):
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    class enum_error(Enum):
+    class Error(Enum):
         invalid_grab = 0
 
 # fmt: on

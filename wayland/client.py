@@ -3,15 +3,15 @@ import os
 import socket
 from typing import Optional, TypeVar, Type, Dict, Tuple
 from .base import Connection, Interface, Proxy, Id
-from .protocol.wayland import wl_display, wl_registry
+from .protocol.wayland import WlDisplay, WlRegistry
 
 P = TypeVar("P", bound="Proxy")
 
 
 class ClientConnection(Connection):
     _path: str
-    _display: wl_display
-    _registry: wl_registry
+    _display: WlDisplay
+    _registry: WlRegistry
     # interface_name -> (name, verison, proxy)
     _registry_globals: Dict[str, Tuple[int, int, Optional["Proxy"]]]
 
@@ -27,7 +27,7 @@ class ClientConnection(Connection):
             display = os.getenv("WAYLAND_DISPLAY", "wayland-0")
             self._path = os.path.join(runtime_dir, display)
 
-        self._display = self.create_proxy(wl_display)
+        self._display = self.create_proxy(WlDisplay)
         self._display._is_attached = True  # display is always attached
         self._display.on_error(self._on_display_error)
         self._display.on_delete_id(self._on_display_delete_id)
@@ -38,7 +38,7 @@ class ClientConnection(Connection):
         self._registry.on_global_remove(self._on_registry_global_remove)
 
     @property
-    def display(self) -> wl_display:
+    def display(self) -> WlDisplay:
         return self._display
 
     def get_global(self, proxy_type: Type[P]) -> P:

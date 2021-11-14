@@ -33,12 +33,12 @@ def generate_client(
 
     print("__all__ = [", file=module)
     for iface_name in interfaces:
-        print(f'    "{iface_name}",'.format(iface_name), file=module)
+        print(f'    "{_camle_case(iface_name)}",'.format(iface_name), file=module)
     print("]\n", file=module)
 
     for iface_name, interface in interfaces.items():
         # define class
-        print(f"class {iface_name}(Proxy):", file=module)
+        print(f"class {_camle_case(iface_name)}(Proxy):", file=module)
 
         # define interface
         print(f"    interface: ClassVar[Interface] = Interface(", file=module)
@@ -77,7 +77,8 @@ def generate_client(
 
         # define enums
         for enum_name, enum in interface.enums.items():
-            print(f"    class enum_{enum_name}(Enum):", file=module)
+            enum_name = _camle_case(enum_name)
+            print(f"    class {enum_name}(Enum):", file=module)
             for var_name, value in enum.items():
                 prefix = "u" if var_name.isdigit() else ""
                 print(f"        {prefix}{var_name} = {value}", file=module)
@@ -100,7 +101,9 @@ def _generate_request(
             if arg_desc.interface is None:
                 args_types.append(f"{arg_desc.name}: Proxy")
             else:
-                args_types.append(f'{arg_desc.name}: "{arg_desc.interface}"')
+                args_types.append(
+                    f'{arg_desc.name}: "{_camle_case(arg_desc.interface)}"'
+                )
         elif isinstance(arg_desc, ArgNewId):
             if arg_desc.interface is None:
                 args_types.append(f"{arg_desc.name}: Proxy")
@@ -111,10 +114,7 @@ def _generate_request(
             if arg_desc.enum is None:
                 args_types.append(f"{arg_desc.name}: {arg_desc.type_name}")
             else:
-                chunks = arg_desc.enum.split(".")
-                chunks[-1] = f"enum_{chunks[-1]}"
-                enum_name = ".".join(chunks)
-                args_types.append(f'{arg_desc.name}: "{enum_name}"')
+                args_types.append(f'{arg_desc.name}: "{_camle_case(arg_desc.enum)}"')
         else:
             args_types.append(f"{arg_desc.name}: {arg_desc.type_name}")
 
@@ -126,9 +126,13 @@ def _generate_request(
         result_type = "None"
     elif len(results_desc) == 1:
         desc = results_desc[0]
-        result_type = f'"{desc.interface}"' if desc.interface else "None"
+        result_type = f'"{_camle_case(desc.interface)}"' if desc.interface else "None"
     else:
-        results = (f'"{desc.interface}"' for desc in results_desc if desc.interface)
+        results = (
+            f'"{_camle_case(desc.interface)}"'
+            for desc in results_desc
+            if desc.interface
+        )
         result_type = "Tuple[{}]".format(", ".join(results))
     print(
         f"    def {request}(self{args}) -> {result_type}:\n"
@@ -150,7 +154,7 @@ def _generate_request(
             )
             continue
         print(
-            f"        {name} = self._connection.create_proxy({result_desc.interface})",
+            f"        {name} = self._connection.create_proxy({_camle_case(result_desc.interface)})",
             file=module,
         )
         result_vals.append(result_desc.name)
@@ -179,7 +183,7 @@ def _generate_events(
             if arg_desc.interface is None:
                 args_types.append(arg_desc.type_name)
             else:
-                args_types.append(f'"{arg_desc.interface}"')
+                args_types.append(f'"{_camle_case(arg_desc.interface)}"')
         else:
             args_types.append(arg_desc.type_name)
     handler_sig = "Callable[[{}], bool]".format(", ".join(args_types))
@@ -192,13 +196,31 @@ def _generate_events(
     )
 
 
+def _camle_case(name: str) -> str:
+    """Convert name to CamleCase"""
+    upper = True
+    chars: List[str] = []
+    for char in name:
+        if char == "_":
+            upper = True
+            continue
+        if upper:
+            chars.append(char.upper())
+            upper = False
+        else:
+            chars.append(char)
+        if char == ".":
+            upper = True
+    return "".join(chars)
+
+
 def main() -> None:
     args = argparse.ArgumentParser()
-    args.add_argument("--protocol_xml", required=False, help="input protocol xml file")
+    args.add_argument("--proto", required=False, help="input protocol xml file")
     opts = args.parse_args()
 
-    if opts.protocol_xml:
-        protocol = Protocol.load(opts.protocol_xml)
+    if opts.proto:
+        protocol = Protocol.load(opts.proto)
         print(generate_client(protocol, reliative=False, deps=set()))
         return
 

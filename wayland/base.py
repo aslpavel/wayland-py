@@ -594,7 +594,7 @@ class Interface:
         return args
 
     def __repr__(self) -> str:
-        return f"{self.name}(requests={self.requests}, events={self.events})"
+        return self.name
 
 
 EventHandler = Callable[..., bool]
