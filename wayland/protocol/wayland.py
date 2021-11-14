@@ -647,17 +647,17 @@ class WlDataDevice(Proxy):
     interface: ClassVar[Interface] = Interface(
         name="wl_data_device",
         requests=[
-            ("start_drag", [ArgObject("source", "wl_data_source"), ArgObject("origin", "wl_surface"), ArgObject("icon", "wl_surface"), ArgUInt("serial")]),
-            ("set_selection", [ArgObject("source", "wl_data_source"), ArgUInt("serial")]),
+            ("start_drag", [ArgObject("source", "wl_data_source", True), ArgObject("origin", "wl_surface"), ArgObject("icon", "wl_surface", True), ArgUInt("serial")]),
+            ("set_selection", [ArgObject("source", "wl_data_source", True), ArgUInt("serial")]),
             ("release", []),
         ],
         events=[
             ("data_offer", [ArgNewId("id", "wl_data_offer")]),
-            ("enter", [ArgUInt("serial"), ArgObject("surface", "wl_surface"), ArgFixed("x"), ArgFixed("y"), ArgObject("id", "wl_data_offer")]),
+            ("enter", [ArgUInt("serial"), ArgObject("surface", "wl_surface"), ArgFixed("x"), ArgFixed("y"), ArgObject("id", "wl_data_offer", True)]),
             ("leave", []),
             ("motion", [ArgUInt("time"), ArgFixed("x"), ArgFixed("y")]),
             ("drop", []),
-            ("selection", [ArgObject("id", "wl_data_offer")]),
+            ("selection", [ArgObject("id", "wl_data_offer", True)]),
         ],
         enums={
             "error": {
@@ -669,13 +669,13 @@ class WlDataDevice(Proxy):
     def __init__(self, id: Id, connection: Connection) -> None:
         super().__init__(id, connection, self.interface)
 
-    def start_drag(self, source: WlDataSource, origin: WlSurface, icon: WlSurface, serial: int) -> None:
+    def start_drag(self, source: Optional[WlDataSource], origin: WlSurface, icon: Optional[WlSurface], serial: int) -> None:
         _opcode = OpCode(0)
         _data, _fds = self._interface.pack(_opcode, (source, origin, icon, serial,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return None
 
-    def set_selection(self, source: WlDataSource, serial: int) -> None:
+    def set_selection(self, source: Optional[WlDataSource], serial: int) -> None:
         _opcode = OpCode(1)
         _data, _fds = self._interface.pack(_opcode, (source, serial,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
@@ -692,7 +692,7 @@ class WlDataDevice(Proxy):
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    def on_enter(self, handler: Callable[[int, WlSurface, float, float, WlDataOffer], bool]) -> Optional[Callable[[int, WlSurface, float, float, WlDataOffer], bool]]:
+    def on_enter(self, handler: Callable[[int, WlSurface, float, float, Optional[WlDataOffer]], bool]) -> Optional[Callable[[int, WlSurface, float, float, Optional[WlDataOffer]], bool]]:
         _opcode = OpCode(1)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
@@ -712,7 +712,7 @@ class WlDataDevice(Proxy):
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    def on_selection(self, handler: Callable[[WlDataOffer], bool]) -> Optional[Callable[[WlDataOffer], bool]]:
+    def on_selection(self, handler: Callable[[Optional[WlDataOffer]], bool]) -> Optional[Callable[[Optional[WlDataOffer]], bool]]:
         _opcode = OpCode(5)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
@@ -799,9 +799,9 @@ class WlShellSurface(Proxy):
             ("resize", [ArgObject("seat", "wl_seat"), ArgUInt("serial"), ArgUInt("edges", "resize")]),
             ("set_toplevel", []),
             ("set_transient", [ArgObject("parent", "wl_surface"), ArgInt("x"), ArgInt("y"), ArgUInt("flags", "transient")]),
-            ("set_fullscreen", [ArgUInt("method", "fullscreen_method"), ArgUInt("framerate"), ArgObject("output", "wl_output")]),
+            ("set_fullscreen", [ArgUInt("method", "fullscreen_method"), ArgUInt("framerate"), ArgObject("output", "wl_output", True)]),
             ("set_popup", [ArgObject("seat", "wl_seat"), ArgUInt("serial"), ArgObject("parent", "wl_surface"), ArgInt("x"), ArgInt("y"), ArgUInt("flags", "transient")]),
-            ("set_maximized", [ArgObject("output", "wl_output")]),
+            ("set_maximized", [ArgObject("output", "wl_output", True)]),
             ("set_title", [ArgStr("title")]),
             ("set_class", [ArgStr("class_")]),
         ],
@@ -867,7 +867,7 @@ class WlShellSurface(Proxy):
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return None
 
-    def set_fullscreen(self, method: FullscreenMethod, framerate: int, output: WlOutput) -> None:
+    def set_fullscreen(self, method: FullscreenMethod, framerate: int, output: Optional[WlOutput]) -> None:
         _opcode = OpCode(5)
         _data, _fds = self._interface.pack(_opcode, (method, framerate, output,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
@@ -879,7 +879,7 @@ class WlShellSurface(Proxy):
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return None
 
-    def set_maximized(self, output: WlOutput) -> None:
+    def set_maximized(self, output: Optional[WlOutput]) -> None:
         _opcode = OpCode(7)
         _data, _fds = self._interface.pack(_opcode, (output,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
@@ -937,11 +937,11 @@ class WlSurface(Proxy):
         name="wl_surface",
         requests=[
             ("destroy", []),
-            ("attach", [ArgObject("buffer", "wl_buffer"), ArgInt("x"), ArgInt("y")]),
+            ("attach", [ArgObject("buffer", "wl_buffer", True), ArgInt("x"), ArgInt("y")]),
             ("damage", [ArgInt("x"), ArgInt("y"), ArgInt("width"), ArgInt("height")]),
             ("frame", [ArgNewId("callback", "wl_callback")]),
-            ("set_opaque_region", [ArgObject("region", "wl_region")]),
-            ("set_input_region", [ArgObject("region", "wl_region")]),
+            ("set_opaque_region", [ArgObject("region", "wl_region", True)]),
+            ("set_input_region", [ArgObject("region", "wl_region", True)]),
             ("commit", []),
             ("set_buffer_transform", [ArgInt("transform")]),
             ("set_buffer_scale", [ArgInt("scale")]),
@@ -969,7 +969,7 @@ class WlSurface(Proxy):
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return None
 
-    def attach(self, buffer: WlBuffer, x: int, y: int) -> None:
+    def attach(self, buffer: Optional[WlBuffer], x: int, y: int) -> None:
         _opcode = OpCode(1)
         _data, _fds = self._interface.pack(_opcode, (buffer, x, y,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
@@ -988,13 +988,13 @@ class WlSurface(Proxy):
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return callback
 
-    def set_opaque_region(self, region: WlRegion) -> None:
+    def set_opaque_region(self, region: Optional[WlRegion]) -> None:
         _opcode = OpCode(4)
         _data, _fds = self._interface.pack(_opcode, (region,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return None
 
-    def set_input_region(self, region: WlRegion) -> None:
+    def set_input_region(self, region: Optional[WlRegion]) -> None:
         _opcode = OpCode(5)
         _data, _fds = self._interface.pack(_opcode, (region,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
@@ -1116,7 +1116,7 @@ class WlPointer(Proxy):
     interface: ClassVar[Interface] = Interface(
         name="wl_pointer",
         requests=[
-            ("set_cursor", [ArgUInt("serial"), ArgObject("surface", "wl_surface"), ArgInt("hotspot_x"), ArgInt("hotspot_y")]),
+            ("set_cursor", [ArgUInt("serial"), ArgObject("surface", "wl_surface", True), ArgInt("hotspot_x"), ArgInt("hotspot_y")]),
             ("release", []),
         ],
         events=[
@@ -1154,7 +1154,7 @@ class WlPointer(Proxy):
     def __init__(self, id: Id, connection: Connection) -> None:
         super().__init__(id, connection, self.interface)
 
-    def set_cursor(self, serial: int, surface: WlSurface, hotspot_x: int, hotspot_y: int) -> None:
+    def set_cursor(self, serial: int, surface: Optional[WlSurface], hotspot_x: int, hotspot_y: int) -> None:
         _opcode = OpCode(0)
         _data, _fds = self._interface.pack(_opcode, (serial, surface, hotspot_x, hotspot_y,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))

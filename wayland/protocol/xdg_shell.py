@@ -239,7 +239,7 @@ class XdgSurface(Proxy):
         requests=[
             ("destroy", []),
             ("get_toplevel", [ArgNewId("id", "xdg_toplevel")]),
-            ("get_popup", [ArgNewId("id", "xdg_popup"), ArgObject("parent", "xdg_surface"), ArgObject("positioner", "xdg_positioner")]),
+            ("get_popup", [ArgNewId("id", "xdg_popup"), ArgObject("parent", "xdg_surface", True), ArgObject("positioner", "xdg_positioner")]),
             ("set_window_geometry", [ArgInt("x"), ArgInt("y"), ArgInt("width"), ArgInt("height")]),
             ("ack_configure", [ArgUInt("serial")]),
         ],
@@ -271,7 +271,7 @@ class XdgSurface(Proxy):
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return id
 
-    def get_popup(self, parent: XdgSurface, positioner: XdgPositioner) -> XdgPopup:
+    def get_popup(self, parent: Optional[XdgSurface], positioner: XdgPositioner) -> XdgPopup:
         _opcode = OpCode(2)
         id = self._connection.create_proxy(XdgPopup)
         _data, _fds = self._interface.pack(_opcode, (id, parent, positioner,))
@@ -305,7 +305,7 @@ class XdgToplevel(Proxy):
         name="xdg_toplevel",
         requests=[
             ("destroy", []),
-            ("set_parent", [ArgObject("parent", "xdg_toplevel")]),
+            ("set_parent", [ArgObject("parent", "xdg_toplevel", True)]),
             ("set_title", [ArgStr("title")]),
             ("set_app_id", [ArgStr("app_id")]),
             ("show_window_menu", [ArgObject("seat", "wl_seat"), ArgUInt("serial"), ArgInt("x"), ArgInt("y")]),
@@ -315,7 +315,7 @@ class XdgToplevel(Proxy):
             ("set_min_size", [ArgInt("width"), ArgInt("height")]),
             ("set_maximized", []),
             ("unset_maximized", []),
-            ("set_fullscreen", [ArgObject("output", "wl_output")]),
+            ("set_fullscreen", [ArgObject("output", "wl_output", True)]),
             ("unset_fullscreen", []),
             ("set_minimized", []),
         ],
@@ -357,7 +357,7 @@ class XdgToplevel(Proxy):
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return None
 
-    def set_parent(self, parent: XdgToplevel) -> None:
+    def set_parent(self, parent: Optional[XdgToplevel]) -> None:
         _opcode = OpCode(1)
         _data, _fds = self._interface.pack(_opcode, (parent,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
@@ -417,7 +417,7 @@ class XdgToplevel(Proxy):
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return None
 
-    def set_fullscreen(self, output: WlOutput) -> None:
+    def set_fullscreen(self, output: Optional[WlOutput]) -> None:
         _opcode = OpCode(11)
         _data, _fds = self._interface.pack(_opcode, (output,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))

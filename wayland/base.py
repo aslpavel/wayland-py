@@ -471,12 +471,16 @@ class ArgObject(Arg):
     type_name: ClassVar[str] = "Proxy"
     struct: ClassVar[Struct] = Struct("I")
     interface: Optional[str]
+    optional: bool
 
-    def __init__(self, name: str, interface: Optional[str]):
+    def __init__(self, name: str, interface: Optional[str], optional: bool = False):
         super().__init__(name)
         self.interface = interface
+        self.optional = optional
 
     def pack(self, write: io.BytesIO, value: Any) -> None:
+        if self.optional and value is None:
+            write.write(self.struct.pack(0))
         if not isinstance(value, Proxy):
             raise TypeError(f"[{self.name}] proxy object expected {value}")
         if self.interface is not None and self.interface != value._interface.name:
@@ -488,6 +492,8 @@ class ArgObject(Arg):
 
     def unpack(self, read: io.BytesIO, connection: Connection) -> Any:
         id = self.struct.unpack(read.read(self.struct.size))[0]
+        if self.optional and id == 0:
+            return None
         proxy = connection._proxies.get(id)
         if proxy is None:
             raise RuntimeError("[{self.name}] unknown incomming object")
@@ -495,7 +501,10 @@ class ArgObject(Arg):
 
     def __str__(self) -> str:
         interface = f'"{self.interface}"' if self.interface is not None else "None"
-        return f'ArgObject("{self.name}", {interface})'
+        if self.optional:
+            return f'ArgObject("{self.name}", {interface}, True)'
+        else:
+            return f'ArgObject("{self.name}", {interface})'
 
 
 class ArgFd(Arg):
@@ -764,7 +773,8 @@ class Protocol:
                             arg_iface = arg_node.get("interface")
                             if arg_iface is not None:
                                 extern.add(arg_iface)
-                            args.append(ArgObject(arg_name, arg_iface))
+                            optional = arg_node.get("allow-null") == "true"
+                            args.append(ArgObject(arg_name, arg_iface, optional))
                         elif arg_type == "new_id":
                             arg_iface = arg_node.get("interface")
                             if arg_iface is not None:

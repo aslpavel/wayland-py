@@ -99,10 +99,14 @@ def _generate_request(
     args_types: List[str] = []
     for arg_desc in args_desc:
         if isinstance(arg_desc, ArgObject):
+            arg_type: str
             if arg_desc.interface is None:
-                args_types.append(f"{arg_desc.name}: Proxy")
+                arg_type = "Proxy"
             else:
-                args_types.append(f"{arg_desc.name}: {_camle_case(arg_desc.interface)}")
+                arg_type = _camle_case(arg_desc.interface)
+            if arg_desc.optional:
+                arg_type = f"Optional[{arg_type}]"
+            args_types.append(f"{arg_desc.name}: {arg_type}")
         elif isinstance(arg_desc, ArgNewId):
             if arg_desc.interface is None:
                 args_types.append(f"{arg_desc.name}: Proxy")
@@ -177,10 +181,14 @@ def _generate_events(
     args_types: List[str] = []
     for arg_desc in args_desc:
         if isinstance(arg_desc, (ArgObject, ArgNewId)):
+            arg_type: str
             if arg_desc.interface is None:
-                args_types.append(arg_desc.type_name)
+                arg_type = arg_desc.type_name
             else:
-                args_types.append(f"{_camle_case(arg_desc.interface)}")
+                arg_type = _camle_case(arg_desc.interface)
+            if isinstance(arg_desc, ArgObject) and arg_desc.optional:
+                arg_type = f"Optional[{arg_type}]"
+            args_types.append(arg_type)
         else:
             args_types.append(arg_desc.type_name)
     handler_sig = "Callable[[{}], bool]".format(", ".join(args_types))
