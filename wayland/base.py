@@ -535,14 +535,14 @@ class Interface:
     events_by_name: Dict[str, Tuple[OpCode, List[Arg]]]
     requests: List[Tuple[str, List[Arg]]]
     requests_by_name: Dict[str, Tuple[OpCode, List[Arg]]]
-    enums: Dict[str, Dict[str, int]]
+    enums: List[WEnum]
 
     def __init__(
         self,
         name: str,
         requests: List[Tuple[str, List[Arg]]],
         events: List[Tuple[str, List[Arg]]],
-        enums: Dict[str, Dict[str, int]],
+        enums: List[WEnum],
     ) -> None:
         self.name = name
         self.requests = requests
@@ -696,6 +696,17 @@ class Proxy:
         return f"{self._interface.name}@{self._id}"
 
 
+class WEnum:
+    name: str
+    values: Dict[str, int]
+    flag: bool
+
+    def __init__(self, name: str, values: Dict[str, int], flag: bool = False):
+        self.name = name
+        self.values = values
+        self.flag = flag
+
+
 class Protocol:
     __slots__ = ["name", "interfaces", "extern"]
     name: str
@@ -735,7 +746,7 @@ class Protocol:
                 raise ValueError("interface must have name attribute")
             events: List[Tuple[str, List[Arg]]] = []
             requests: List[Tuple[str, List[Arg]]] = []
-            enums: Dict[str, Dict[str, int]] = {}
+            enums: List[WEnum] = []
 
             for child in node:
                 if child.tag in {"request", "event"}:
@@ -815,7 +826,8 @@ class Protocol:
                         else:
                             value = int(value_str)
                         enum[var_name] = value
-                    enums[name] = enum
+                    flag = child.get("bitfield") == "true"
+                    enums.append(WEnum(name, enum, flag))
 
             iface = Interface(iface_name, requests, events, enums)
             ifaces[iface_name] = iface

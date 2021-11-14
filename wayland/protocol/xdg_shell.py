@@ -2,7 +2,7 @@
 # fmt: off
 # pyright: reportPrivateUsage=false
 from __future__ import annotations
-from enum import Enum
+from enum import Enum, Flag
 from typing import Callable, ClassVar, Optional
 from ..base import *
 from .wayland import *
@@ -27,16 +27,19 @@ class XdgWmBase(Proxy):
         events=[
             ("ping", [ArgUInt("serial")]),
         ],
-        enums={
-            "error": {
-                "role": 0,
-                "defunct_surfaces": 1,
-                "not_the_topmost_popup": 2,
-                "invalid_popup_parent": 3,
-                "invalid_surface_state": 4,
-                "invalid_positioner": 5,
-            },
-        },
+        enums=[
+            WEnum(
+                name="error",
+                values={
+                    "role": 0,
+                    "defunct_surfaces": 1,
+                    "not_the_topmost_popup": 2,
+                    "invalid_popup_parent": 3,
+                    "invalid_surface_state": 4,
+                    "invalid_positioner": 5,
+                },
+            ),
+        ],
     )
 
     def __init__(self, id: Id, connection: Connection) -> None:
@@ -98,42 +101,55 @@ class XdgPositioner(Proxy):
         ],
         events=[
         ],
-        enums={
-            "error": {
-                "invalid_input": 0,
-            },
-            "anchor": {
-                "none": 0,
-                "top": 1,
-                "bottom": 2,
-                "left": 3,
-                "right": 4,
-                "top_left": 5,
-                "bottom_left": 6,
-                "top_right": 7,
-                "bottom_right": 8,
-            },
-            "gravity": {
-                "none": 0,
-                "top": 1,
-                "bottom": 2,
-                "left": 3,
-                "right": 4,
-                "top_left": 5,
-                "bottom_left": 6,
-                "top_right": 7,
-                "bottom_right": 8,
-            },
-            "constraint_adjustment": {
-                "none": 0,
-                "slide_x": 1,
-                "slide_y": 2,
-                "flip_x": 4,
-                "flip_y": 8,
-                "resize_x": 16,
-                "resize_y": 32,
-            },
-        },
+        enums=[
+            WEnum(
+                name="error",
+                values={
+                    "invalid_input": 0,
+                },
+            ),
+            WEnum(
+                name="anchor",
+                values={
+                    "none": 0,
+                    "top": 1,
+                    "bottom": 2,
+                    "left": 3,
+                    "right": 4,
+                    "top_left": 5,
+                    "bottom_left": 6,
+                    "top_right": 7,
+                    "bottom_right": 8,
+                },
+            ),
+            WEnum(
+                name="gravity",
+                values={
+                    "none": 0,
+                    "top": 1,
+                    "bottom": 2,
+                    "left": 3,
+                    "right": 4,
+                    "top_left": 5,
+                    "bottom_left": 6,
+                    "top_right": 7,
+                    "bottom_right": 8,
+                },
+            ),
+            WEnum(
+                name="constraint_adjustment",
+                values={
+                    "none": 0,
+                    "slide_x": 1,
+                    "slide_y": 2,
+                    "flip_x": 4,
+                    "flip_y": 8,
+                    "resize_x": 16,
+                    "resize_y": 32,
+                },
+                flag=True,
+            ),
+        ],
     )
 
     def __init__(self, id: Id, connection: Connection) -> None:
@@ -224,7 +240,7 @@ class XdgPositioner(Proxy):
         top_right = 7
         bottom_right = 8
 
-    class ConstraintAdjustment(Enum):
+    class ConstraintAdjustment(Flag):
         none = 0
         slide_x = 1
         slide_y = 2
@@ -246,13 +262,16 @@ class XdgSurface(Proxy):
         events=[
             ("configure", [ArgUInt("serial")]),
         ],
-        enums={
-            "error": {
-                "not_constructed": 1,
-                "already_constructed": 2,
-                "unconfigured_buffer": 3,
-            },
-        },
+        enums=[
+            WEnum(
+                name="error",
+                values={
+                    "not_constructed": 1,
+                    "already_constructed": 2,
+                    "unconfigured_buffer": 3,
+                },
+            ),
+        ],
     )
 
     def __init__(self, id: Id, connection: Connection) -> None:
@@ -323,29 +342,35 @@ class XdgToplevel(Proxy):
             ("configure", [ArgInt("width"), ArgInt("height"), ArgArray("states")]),
             ("close", []),
         ],
-        enums={
-            "resize_edge": {
-                "none": 0,
-                "top": 1,
-                "bottom": 2,
-                "left": 4,
-                "top_left": 5,
-                "bottom_left": 6,
-                "right": 8,
-                "top_right": 9,
-                "bottom_right": 10,
-            },
-            "state": {
-                "maximized": 1,
-                "fullscreen": 2,
-                "resizing": 3,
-                "activated": 4,
-                "tiled_left": 5,
-                "tiled_right": 6,
-                "tiled_top": 7,
-                "tiled_bottom": 8,
-            },
-        },
+        enums=[
+            WEnum(
+                name="resize_edge",
+                values={
+                    "none": 0,
+                    "top": 1,
+                    "bottom": 2,
+                    "left": 4,
+                    "top_left": 5,
+                    "bottom_left": 6,
+                    "right": 8,
+                    "top_right": 9,
+                    "bottom_right": 10,
+                },
+            ),
+            WEnum(
+                name="state",
+                values={
+                    "maximized": 1,
+                    "fullscreen": 2,
+                    "resizing": 3,
+                    "activated": 4,
+                    "tiled_left": 5,
+                    "tiled_right": 6,
+                    "tiled_top": 7,
+                    "tiled_bottom": 8,
+                },
+            ),
+        ],
     )
 
     def __init__(self, id: Id, connection: Connection) -> None:
@@ -479,11 +504,14 @@ class XdgPopup(Proxy):
             ("popup_done", []),
             ("repositioned", [ArgUInt("token")]),
         ],
-        enums={
-            "error": {
-                "invalid_grab": 0,
-            },
-        },
+        enums=[
+            WEnum(
+                name="error",
+                values={
+                    "invalid_grab": 0,
+                },
+            ),
+        ],
     )
 
     def __init__(self, id: Id, connection: Connection) -> None:

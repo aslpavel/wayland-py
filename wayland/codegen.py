@@ -23,7 +23,7 @@ def generate_client(
         "# fmt: off\n"
         "# pyright: reportPrivateUsage=false\n"
         "from __future__ import annotations\n"
-        "from enum import Enum\n"
+        "from enum import Enum, Flag\n"
         "from typing import Callable, ClassVar, Optional\n"
         f"from {wayland_base} import *",
         file=module,
@@ -52,13 +52,18 @@ def generate_client(
         for event, args_desc in interface.events:
             print(f'            ("{event}", {args_desc}),', file=module)
         print(f"        ],", file=module)
-        print("        enums={", file=module)
-        for enum_name, enum in interface.enums.items():
-            print('            "{}": {{'.format(enum_name), file=module)
-            for var_name, value in enum.items():
-                print('                "{}": {},'.format(var_name, value), file=module)
-            print("            },", file=module)
-        print("        },", file=module)
+        print("        enums=[", file=module)
+        for enum in interface.enums:
+            print("            WEnum(", file=module)
+            print(f'                name="{enum.name}",', file=module)
+            print(f"                values={{", file=module)
+            for var_name, value in enum.values.items():
+                print(f'                    "{var_name}": {value},', file=module)
+            print("                },", file=module)
+            if enum.flag:
+                print(f"                flag=True,", file=module)
+            print("            ),", file=module)
+        print("        ],", file=module)
         print(f"    )\n", file=module)
 
         # define init
@@ -77,10 +82,12 @@ def generate_client(
             _generate_events(module, opcode, event, args_desc)
 
         # define enums
-        for enum_name, enum in interface.enums.items():
-            enum_name = _camle_case(enum_name)
-            print(f"    class {enum_name}(Enum):", file=module)
-            for var_name, value in enum.items():
+        for enum in interface.enums:
+            enum_name = _camle_case(enum.name)
+            enum_type = "Flag" if enum.flag else "Enum"
+            print(f"    class {enum_name}({enum_type}):", file=module)
+            for var_name, value in enum.values.items():
+                # prefix digit only enums with "u"
                 prefix = "u" if var_name.isdigit() else ""
                 print(f"        {prefix}{var_name} = {value}", file=module)
             print(file=module)

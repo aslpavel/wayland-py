@@ -2,7 +2,7 @@
 # fmt: off
 # pyright: reportPrivateUsage=false
 from __future__ import annotations
-from enum import Enum
+from enum import Enum, Flag
 from typing import Callable, ClassVar, Optional
 from ..base import *
 
@@ -42,14 +42,17 @@ class WlDisplay(Proxy):
             ("error", [ArgObject("object_id", None), ArgUInt("code"), ArgStr("message")]),
             ("delete_id", [ArgUInt("id")]),
         ],
-        enums={
-            "error": {
-                "invalid_object": 0,
-                "invalid_method": 1,
-                "no_memory": 2,
-                "implementation": 3,
-            },
-        },
+        enums=[
+            WEnum(
+                name="error",
+                values={
+                    "invalid_object": 0,
+                    "invalid_method": 1,
+                    "no_memory": 2,
+                    "implementation": 3,
+                },
+            ),
+        ],
     )
 
     def __init__(self, id: Id, connection: Connection) -> None:
@@ -95,8 +98,8 @@ class WlRegistry(Proxy):
             ("global", [ArgUInt("name"), ArgStr("interface"), ArgUInt("version")]),
             ("global_remove", [ArgUInt("name")]),
         ],
-        enums={
-        },
+        enums=[
+        ],
     )
 
     def __init__(self, id: Id, connection: Connection) -> None:
@@ -130,8 +133,8 @@ class WlCallback(Proxy):
         events=[
             ("done", [ArgUInt("callback_data")]),
         ],
-        enums={
-        },
+        enums=[
+        ],
     )
 
     def __init__(self, id: Id, connection: Connection) -> None:
@@ -151,8 +154,8 @@ class WlCompositor(Proxy):
         ],
         events=[
         ],
-        enums={
-        },
+        enums=[
+        ],
     )
 
     def __init__(self, id: Id, connection: Connection) -> None:
@@ -182,8 +185,8 @@ class WlShmPool(Proxy):
         ],
         events=[
         ],
-        enums={
-        },
+        enums=[
+        ],
     )
 
     def __init__(self, id: Id, connection: Connection) -> None:
@@ -217,119 +220,125 @@ class WlShm(Proxy):
         events=[
             ("format", [ArgUInt("format", "format")]),
         ],
-        enums={
-            "error": {
-                "invalid_format": 0,
-                "invalid_stride": 1,
-                "invalid_fd": 2,
-            },
-            "format": {
-                "argb8888": 0,
-                "xrgb8888": 1,
-                "c8": 538982467,
-                "rgb332": 943867730,
-                "bgr233": 944916290,
-                "xrgb4444": 842093144,
-                "xbgr4444": 842089048,
-                "rgbx4444": 842094674,
-                "bgrx4444": 842094658,
-                "argb4444": 842093121,
-                "abgr4444": 842089025,
-                "rgba4444": 842088786,
-                "bgra4444": 842088770,
-                "xrgb1555": 892424792,
-                "xbgr1555": 892420696,
-                "rgbx5551": 892426322,
-                "bgrx5551": 892426306,
-                "argb1555": 892424769,
-                "abgr1555": 892420673,
-                "rgba5551": 892420434,
-                "bgra5551": 892420418,
-                "rgb565": 909199186,
-                "bgr565": 909199170,
-                "rgb888": 875710290,
-                "bgr888": 875710274,
-                "xbgr8888": 875709016,
-                "rgbx8888": 875714642,
-                "bgrx8888": 875714626,
-                "abgr8888": 875708993,
-                "rgba8888": 875708754,
-                "bgra8888": 875708738,
-                "xrgb2101010": 808669784,
-                "xbgr2101010": 808665688,
-                "rgbx1010102": 808671314,
-                "bgrx1010102": 808671298,
-                "argb2101010": 808669761,
-                "abgr2101010": 808665665,
-                "rgba1010102": 808665426,
-                "bgra1010102": 808665410,
-                "yuyv": 1448695129,
-                "yvyu": 1431918169,
-                "uyvy": 1498831189,
-                "vyuy": 1498765654,
-                "ayuv": 1448433985,
-                "nv12": 842094158,
-                "nv21": 825382478,
-                "nv16": 909203022,
-                "nv61": 825644622,
-                "yuv410": 961959257,
-                "yvu410": 961893977,
-                "yuv411": 825316697,
-                "yvu411": 825316953,
-                "yuv420": 842093913,
-                "yvu420": 842094169,
-                "yuv422": 909202777,
-                "yvu422": 909203033,
-                "yuv444": 875713881,
-                "yvu444": 875714137,
-                "r8": 538982482,
-                "r16": 540422482,
-                "rg88": 943212370,
-                "gr88": 943215175,
-                "rg1616": 842221394,
-                "gr1616": 842224199,
-                "xrgb16161616f": 1211388504,
-                "xbgr16161616f": 1211384408,
-                "argb16161616f": 1211388481,
-                "abgr16161616f": 1211384385,
-                "xyuv8888": 1448434008,
-                "vuy888": 875713878,
-                "vuy101010": 808670550,
-                "y210": 808530521,
-                "y212": 842084953,
-                "y216": 909193817,
-                "y410": 808531033,
-                "y412": 842085465,
-                "y416": 909194329,
-                "xvyu2101010": 808670808,
-                "xvyu12_16161616": 909334104,
-                "xvyu16161616": 942954072,
-                "y0l0": 810299481,
-                "x0l0": 810299480,
-                "y0l2": 843853913,
-                "x0l2": 843853912,
-                "yuv420_8bit": 942691673,
-                "yuv420_10bit": 808539481,
-                "xrgb8888_a8": 943805016,
-                "xbgr8888_a8": 943800920,
-                "rgbx8888_a8": 943806546,
-                "bgrx8888_a8": 943806530,
-                "rgb888_a8": 943798354,
-                "bgr888_a8": 943798338,
-                "rgb565_a8": 943797586,
-                "bgr565_a8": 943797570,
-                "nv24": 875714126,
-                "nv42": 842290766,
-                "p210": 808530512,
-                "p010": 808530000,
-                "p012": 842084432,
-                "p016": 909193296,
-                "axbxgxrx106106106106": 808534593,
-                "nv15": 892425806,
-                "q410": 808531025,
-                "q401": 825242705,
-            },
-        },
+        enums=[
+            WEnum(
+                name="error",
+                values={
+                    "invalid_format": 0,
+                    "invalid_stride": 1,
+                    "invalid_fd": 2,
+                },
+            ),
+            WEnum(
+                name="format",
+                values={
+                    "argb8888": 0,
+                    "xrgb8888": 1,
+                    "c8": 538982467,
+                    "rgb332": 943867730,
+                    "bgr233": 944916290,
+                    "xrgb4444": 842093144,
+                    "xbgr4444": 842089048,
+                    "rgbx4444": 842094674,
+                    "bgrx4444": 842094658,
+                    "argb4444": 842093121,
+                    "abgr4444": 842089025,
+                    "rgba4444": 842088786,
+                    "bgra4444": 842088770,
+                    "xrgb1555": 892424792,
+                    "xbgr1555": 892420696,
+                    "rgbx5551": 892426322,
+                    "bgrx5551": 892426306,
+                    "argb1555": 892424769,
+                    "abgr1555": 892420673,
+                    "rgba5551": 892420434,
+                    "bgra5551": 892420418,
+                    "rgb565": 909199186,
+                    "bgr565": 909199170,
+                    "rgb888": 875710290,
+                    "bgr888": 875710274,
+                    "xbgr8888": 875709016,
+                    "rgbx8888": 875714642,
+                    "bgrx8888": 875714626,
+                    "abgr8888": 875708993,
+                    "rgba8888": 875708754,
+                    "bgra8888": 875708738,
+                    "xrgb2101010": 808669784,
+                    "xbgr2101010": 808665688,
+                    "rgbx1010102": 808671314,
+                    "bgrx1010102": 808671298,
+                    "argb2101010": 808669761,
+                    "abgr2101010": 808665665,
+                    "rgba1010102": 808665426,
+                    "bgra1010102": 808665410,
+                    "yuyv": 1448695129,
+                    "yvyu": 1431918169,
+                    "uyvy": 1498831189,
+                    "vyuy": 1498765654,
+                    "ayuv": 1448433985,
+                    "nv12": 842094158,
+                    "nv21": 825382478,
+                    "nv16": 909203022,
+                    "nv61": 825644622,
+                    "yuv410": 961959257,
+                    "yvu410": 961893977,
+                    "yuv411": 825316697,
+                    "yvu411": 825316953,
+                    "yuv420": 842093913,
+                    "yvu420": 842094169,
+                    "yuv422": 909202777,
+                    "yvu422": 909203033,
+                    "yuv444": 875713881,
+                    "yvu444": 875714137,
+                    "r8": 538982482,
+                    "r16": 540422482,
+                    "rg88": 943212370,
+                    "gr88": 943215175,
+                    "rg1616": 842221394,
+                    "gr1616": 842224199,
+                    "xrgb16161616f": 1211388504,
+                    "xbgr16161616f": 1211384408,
+                    "argb16161616f": 1211388481,
+                    "abgr16161616f": 1211384385,
+                    "xyuv8888": 1448434008,
+                    "vuy888": 875713878,
+                    "vuy101010": 808670550,
+                    "y210": 808530521,
+                    "y212": 842084953,
+                    "y216": 909193817,
+                    "y410": 808531033,
+                    "y412": 842085465,
+                    "y416": 909194329,
+                    "xvyu2101010": 808670808,
+                    "xvyu12_16161616": 909334104,
+                    "xvyu16161616": 942954072,
+                    "y0l0": 810299481,
+                    "x0l0": 810299480,
+                    "y0l2": 843853913,
+                    "x0l2": 843853912,
+                    "yuv420_8bit": 942691673,
+                    "yuv420_10bit": 808539481,
+                    "xrgb8888_a8": 943805016,
+                    "xbgr8888_a8": 943800920,
+                    "rgbx8888_a8": 943806546,
+                    "bgrx8888_a8": 943806530,
+                    "rgb888_a8": 943798354,
+                    "bgr888_a8": 943798338,
+                    "rgb565_a8": 943797586,
+                    "bgr565_a8": 943797570,
+                    "nv24": 875714126,
+                    "nv42": 842290766,
+                    "p210": 808530512,
+                    "p010": 808530000,
+                    "p012": 842084432,
+                    "p016": 909193296,
+                    "axbxgxrx106106106106": 808534593,
+                    "nv15": 892425806,
+                    "q410": 808531025,
+                    "q401": 825242705,
+                },
+            ),
+        ],
     )
 
     def __init__(self, id: Id, connection: Connection) -> None:
@@ -467,8 +476,8 @@ class WlBuffer(Proxy):
         events=[
             ("release", []),
         ],
-        enums={
-        },
+        enums=[
+        ],
     )
 
     def __init__(self, id: Id, connection: Connection) -> None:
@@ -500,14 +509,17 @@ class WlDataOffer(Proxy):
             ("source_actions", [ArgUInt("source_actions", "wl_data_device_manager.dnd_action")]),
             ("action", [ArgUInt("dnd_action", "wl_data_device_manager.dnd_action")]),
         ],
-        enums={
-            "error": {
-                "invalid_finish": 0,
-                "invalid_action_mask": 1,
-                "invalid_action": 2,
-                "invalid_offer": 3,
-            },
-        },
+        enums=[
+            WEnum(
+                name="error",
+                values={
+                    "invalid_finish": 0,
+                    "invalid_action_mask": 1,
+                    "invalid_action": 2,
+                    "invalid_offer": 3,
+                },
+            ),
+        ],
     )
 
     def __init__(self, id: Id, connection: Connection) -> None:
@@ -580,12 +592,15 @@ class WlDataSource(Proxy):
             ("dnd_finished", []),
             ("action", [ArgUInt("dnd_action", "wl_data_device_manager.dnd_action")]),
         ],
-        enums={
-            "error": {
-                "invalid_action_mask": 0,
-                "invalid_source": 1,
-            },
-        },
+        enums=[
+            WEnum(
+                name="error",
+                values={
+                    "invalid_action_mask": 0,
+                    "invalid_source": 1,
+                },
+            ),
+        ],
     )
 
     def __init__(self, id: Id, connection: Connection) -> None:
@@ -659,11 +674,14 @@ class WlDataDevice(Proxy):
             ("drop", []),
             ("selection", [ArgObject("id", "wl_data_offer", True)]),
         ],
-        enums={
-            "error": {
-                "role": 0,
-            },
-        },
+        enums=[
+            WEnum(
+                name="error",
+                values={
+                    "role": 0,
+                },
+            ),
+        ],
     )
 
     def __init__(self, id: Id, connection: Connection) -> None:
@@ -729,14 +747,18 @@ class WlDataDeviceManager(Proxy):
         ],
         events=[
         ],
-        enums={
-            "dnd_action": {
-                "none": 0,
-                "copy": 1,
-                "move": 2,
-                "ask": 4,
-            },
-        },
+        enums=[
+            WEnum(
+                name="dnd_action",
+                values={
+                    "none": 0,
+                    "copy": 1,
+                    "move": 2,
+                    "ask": 4,
+                },
+                flag=True,
+            ),
+        ],
     )
 
     def __init__(self, id: Id, connection: Connection) -> None:
@@ -756,7 +778,7 @@ class WlDataDeviceManager(Proxy):
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return id
 
-    class DndAction(Enum):
+    class DndAction(Flag):
         none = 0
         copy = 1
         move = 2
@@ -770,11 +792,14 @@ class WlShell(Proxy):
         ],
         events=[
         ],
-        enums={
-            "error": {
-                "role": 0,
-            },
-        },
+        enums=[
+            WEnum(
+                name="error",
+                values={
+                    "role": 0,
+                },
+            ),
+        ],
     )
 
     def __init__(self, id: Id, connection: Connection) -> None:
@@ -810,28 +835,39 @@ class WlShellSurface(Proxy):
             ("configure", [ArgUInt("edges", "resize"), ArgInt("width"), ArgInt("height")]),
             ("popup_done", []),
         ],
-        enums={
-            "resize": {
-                "none": 0,
-                "top": 1,
-                "bottom": 2,
-                "left": 4,
-                "top_left": 5,
-                "bottom_left": 6,
-                "right": 8,
-                "top_right": 9,
-                "bottom_right": 10,
-            },
-            "transient": {
-                "inactive": 1,
-            },
-            "fullscreen_method": {
-                "default": 0,
-                "scale": 1,
-                "driver": 2,
-                "fill": 3,
-            },
-        },
+        enums=[
+            WEnum(
+                name="resize",
+                values={
+                    "none": 0,
+                    "top": 1,
+                    "bottom": 2,
+                    "left": 4,
+                    "top_left": 5,
+                    "bottom_left": 6,
+                    "right": 8,
+                    "top_right": 9,
+                    "bottom_right": 10,
+                },
+                flag=True,
+            ),
+            WEnum(
+                name="transient",
+                values={
+                    "inactive": 1,
+                },
+                flag=True,
+            ),
+            WEnum(
+                name="fullscreen_method",
+                values={
+                    "default": 0,
+                    "scale": 1,
+                    "driver": 2,
+                    "fill": 3,
+                },
+            ),
+        ],
     )
 
     def __init__(self, id: Id, connection: Connection) -> None:
@@ -912,7 +948,7 @@ class WlShellSurface(Proxy):
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    class Resize(Enum):
+    class Resize(Flag):
         none = 0
         top = 1
         bottom = 2
@@ -923,7 +959,7 @@ class WlShellSurface(Proxy):
         top_right = 9
         bottom_right = 10
 
-    class Transient(Enum):
+    class Transient(Flag):
         inactive = 1
 
     class FullscreenMethod(Enum):
@@ -951,13 +987,16 @@ class WlSurface(Proxy):
             ("enter", [ArgObject("output", "wl_output")]),
             ("leave", [ArgObject("output", "wl_output")]),
         ],
-        enums={
-            "error": {
-                "invalid_scale": 0,
-                "invalid_transform": 1,
-                "invalid_size": 2,
-            },
-        },
+        enums=[
+            WEnum(
+                name="error",
+                values={
+                    "invalid_scale": 0,
+                    "invalid_transform": 1,
+                    "invalid_size": 2,
+                },
+            ),
+        ],
     )
 
     def __init__(self, id: Id, connection: Connection) -> None:
@@ -1052,16 +1091,23 @@ class WlSeat(Proxy):
             ("capabilities", [ArgUInt("capabilities", "capability")]),
             ("name", [ArgStr("name")]),
         ],
-        enums={
-            "capability": {
-                "pointer": 1,
-                "keyboard": 2,
-                "touch": 4,
-            },
-            "error": {
-                "missing_capability": 0,
-            },
-        },
+        enums=[
+            WEnum(
+                name="capability",
+                values={
+                    "pointer": 1,
+                    "keyboard": 2,
+                    "touch": 4,
+                },
+                flag=True,
+            ),
+            WEnum(
+                name="error",
+                values={
+                    "missing_capability": 0,
+                },
+            ),
+        ],
     )
 
     def __init__(self, id: Id, connection: Connection) -> None:
@@ -1104,7 +1150,7 @@ class WlSeat(Proxy):
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    class Capability(Enum):
+    class Capability(Flag):
         pointer = 1
         keyboard = 2
         touch = 4
@@ -1130,25 +1176,37 @@ class WlPointer(Proxy):
             ("axis_stop", [ArgUInt("time"), ArgUInt("axis", "axis")]),
             ("axis_discrete", [ArgUInt("axis", "axis"), ArgInt("discrete")]),
         ],
-        enums={
-            "error": {
-                "role": 0,
-            },
-            "button_state": {
-                "released": 0,
-                "pressed": 1,
-            },
-            "axis": {
-                "vertical_scroll": 0,
-                "horizontal_scroll": 1,
-            },
-            "axis_source": {
-                "wheel": 0,
-                "finger": 1,
-                "continuous": 2,
-                "wheel_tilt": 3,
-            },
-        },
+        enums=[
+            WEnum(
+                name="error",
+                values={
+                    "role": 0,
+                },
+            ),
+            WEnum(
+                name="button_state",
+                values={
+                    "released": 0,
+                    "pressed": 1,
+                },
+            ),
+            WEnum(
+                name="axis",
+                values={
+                    "vertical_scroll": 0,
+                    "horizontal_scroll": 1,
+                },
+            ),
+            WEnum(
+                name="axis_source",
+                values={
+                    "wheel": 0,
+                    "finger": 1,
+                    "continuous": 2,
+                    "wheel_tilt": 3,
+                },
+            ),
+        ],
     )
 
     def __init__(self, id: Id, connection: Connection) -> None:
@@ -1242,16 +1300,22 @@ class WlKeyboard(Proxy):
             ("modifiers", [ArgUInt("serial"), ArgUInt("mods_depressed"), ArgUInt("mods_latched"), ArgUInt("mods_locked"), ArgUInt("group")]),
             ("repeat_info", [ArgInt("rate"), ArgInt("delay")]),
         ],
-        enums={
-            "keymap_format": {
-                "no_keymap": 0,
-                "xkb_v1": 1,
-            },
-            "key_state": {
-                "released": 0,
-                "pressed": 1,
-            },
-        },
+        enums=[
+            WEnum(
+                name="keymap_format",
+                values={
+                    "no_keymap": 0,
+                    "xkb_v1": 1,
+                },
+            ),
+            WEnum(
+                name="key_state",
+                values={
+                    "released": 0,
+                    "pressed": 1,
+                },
+            ),
+        ],
     )
 
     def __init__(self, id: Id, connection: Connection) -> None:
@@ -1316,8 +1380,8 @@ class WlTouch(Proxy):
             ("shape", [ArgInt("id"), ArgFixed("major"), ArgFixed("minor")]),
             ("orientation", [ArgInt("id"), ArgFixed("orientation")]),
         ],
-        enums={
-        },
+        enums=[
+        ],
     )
 
     def __init__(self, id: Id, connection: Connection) -> None:
@@ -1376,30 +1440,40 @@ class WlOutput(Proxy):
             ("done", []),
             ("scale", [ArgInt("factor")]),
         ],
-        enums={
-            "subpixel": {
-                "unknown": 0,
-                "none": 1,
-                "horizontal_rgb": 2,
-                "horizontal_bgr": 3,
-                "vertical_rgb": 4,
-                "vertical_bgr": 5,
-            },
-            "transform": {
-                "normal": 0,
-                "90": 1,
-                "180": 2,
-                "270": 3,
-                "flipped": 4,
-                "flipped_90": 5,
-                "flipped_180": 6,
-                "flipped_270": 7,
-            },
-            "mode": {
-                "current": 1,
-                "preferred": 2,
-            },
-        },
+        enums=[
+            WEnum(
+                name="subpixel",
+                values={
+                    "unknown": 0,
+                    "none": 1,
+                    "horizontal_rgb": 2,
+                    "horizontal_bgr": 3,
+                    "vertical_rgb": 4,
+                    "vertical_bgr": 5,
+                },
+            ),
+            WEnum(
+                name="transform",
+                values={
+                    "normal": 0,
+                    "90": 1,
+                    "180": 2,
+                    "270": 3,
+                    "flipped": 4,
+                    "flipped_90": 5,
+                    "flipped_180": 6,
+                    "flipped_270": 7,
+                },
+            ),
+            WEnum(
+                name="mode",
+                values={
+                    "current": 1,
+                    "preferred": 2,
+                },
+                flag=True,
+            ),
+        ],
     )
 
     def __init__(self, id: Id, connection: Connection) -> None:
@@ -1449,7 +1523,7 @@ class WlOutput(Proxy):
         flipped_180 = 6
         flipped_270 = 7
 
-    class Mode(Enum):
+    class Mode(Flag):
         current = 1
         preferred = 2
 
@@ -1463,8 +1537,8 @@ class WlRegion(Proxy):
         ],
         events=[
         ],
-        enums={
-        },
+        enums=[
+        ],
     )
 
     def __init__(self, id: Id, connection: Connection) -> None:
@@ -1497,11 +1571,14 @@ class WlSubcompositor(Proxy):
         ],
         events=[
         ],
-        enums={
-            "error": {
-                "bad_surface": 0,
-            },
-        },
+        enums=[
+            WEnum(
+                name="error",
+                values={
+                    "bad_surface": 0,
+                },
+            ),
+        ],
     )
 
     def __init__(self, id: Id, connection: Connection) -> None:
@@ -1536,11 +1613,14 @@ class WlSubsurface(Proxy):
         ],
         events=[
         ],
-        enums={
-            "error": {
-                "bad_surface": 0,
-            },
-        },
+        enums=[
+            WEnum(
+                name="error",
+                values={
+                    "bad_surface": 0,
+                },
+            ),
+        ],
     )
 
     def __init__(self, id: Id, connection: Connection) -> None:
