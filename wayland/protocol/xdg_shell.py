@@ -3,7 +3,7 @@
 # pyright: reportPrivateUsage=false
 from enum import Enum
 from typing import Callable, ClassVar, Optional
-from ..client import *
+from ..base import *
 from .wayland import *
 
 __all__ = [
@@ -49,14 +49,14 @@ class xdg_wm_base(Proxy):
 
     def create_positioner(self) -> "xdg_positioner":
         _opcode = OpCode(1)
-        id = self._connection.create_proxy_typed(xdg_positioner)
+        id = self._connection.create_proxy(xdg_positioner)
         _data, _fds = self._interface.pack(_opcode, (id,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return id
 
     def get_xdg_surface(self, surface: "wl_surface") -> "xdg_surface":
         _opcode = OpCode(2)
-        id = self._connection.create_proxy_typed(xdg_surface)
+        id = self._connection.create_proxy(xdg_surface)
         _data, _fds = self._interface.pack(_opcode, (id, surface,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return id
@@ -265,14 +265,14 @@ class xdg_surface(Proxy):
 
     def get_toplevel(self) -> "xdg_toplevel":
         _opcode = OpCode(1)
-        id = self._connection.create_proxy_typed(xdg_toplevel)
+        id = self._connection.create_proxy(xdg_toplevel)
         _data, _fds = self._interface.pack(_opcode, (id,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return id
 
     def get_popup(self, parent: "xdg_surface", positioner: "xdg_positioner") -> "xdg_popup":
         _opcode = OpCode(2)
-        id = self._connection.create_proxy_typed(xdg_popup)
+        id = self._connection.create_proxy(xdg_popup)
         _data, _fds = self._interface.pack(_opcode, (id, parent, positioner,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return id

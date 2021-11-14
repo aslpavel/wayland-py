@@ -3,7 +3,7 @@
 # pyright: reportPrivateUsage=false
 from enum import Enum
 from typing import Callable, ClassVar, Optional
-from ..client import *
+from ..base import *
 
 __all__ = [
     "wl_display",
@@ -56,14 +56,14 @@ class wl_display(Proxy):
 
     def sync(self) -> "wl_callback":
         _opcode = OpCode(0)
-        callback = self._connection.create_proxy_typed(wl_callback)
+        callback = self._connection.create_proxy(wl_callback)
         _data, _fds = self._interface.pack(_opcode, (callback,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return callback
 
     def get_registry(self) -> "wl_registry":
         _opcode = OpCode(1)
-        registry = self._connection.create_proxy_typed(wl_registry)
+        registry = self._connection.create_proxy(wl_registry)
         _data, _fds = self._interface.pack(_opcode, (registry,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return registry
@@ -159,14 +159,14 @@ class wl_compositor(Proxy):
 
     def create_surface(self) -> "wl_surface":
         _opcode = OpCode(0)
-        id = self._connection.create_proxy_typed(wl_surface)
+        id = self._connection.create_proxy(wl_surface)
         _data, _fds = self._interface.pack(_opcode, (id,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return id
 
     def create_region(self) -> "wl_region":
         _opcode = OpCode(1)
-        id = self._connection.create_proxy_typed(wl_region)
+        id = self._connection.create_proxy(wl_region)
         _data, _fds = self._interface.pack(_opcode, (id,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return id
@@ -190,7 +190,7 @@ class wl_shm_pool(Proxy):
 
     def create_buffer(self, offset: int, width: int, height: int, stride: int, format: "wl_shm.enum_format") -> "wl_buffer":
         _opcode = OpCode(0)
-        id = self._connection.create_proxy_typed(wl_buffer)
+        id = self._connection.create_proxy(wl_buffer)
         _data, _fds = self._interface.pack(_opcode, (id, offset, width, height, stride, format,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return id
@@ -336,7 +336,7 @@ class wl_shm(Proxy):
 
     def create_pool(self, fd: Fd, size: int) -> "wl_shm_pool":
         _opcode = OpCode(0)
-        id = self._connection.create_proxy_typed(wl_shm_pool)
+        id = self._connection.create_proxy(wl_shm_pool)
         _data, _fds = self._interface.pack(_opcode, (id, fd, size,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return id
@@ -743,14 +743,14 @@ class wl_data_device_manager(Proxy):
 
     def create_data_source(self) -> "wl_data_source":
         _opcode = OpCode(0)
-        id = self._connection.create_proxy_typed(wl_data_source)
+        id = self._connection.create_proxy(wl_data_source)
         _data, _fds = self._interface.pack(_opcode, (id,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return id
 
     def get_data_device(self, seat: "wl_seat") -> "wl_data_device":
         _opcode = OpCode(1)
-        id = self._connection.create_proxy_typed(wl_data_device)
+        id = self._connection.create_proxy(wl_data_device)
         _data, _fds = self._interface.pack(_opcode, (id, seat,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return id
@@ -781,7 +781,7 @@ class wl_shell(Proxy):
 
     def get_shell_surface(self, surface: "wl_surface") -> "wl_shell_surface":
         _opcode = OpCode(0)
-        id = self._connection.create_proxy_typed(wl_shell_surface)
+        id = self._connection.create_proxy(wl_shell_surface)
         _data, _fds = self._interface.pack(_opcode, (id, surface,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return id
@@ -982,7 +982,7 @@ class wl_surface(Proxy):
 
     def frame(self) -> "wl_callback":
         _opcode = OpCode(3)
-        callback = self._connection.create_proxy_typed(wl_callback)
+        callback = self._connection.create_proxy(wl_callback)
         _data, _fds = self._interface.pack(_opcode, (callback,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return callback
@@ -1068,21 +1068,21 @@ class wl_seat(Proxy):
 
     def get_pointer(self) -> "wl_pointer":
         _opcode = OpCode(0)
-        id = self._connection.create_proxy_typed(wl_pointer)
+        id = self._connection.create_proxy(wl_pointer)
         _data, _fds = self._interface.pack(_opcode, (id,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return id
 
     def get_keyboard(self) -> "wl_keyboard":
         _opcode = OpCode(1)
-        id = self._connection.create_proxy_typed(wl_keyboard)
+        id = self._connection.create_proxy(wl_keyboard)
         _data, _fds = self._interface.pack(_opcode, (id,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return id
 
     def get_touch(self) -> "wl_touch":
         _opcode = OpCode(2)
-        id = self._connection.create_proxy_typed(wl_touch)
+        id = self._connection.create_proxy(wl_touch)
         _data, _fds = self._interface.pack(_opcode, (id,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return id
@@ -1514,7 +1514,7 @@ class wl_subcompositor(Proxy):
 
     def get_subsurface(self, surface: "wl_surface", parent: "wl_surface") -> "wl_subsurface":
         _opcode = OpCode(1)
-        id = self._connection.create_proxy_typed(wl_subsurface)
+        id = self._connection.create_proxy(wl_subsurface)
         _data, _fds = self._interface.pack(_opcode, (id, surface, parent,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return id

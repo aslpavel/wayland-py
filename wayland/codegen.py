@@ -3,7 +3,7 @@ import sys
 import argparse
 from pathlib import Path
 from typing import Dict, List, Set
-from .client import Arg, ArgFd, ArgNewId, ArgObject, ArgUInt, Protocol
+from .base import Arg, ArgFd, ArgNewId, ArgObject, ArgUInt, Protocol
 
 
 def generate_client(
@@ -15,16 +15,16 @@ def generate_client(
     interfaces = proto.interfaces
     module = io.StringIO()
     if reliative:
-        wayland_client = "..client"
+        wayland_base = "..base"
     else:
-        wayland_client = "wayland.client"
+        wayland_base = "wayland.base"
     print(
         "# Auto generated do not edit manually\n"
         "# fmt: off\n"
         "# pyright: reportPrivateUsage=false\n"
         "from enum import Enum\n"
         "from typing import Callable, ClassVar, Optional\n"
-        f"from {wayland_client} import *",
+        f"from {wayland_base} import *",
         file=module,
     )
     for dep in deps:
@@ -150,7 +150,7 @@ def _generate_request(
             )
             continue
         print(
-            f"        {name} = self._connection.create_proxy_typed({result_desc.interface})",
+            f"        {name} = self._connection.create_proxy({result_desc.interface})",
             file=module,
         )
         result_vals.append(result_desc.name)
