@@ -14,6 +14,14 @@ async def main() -> None:
     wl_compositor = conn.get_global(WlCompositor)
     xdg_wm_base = conn.get_global(XdgWmBase)
 
+    # still alive
+    def pong(serial: int) -> bool:
+        print("ping")
+        xdg_wm_base.pong(serial)
+        return True
+
+    xdg_wm_base.on_ping(pong)
+
     # surface
     wl_surf = wl_compositor.create_surface()
     xdg_surf = xdg_wm_base.get_xdg_surface(wl_surf)
@@ -42,6 +50,7 @@ async def main() -> None:
     buf = pool.create_buffer(0, width, height, stride, WlShm.Format.xrgb8888)
     pool.destroy()
 
+    # handle updates
     def on_configure(serial: int) -> bool:
         print("draw")
         xdg_surf.ack_configure(serial)

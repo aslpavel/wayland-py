@@ -1,5 +1,6 @@
 # pyright: reportPrivateUsage=false
 import os
+import sys
 import socket
 from typing import Optional, TypeVar, Type, Dict, Tuple
 from .base import Connection, Interface, Proxy, Id
@@ -91,16 +92,17 @@ class ClientConnection(Connection):
 
     def _on_display_error(self, proxy: "Proxy", code: int, message: str) -> bool:
         """Handle for `wl_display.error` event"""
-        # TODO: add error handling
-        print(f"\x1b[91mERROR: proxy='{proxy}' code='{code}' message='{message}'\x1b[m")
+        print(
+            f"\x1b[91mERROR: proxy='{proxy}' code='{code}' message='{message}'\x1b[m",
+            file=sys.stderr,
+        )
         self.terminate()
         return True
 
     def _on_display_delete_id(self, id_int: int) -> bool:
         """Unregister proxy"""
         id = Id(id_int)
-        proxy = self._proxies.pop(id, None)
-        print("delete:", proxy)
+        self._proxies.pop(id, None)
         self._id_free.append(id)
         return True
 
