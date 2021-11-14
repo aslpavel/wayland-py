@@ -102,9 +102,9 @@ def generate_client(
             enum_type = "Flag" if enum.flag else "Enum"
             print(f"    class {enum_name}({enum_type}):", file=module)
             for var_name, value in enum.values.items():
-                # prefix digit only enums with "u"
-                prefix = "u" if var_name.isdigit() else ""
-                print(f"        {prefix}{var_name} = {value}", file=module)
+                # prefix digit only enums with "U"
+                prefix = "U" if var_name.isdigit() else ""
+                print(f"        {prefix}{var_name.upper()} = {value}", file=module)
             print(file=module)
 
     module.write("# fmt: on")

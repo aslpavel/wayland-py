@@ -47,7 +47,7 @@ async def main() -> None:
 
     # create wl_buffer
     with wl_shm.create_pool(buf_mem, size) as pool:
-        buf = pool.create_buffer(0, width, height, stride, WlShm.Format.xrgb8888)
+        buf = pool.create_buffer(0, width, height, stride, WlShm.Format.XRGB8888)
 
     # handle updates
     def on_configure(serial: int) -> bool:

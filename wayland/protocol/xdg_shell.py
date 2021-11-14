@@ -83,12 +83,12 @@ class XdgWmBase(Proxy):
         return old_handler
 
     class Error(Enum):
-        role = 0
-        defunct_surfaces = 1
-        not_the_topmost_popup = 2
-        invalid_popup_parent = 3
-        invalid_surface_state = 4
-        invalid_positioner = 5
+        ROLE = 0
+        DEFUNCT_SURFACES = 1
+        NOT_THE_TOPMOST_POPUP = 2
+        INVALID_POPUP_PARENT = 3
+        INVALID_SURFACE_STATE = 4
+        INVALID_POSITIONER = 5
 
 class XdgPositioner(Proxy):
     interface: ClassVar[Interface] = Interface(
@@ -228,38 +228,38 @@ class XdgPositioner(Proxy):
         self.destroy()
 
     class Error(Enum):
-        invalid_input = 0
+        INVALID_INPUT = 0
 
     class Anchor(Enum):
-        none = 0
-        top = 1
-        bottom = 2
-        left = 3
-        right = 4
-        top_left = 5
-        bottom_left = 6
-        top_right = 7
-        bottom_right = 8
+        NONE = 0
+        TOP = 1
+        BOTTOM = 2
+        LEFT = 3
+        RIGHT = 4
+        TOP_LEFT = 5
+        BOTTOM_LEFT = 6
+        TOP_RIGHT = 7
+        BOTTOM_RIGHT = 8
 
     class Gravity(Enum):
-        none = 0
-        top = 1
-        bottom = 2
-        left = 3
-        right = 4
-        top_left = 5
-        bottom_left = 6
-        top_right = 7
-        bottom_right = 8
+        NONE = 0
+        TOP = 1
+        BOTTOM = 2
+        LEFT = 3
+        RIGHT = 4
+        TOP_LEFT = 5
+        BOTTOM_LEFT = 6
+        TOP_RIGHT = 7
+        BOTTOM_RIGHT = 8
 
     class ConstraintAdjustment(Flag):
-        none = 0
-        slide_x = 1
-        slide_y = 2
-        flip_x = 4
-        flip_y = 8
-        resize_x = 16
-        resize_y = 32
+        NONE = 0
+        SLIDE_X = 1
+        SLIDE_Y = 2
+        FLIP_X = 4
+        FLIP_Y = 8
+        RESIZE_X = 16
+        RESIZE_Y = 32
 
 class XdgSurface(Proxy):
     interface: ClassVar[Interface] = Interface(
@@ -333,9 +333,9 @@ class XdgSurface(Proxy):
         return old_handler
 
     class Error(Enum):
-        not_constructed = 1
-        already_constructed = 2
-        unconfigured_buffer = 3
+        NOT_CONSTRUCTED = 1
+        ALREADY_CONSTRUCTED = 2
+        UNCONFIGURED_BUFFER = 3
 
 class XdgToplevel(Proxy):
     interface: ClassVar[Interface] = Interface(
@@ -495,25 +495,25 @@ class XdgToplevel(Proxy):
         return old_handler
 
     class ResizeEdge(Enum):
-        none = 0
-        top = 1
-        bottom = 2
-        left = 4
-        top_left = 5
-        bottom_left = 6
-        right = 8
-        top_right = 9
-        bottom_right = 10
+        NONE = 0
+        TOP = 1
+        BOTTOM = 2
+        LEFT = 4
+        TOP_LEFT = 5
+        BOTTOM_LEFT = 6
+        RIGHT = 8
+        TOP_RIGHT = 9
+        BOTTOM_RIGHT = 10
 
     class State(Enum):
-        maximized = 1
-        fullscreen = 2
-        resizing = 3
-        activated = 4
-        tiled_left = 5
-        tiled_right = 6
-        tiled_top = 7
-        tiled_bottom = 8
+        MAXIMIZED = 1
+        FULLSCREEN = 2
+        RESIZING = 3
+        ACTIVATED = 4
+        TILED_LEFT = 5
+        TILED_RIGHT = 6
+        TILED_TOP = 7
+        TILED_BOTTOM = 8
 
 class XdgPopup(Proxy):
     interface: ClassVar[Interface] = Interface(
@@ -581,6 +581,6 @@ class XdgPopup(Proxy):
         return old_handler
 
     class Error(Enum):
-        invalid_grab = 0
+        INVALID_GRAB = 0
 
 # fmt: on

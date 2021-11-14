@@ -83,10 +83,10 @@ class WlDisplay(Proxy):
         return old_handler
 
     class Error(Enum):
-        invalid_object = 0
-        invalid_method = 1
-        no_memory = 2
-        implementation = 3
+        INVALID_OBJECT = 0
+        INVALID_METHOD = 1
+        NO_MEMORY = 2
+        IMPLEMENTATION = 3
 
 class WlRegistry(Proxy):
     interface: ClassVar[Interface] = Interface(
@@ -363,115 +363,115 @@ class WlShm(Proxy):
         return old_handler
 
     class Error(Enum):
-        invalid_format = 0
-        invalid_stride = 1
-        invalid_fd = 2
+        INVALID_FORMAT = 0
+        INVALID_STRIDE = 1
+        INVALID_FD = 2
 
     class Format(Enum):
-        argb8888 = 0
-        xrgb8888 = 1
-        c8 = 538982467
-        rgb332 = 943867730
-        bgr233 = 944916290
-        xrgb4444 = 842093144
-        xbgr4444 = 842089048
-        rgbx4444 = 842094674
-        bgrx4444 = 842094658
-        argb4444 = 842093121
-        abgr4444 = 842089025
-        rgba4444 = 842088786
-        bgra4444 = 842088770
-        xrgb1555 = 892424792
-        xbgr1555 = 892420696
-        rgbx5551 = 892426322
-        bgrx5551 = 892426306
-        argb1555 = 892424769
-        abgr1555 = 892420673
-        rgba5551 = 892420434
-        bgra5551 = 892420418
-        rgb565 = 909199186
-        bgr565 = 909199170
-        rgb888 = 875710290
-        bgr888 = 875710274
-        xbgr8888 = 875709016
-        rgbx8888 = 875714642
-        bgrx8888 = 875714626
-        abgr8888 = 875708993
-        rgba8888 = 875708754
-        bgra8888 = 875708738
-        xrgb2101010 = 808669784
-        xbgr2101010 = 808665688
-        rgbx1010102 = 808671314
-        bgrx1010102 = 808671298
-        argb2101010 = 808669761
-        abgr2101010 = 808665665
-        rgba1010102 = 808665426
-        bgra1010102 = 808665410
-        yuyv = 1448695129
-        yvyu = 1431918169
-        uyvy = 1498831189
-        vyuy = 1498765654
-        ayuv = 1448433985
-        nv12 = 842094158
-        nv21 = 825382478
-        nv16 = 909203022
-        nv61 = 825644622
-        yuv410 = 961959257
-        yvu410 = 961893977
-        yuv411 = 825316697
-        yvu411 = 825316953
-        yuv420 = 842093913
-        yvu420 = 842094169
-        yuv422 = 909202777
-        yvu422 = 909203033
-        yuv444 = 875713881
-        yvu444 = 875714137
-        r8 = 538982482
-        r16 = 540422482
-        rg88 = 943212370
-        gr88 = 943215175
-        rg1616 = 842221394
-        gr1616 = 842224199
-        xrgb16161616f = 1211388504
-        xbgr16161616f = 1211384408
-        argb16161616f = 1211388481
-        abgr16161616f = 1211384385
-        xyuv8888 = 1448434008
-        vuy888 = 875713878
-        vuy101010 = 808670550
-        y210 = 808530521
-        y212 = 842084953
-        y216 = 909193817
-        y410 = 808531033
-        y412 = 842085465
-        y416 = 909194329
-        xvyu2101010 = 808670808
-        xvyu12_16161616 = 909334104
-        xvyu16161616 = 942954072
-        y0l0 = 810299481
-        x0l0 = 810299480
-        y0l2 = 843853913
-        x0l2 = 843853912
-        yuv420_8bit = 942691673
-        yuv420_10bit = 808539481
-        xrgb8888_a8 = 943805016
-        xbgr8888_a8 = 943800920
-        rgbx8888_a8 = 943806546
-        bgrx8888_a8 = 943806530
-        rgb888_a8 = 943798354
-        bgr888_a8 = 943798338
-        rgb565_a8 = 943797586
-        bgr565_a8 = 943797570
-        nv24 = 875714126
-        nv42 = 842290766
-        p210 = 808530512
-        p010 = 808530000
-        p012 = 842084432
-        p016 = 909193296
-        axbxgxrx106106106106 = 808534593
-        nv15 = 892425806
-        q410 = 808531025
-        q401 = 825242705
+        ARGB8888 = 0
+        XRGB8888 = 1
+        C8 = 538982467
+        RGB332 = 943867730
+        BGR233 = 944916290
+        XRGB4444 = 842093144
+        XBGR4444 = 842089048
+        RGBX4444 = 842094674
+        BGRX4444 = 842094658
+        ARGB4444 = 842093121
+        ABGR4444 = 842089025
+        RGBA4444 = 842088786
+        BGRA4444 = 842088770
+        XRGB1555 = 892424792
+        XBGR1555 = 892420696
+        RGBX5551 = 892426322
+        BGRX5551 = 892426306
+        ARGB1555 = 892424769
+        ABGR1555 = 892420673
+        RGBA5551 = 892420434
+        BGRA5551 = 892420418
+        RGB565 = 909199186
+        BGR565 = 909199170
+        RGB888 = 875710290
+        BGR888 = 875710274
+        XBGR8888 = 875709016
+        RGBX8888 = 875714642
+        BGRX8888 = 875714626
+        ABGR8888 = 875708993
+        RGBA8888 = 875708754
+        BGRA8888 = 875708738
+        XRGB2101010 = 808669784
+        XBGR2101010 = 808665688
+        RGBX1010102 = 808671314
+        BGRX1010102 = 808671298
+        ARGB2101010 = 808669761
+        ABGR2101010 = 808665665
+        RGBA1010102 = 808665426
+        BGRA1010102 = 808665410
+        YUYV = 1448695129
+        YVYU = 1431918169
+        UYVY = 1498831189
+        VYUY = 1498765654
+        AYUV = 1448433985
+        NV12 = 842094158
+        NV21 = 825382478
+        NV16 = 909203022
+        NV61 = 825644622
+        YUV410 = 961959257
+        YVU410 = 961893977
+        YUV411 = 825316697
+        YVU411 = 825316953
+        YUV420 = 842093913
+        YVU420 = 842094169
+        YUV422 = 909202777
+        YVU422 = 909203033
+        YUV444 = 875713881
+        YVU444 = 875714137
+        R8 = 538982482
+        R16 = 540422482
+        RG88 = 943212370
+        GR88 = 943215175
+        RG1616 = 842221394
+        GR1616 = 842224199
+        XRGB16161616F = 1211388504
+        XBGR16161616F = 1211384408
+        ARGB16161616F = 1211388481
+        ABGR16161616F = 1211384385
+        XYUV8888 = 1448434008
+        VUY888 = 875713878
+        VUY101010 = 808670550
+        Y210 = 808530521
+        Y212 = 842084953
+        Y216 = 909193817
+        Y410 = 808531033
+        Y412 = 842085465
+        Y416 = 909194329
+        XVYU2101010 = 808670808
+        XVYU12_16161616 = 909334104
+        XVYU16161616 = 942954072
+        Y0L0 = 810299481
+        X0L0 = 810299480
+        Y0L2 = 843853913
+        X0L2 = 843853912
+        YUV420_8BIT = 942691673
+        YUV420_10BIT = 808539481
+        XRGB8888_A8 = 943805016
+        XBGR8888_A8 = 943800920
+        RGBX8888_A8 = 943806546
+        BGRX8888_A8 = 943806530
+        RGB888_A8 = 943798354
+        BGR888_A8 = 943798338
+        RGB565_A8 = 943797586
+        BGR565_A8 = 943797570
+        NV24 = 875714126
+        NV42 = 842290766
+        P210 = 808530512
+        P010 = 808530000
+        P012 = 842084432
+        P016 = 909193296
+        AXBXGXRX106106106106 = 808534593
+        NV15 = 892425806
+        Q410 = 808531025
+        Q401 = 825242705
 
 class WlBuffer(Proxy):
     interface: ClassVar[Interface] = Interface(
@@ -589,10 +589,10 @@ class WlDataOffer(Proxy):
         return old_handler
 
     class Error(Enum):
-        invalid_finish = 0
-        invalid_action_mask = 1
-        invalid_action = 2
-        invalid_offer = 3
+        INVALID_FINISH = 0
+        INVALID_ACTION_MASK = 1
+        INVALID_ACTION = 2
+        INVALID_OFFER = 3
 
 class WlDataSource(Proxy):
     interface: ClassVar[Interface] = Interface(
@@ -679,8 +679,8 @@ class WlDataSource(Proxy):
         return old_handler
 
     class Error(Enum):
-        invalid_action_mask = 0
-        invalid_source = 1
+        INVALID_ACTION_MASK = 0
+        INVALID_SOURCE = 1
 
 class WlDataDevice(Proxy):
     interface: ClassVar[Interface] = Interface(
@@ -760,7 +760,7 @@ class WlDataDevice(Proxy):
         return old_handler
 
     class Error(Enum):
-        role = 0
+        ROLE = 0
 
 class WlDataDeviceManager(Proxy):
     interface: ClassVar[Interface] = Interface(
@@ -803,10 +803,10 @@ class WlDataDeviceManager(Proxy):
         return id
 
     class DndAction(Flag):
-        none = 0
-        copy = 1
-        move = 2
-        ask = 4
+        NONE = 0
+        COPY = 1
+        MOVE = 2
+        ASK = 4
 
 class WlShell(Proxy):
     interface: ClassVar[Interface] = Interface(
@@ -837,7 +837,7 @@ class WlShell(Proxy):
         return id
 
     class Error(Enum):
-        role = 0
+        ROLE = 0
 
 class WlShellSurface(Proxy):
     interface: ClassVar[Interface] = Interface(
@@ -973,24 +973,24 @@ class WlShellSurface(Proxy):
         return old_handler
 
     class Resize(Flag):
-        none = 0
-        top = 1
-        bottom = 2
-        left = 4
-        top_left = 5
-        bottom_left = 6
-        right = 8
-        top_right = 9
-        bottom_right = 10
+        NONE = 0
+        TOP = 1
+        BOTTOM = 2
+        LEFT = 4
+        TOP_LEFT = 5
+        BOTTOM_LEFT = 6
+        RIGHT = 8
+        TOP_RIGHT = 9
+        BOTTOM_RIGHT = 10
 
     class Transient(Flag):
-        inactive = 1
+        INACTIVE = 1
 
     class FullscreenMethod(Enum):
-        default = 0
-        scale = 1
-        driver = 2
-        fill = 3
+        DEFAULT = 0
+        SCALE = 1
+        DRIVER = 2
+        FILL = 3
 
 class WlSurface(Proxy):
     interface: ClassVar[Interface] = Interface(
@@ -1104,9 +1104,9 @@ class WlSurface(Proxy):
         return old_handler
 
     class Error(Enum):
-        invalid_scale = 0
-        invalid_transform = 1
-        invalid_size = 2
+        INVALID_SCALE = 0
+        INVALID_TRANSFORM = 1
+        INVALID_SIZE = 2
 
 class WlSeat(Proxy):
     interface: ClassVar[Interface] = Interface(
@@ -1181,12 +1181,12 @@ class WlSeat(Proxy):
         return old_handler
 
     class Capability(Flag):
-        pointer = 1
-        keyboard = 2
-        touch = 4
+        POINTER = 1
+        KEYBOARD = 2
+        TOUCH = 4
 
     class Error(Enum):
-        missing_capability = 0
+        MISSING_CAPABILITY = 0
 
 class WlPointer(Proxy):
     interface: ClassVar[Interface] = Interface(
@@ -1300,21 +1300,21 @@ class WlPointer(Proxy):
         return old_handler
 
     class Error(Enum):
-        role = 0
+        ROLE = 0
 
     class ButtonState(Enum):
-        released = 0
-        pressed = 1
+        RELEASED = 0
+        PRESSED = 1
 
     class Axis(Enum):
-        vertical_scroll = 0
-        horizontal_scroll = 1
+        VERTICAL_SCROLL = 0
+        HORIZONTAL_SCROLL = 1
 
     class AxisSource(Enum):
-        wheel = 0
-        finger = 1
-        continuous = 2
-        wheel_tilt = 3
+        WHEEL = 0
+        FINGER = 1
+        CONTINUOUS = 2
+        WHEEL_TILT = 3
 
 class WlKeyboard(Proxy):
     interface: ClassVar[Interface] = Interface(
@@ -1388,12 +1388,12 @@ class WlKeyboard(Proxy):
         return old_handler
 
     class KeymapFormat(Enum):
-        no_keymap = 0
-        xkb_v1 = 1
+        NO_KEYMAP = 0
+        XKB_V1 = 1
 
     class KeyState(Enum):
-        released = 0
-        pressed = 1
+        RELEASED = 0
+        PRESSED = 1
 
 class WlTouch(Proxy):
     interface: ClassVar[Interface] = Interface(
@@ -1536,26 +1536,26 @@ class WlOutput(Proxy):
         return old_handler
 
     class Subpixel(Enum):
-        unknown = 0
-        none = 1
-        horizontal_rgb = 2
-        horizontal_bgr = 3
-        vertical_rgb = 4
-        vertical_bgr = 5
+        UNKNOWN = 0
+        NONE = 1
+        HORIZONTAL_RGB = 2
+        HORIZONTAL_BGR = 3
+        VERTICAL_RGB = 4
+        VERTICAL_BGR = 5
 
     class Transform(Enum):
-        normal = 0
-        u90 = 1
-        u180 = 2
-        u270 = 3
-        flipped = 4
-        flipped_90 = 5
-        flipped_180 = 6
-        flipped_270 = 7
+        NORMAL = 0
+        U90 = 1
+        U180 = 2
+        U270 = 3
+        FLIPPED = 4
+        FLIPPED_90 = 5
+        FLIPPED_180 = 6
+        FLIPPED_270 = 7
 
     class Mode(Flag):
-        current = 1
-        preferred = 2
+        CURRENT = 1
+        PREFERRED = 2
 
 class WlRegion(Proxy):
     interface: ClassVar[Interface] = Interface(
@@ -1640,7 +1640,7 @@ class WlSubcompositor(Proxy):
         self.destroy()
 
     class Error(Enum):
-        bad_surface = 0
+        BAD_SURFACE = 0
 
 class WlSubsurface(Proxy):
     interface: ClassVar[Interface] = Interface(
@@ -1711,6 +1711,6 @@ class WlSubsurface(Proxy):
         self.destroy()
 
     class Error(Enum):
-        bad_surface = 0
+        BAD_SURFACE = 0
 
 # fmt: on
