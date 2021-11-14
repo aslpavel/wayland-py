@@ -1,4 +1,5 @@
 # pyright: reportPrivateUsage=false
+from __future__ import annotations
 import os
 import sys
 import socket
@@ -76,7 +77,7 @@ class ClientConnection(Connection):
         sock.connect(self._path)
         return sock
 
-    async def connect(self) -> "ClientConnection":
+    async def connect(self) -> ClientConnection:
         await super().connect()
         await self.sync()
         return self

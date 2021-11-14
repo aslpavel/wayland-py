@@ -1,6 +1,7 @@
 # Auto generated do not edit manually
 # fmt: off
 # pyright: reportPrivateUsage=false
+from __future__ import annotations
 from enum import Enum
 from typing import Callable, ClassVar, Optional
 from ..base import *
@@ -47,14 +48,14 @@ class XdgWmBase(Proxy):
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return None
 
-    def create_positioner(self) -> "XdgPositioner":
+    def create_positioner(self) -> XdgPositioner:
         _opcode = OpCode(1)
         id = self._connection.create_proxy(XdgPositioner)
         _data, _fds = self._interface.pack(_opcode, (id,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return id
 
-    def get_xdg_surface(self, surface: "WlSurface") -> "XdgSurface":
+    def get_xdg_surface(self, surface: WlSurface) -> XdgSurface:
         _opcode = OpCode(2)
         id = self._connection.create_proxy(XdgSurface)
         _data, _fds = self._interface.pack(_opcode, (id, surface,))
@@ -156,13 +157,13 @@ class XdgPositioner(Proxy):
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return None
 
-    def set_anchor(self, anchor: "Anchor") -> None:
+    def set_anchor(self, anchor: Anchor) -> None:
         _opcode = OpCode(3)
         _data, _fds = self._interface.pack(_opcode, (anchor,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return None
 
-    def set_gravity(self, gravity: "Gravity") -> None:
+    def set_gravity(self, gravity: Gravity) -> None:
         _opcode = OpCode(4)
         _data, _fds = self._interface.pack(_opcode, (gravity,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
@@ -263,14 +264,14 @@ class XdgSurface(Proxy):
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return None
 
-    def get_toplevel(self) -> "XdgToplevel":
+    def get_toplevel(self) -> XdgToplevel:
         _opcode = OpCode(1)
         id = self._connection.create_proxy(XdgToplevel)
         _data, _fds = self._interface.pack(_opcode, (id,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return id
 
-    def get_popup(self, parent: "XdgSurface", positioner: "XdgPositioner") -> "XdgPopup":
+    def get_popup(self, parent: XdgSurface, positioner: XdgPositioner) -> XdgPopup:
         _opcode = OpCode(2)
         id = self._connection.create_proxy(XdgPopup)
         _data, _fds = self._interface.pack(_opcode, (id, parent, positioner,))
@@ -356,7 +357,7 @@ class XdgToplevel(Proxy):
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return None
 
-    def set_parent(self, parent: "XdgToplevel") -> None:
+    def set_parent(self, parent: XdgToplevel) -> None:
         _opcode = OpCode(1)
         _data, _fds = self._interface.pack(_opcode, (parent,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
@@ -374,19 +375,19 @@ class XdgToplevel(Proxy):
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return None
 
-    def show_window_menu(self, seat: "WlSeat", serial: int, x: int, y: int) -> None:
+    def show_window_menu(self, seat: WlSeat, serial: int, x: int, y: int) -> None:
         _opcode = OpCode(4)
         _data, _fds = self._interface.pack(_opcode, (seat, serial, x, y,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return None
 
-    def move(self, seat: "WlSeat", serial: int) -> None:
+    def move(self, seat: WlSeat, serial: int) -> None:
         _opcode = OpCode(5)
         _data, _fds = self._interface.pack(_opcode, (seat, serial,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return None
 
-    def resize(self, seat: "WlSeat", serial: int, edges: "ResizeEdge") -> None:
+    def resize(self, seat: WlSeat, serial: int, edges: ResizeEdge) -> None:
         _opcode = OpCode(6)
         _data, _fds = self._interface.pack(_opcode, (seat, serial, edges,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
@@ -416,7 +417,7 @@ class XdgToplevel(Proxy):
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return None
 
-    def set_fullscreen(self, output: "WlOutput") -> None:
+    def set_fullscreen(self, output: WlOutput) -> None:
         _opcode = OpCode(11)
         _data, _fds = self._interface.pack(_opcode, (output,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
@@ -494,13 +495,13 @@ class XdgPopup(Proxy):
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return None
 
-    def grab(self, seat: "WlSeat", serial: int) -> None:
+    def grab(self, seat: WlSeat, serial: int) -> None:
         _opcode = OpCode(1)
         _data, _fds = self._interface.pack(_opcode, (seat, serial,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return None
 
-    def reposition(self, positioner: "XdgPositioner", token: int) -> None:
+    def reposition(self, positioner: XdgPositioner, token: int) -> None:
         _opcode = OpCode(2)
         _data, _fds = self._interface.pack(_opcode, (positioner, token,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))

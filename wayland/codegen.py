@@ -22,6 +22,7 @@ def generate_client(
         "# Auto generated do not edit manually\n"
         "# fmt: off\n"
         "# pyright: reportPrivateUsage=false\n"
+        "from __future__ import annotations\n"
         "from enum import Enum\n"
         "from typing import Callable, ClassVar, Optional\n"
         f"from {wayland_base} import *",
@@ -101,9 +102,7 @@ def _generate_request(
             if arg_desc.interface is None:
                 args_types.append(f"{arg_desc.name}: Proxy")
             else:
-                args_types.append(
-                    f'{arg_desc.name}: "{_camle_case(arg_desc.interface)}"'
-                )
+                args_types.append(f"{arg_desc.name}: {_camle_case(arg_desc.interface)}")
         elif isinstance(arg_desc, ArgNewId):
             if arg_desc.interface is None:
                 args_types.append(f"{arg_desc.name}: Proxy")
@@ -114,7 +113,7 @@ def _generate_request(
             if arg_desc.enum is None:
                 args_types.append(f"{arg_desc.name}: {arg_desc.type_name}")
             else:
-                args_types.append(f'{arg_desc.name}: "{_camle_case(arg_desc.enum)}"')
+                args_types.append(f"{arg_desc.name}: {_camle_case(arg_desc.enum)}")
         else:
             args_types.append(f"{arg_desc.name}: {arg_desc.type_name}")
 
@@ -126,12 +125,10 @@ def _generate_request(
         result_type = "None"
     elif len(results_desc) == 1:
         desc = results_desc[0]
-        result_type = f'"{_camle_case(desc.interface)}"' if desc.interface else "None"
+        result_type = f"{_camle_case(desc.interface)}" if desc.interface else "None"
     else:
         results = (
-            f'"{_camle_case(desc.interface)}"'
-            for desc in results_desc
-            if desc.interface
+            f"{_camle_case(desc.interface)}" for desc in results_desc if desc.interface
         )
         result_type = "Tuple[{}]".format(", ".join(results))
     print(
@@ -183,7 +180,7 @@ def _generate_events(
             if arg_desc.interface is None:
                 args_types.append(arg_desc.type_name)
             else:
-                args_types.append(f'"{_camle_case(arg_desc.interface)}"')
+                args_types.append(f"{_camle_case(arg_desc.interface)}")
         else:
             args_types.append(arg_desc.type_name)
     handler_sig = "Callable[[{}], bool]".format(", ".join(args_types))

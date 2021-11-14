@@ -2,6 +2,7 @@
 """
 # private variables used between classes in file
 # pyright: reportPrivateUsage=false
+from __future__ import annotations
 import asyncio
 import io
 import logging
@@ -114,7 +115,7 @@ class Connection(ABC):
         self._proxies[id] = proxy
         return proxy
 
-    def create_proxy_by_interface(self, interface: "Interface") -> "Proxy":
+    def create_proxy_by_interface(self, interface: Interface) -> Proxy:
         """Create new proxy object"""
         if self._is_terminated:
             raise RuntimeError("connection has already been terminated")
@@ -707,7 +708,7 @@ class Protocol:
         return self.interfaces[name]
 
     @classmethod
-    def load(cls, path: str) -> "Protocol":
+    def load(cls, path: str) -> Protocol:
         """Load interfaces from protocol XML file"""
         root = ElementTree.parse(path).getroot()
 
