@@ -71,6 +71,12 @@ class XdgWmBase(Proxy):
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return None
 
+    def __enter__(self) -> XdgWmBase:
+        return self
+
+    def __exit__(self, *_: Any) -> None:
+        self.destroy()
+
     def on_ping(self, handler: Callable[[int], bool]) -> Optional[Callable[[int], bool]]:
         _opcode = OpCode(0)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
@@ -215,6 +221,12 @@ class XdgPositioner(Proxy):
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return None
 
+    def __enter__(self) -> XdgPositioner:
+        return self
+
+    def __exit__(self, *_: Any) -> None:
+        self.destroy()
+
     class Error(Enum):
         invalid_input = 0
 
@@ -308,6 +320,12 @@ class XdgSurface(Proxy):
         _data, _fds = self._interface.pack(_opcode, (serial,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return None
+
+    def __enter__(self) -> XdgSurface:
+        return self
+
+    def __exit__(self, *_: Any) -> None:
+        self.destroy()
 
     def on_configure(self, handler: Callable[[int], bool]) -> Optional[Callable[[int], bool]]:
         _opcode = OpCode(0)
@@ -460,6 +478,12 @@ class XdgToplevel(Proxy):
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return None
 
+    def __enter__(self) -> XdgToplevel:
+        return self
+
+    def __exit__(self, *_: Any) -> None:
+        self.destroy()
+
     def on_configure(self, handler: Callable[[int, int, bytes], bool]) -> Optional[Callable[[int, int, bytes], bool]]:
         _opcode = OpCode(0)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
@@ -534,6 +558,12 @@ class XdgPopup(Proxy):
         _data, _fds = self._interface.pack(_opcode, (positioner, token,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return None
+
+    def __enter__(self) -> XdgPopup:
+        return self
+
+    def __exit__(self, *_: Any) -> None:
+        self.destroy()
 
     def on_configure(self, handler: Callable[[int, int, int, int], bool]) -> Optional[Callable[[int, int, int, int], bool]]:
         _opcode = OpCode(0)

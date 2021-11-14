@@ -39,7 +39,8 @@ def generate_client(
 
     for iface_name, interface in interfaces.items():
         # define class
-        print(f"class {_camle_case(iface_name)}(Proxy):", file=module)
+        class_name = _camle_case(iface_name)
+        print(f"class {class_name}(Proxy):", file=module)
 
         # define interface
         print(f"    interface: ClassVar[Interface] = Interface(", file=module)
@@ -74,8 +75,22 @@ def generate_client(
         )
 
         # define requests
+        has_destroy = False
         for opcode, (request, args_desc) in enumerate(interface.requests):
+            if request == "destroy" and not args_desc:
+                has_destroy = True
             _generate_request(module, opcode, request, args_desc)
+
+        # destroy scope
+        if has_destroy:
+            print(
+                f"    def __enter__(self) -> {class_name}:\n"
+                f"        return self\n"
+                "\n"
+                f"    def __exit__(self, *_: Any) -> None:\n"
+                f"        self.destroy()\n",
+                file=module,
+            )
 
         # define events
         for opcode, (event, args_desc) in enumerate(interface.events):

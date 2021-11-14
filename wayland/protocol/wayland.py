@@ -211,6 +211,12 @@ class WlShmPool(Proxy):
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return None
 
+    def __enter__(self) -> WlShmPool:
+        return self
+
+    def __exit__(self, *_: Any) -> None:
+        self.destroy()
+
 class WlShm(Proxy):
     interface: ClassVar[Interface] = Interface(
         name="wl_shm",
@@ -489,6 +495,12 @@ class WlBuffer(Proxy):
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return None
 
+    def __enter__(self) -> WlBuffer:
+        return self
+
+    def __exit__(self, *_: Any) -> None:
+        self.destroy()
+
     def on_release(self, handler: Callable[[], bool]) -> Optional[Callable[[], bool]]:
         _opcode = OpCode(0)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
@@ -554,6 +566,12 @@ class WlDataOffer(Proxy):
         _data, _fds = self._interface.pack(_opcode, (dnd_actions, preferred_action,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return None
+
+    def __enter__(self) -> WlDataOffer:
+        return self
+
+    def __exit__(self, *_: Any) -> None:
+        self.destroy()
 
     def on_offer(self, handler: Callable[[str], bool]) -> Optional[Callable[[str], bool]]:
         _opcode = OpCode(0)
@@ -623,6 +641,12 @@ class WlDataSource(Proxy):
         _data, _fds = self._interface.pack(_opcode, (dnd_actions,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return None
+
+    def __enter__(self) -> WlDataSource:
+        return self
+
+    def __exit__(self, *_: Any) -> None:
+        self.destroy()
 
     def on_target(self, handler: Callable[[str], bool]) -> Optional[Callable[[str], bool]]:
         _opcode = OpCode(0)
@@ -1062,6 +1086,12 @@ class WlSurface(Proxy):
         _data, _fds = self._interface.pack(_opcode, (x, y, width, height,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return None
+
+    def __enter__(self) -> WlSurface:
+        return self
+
+    def __exit__(self, *_: Any) -> None:
+        self.destroy()
 
     def on_enter(self, handler: Callable[[WlOutput], bool]) -> Optional[Callable[[WlOutput], bool]]:
         _opcode = OpCode(0)
@@ -1562,6 +1592,12 @@ class WlRegion(Proxy):
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return None
 
+    def __enter__(self) -> WlRegion:
+        return self
+
+    def __exit__(self, *_: Any) -> None:
+        self.destroy()
+
 class WlSubcompositor(Proxy):
     interface: ClassVar[Interface] = Interface(
         name="wl_subcompositor",
@@ -1596,6 +1632,12 @@ class WlSubcompositor(Proxy):
         _data, _fds = self._interface.pack(_opcode, (id, surface, parent,))
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return id
+
+    def __enter__(self) -> WlSubcompositor:
+        return self
+
+    def __exit__(self, *_: Any) -> None:
+        self.destroy()
 
     class Error(Enum):
         bad_surface = 0
@@ -1661,6 +1703,12 @@ class WlSubsurface(Proxy):
         _data, _fds = self._interface.pack(_opcode, tuple())
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return None
+
+    def __enter__(self) -> WlSubsurface:
+        return self
+
+    def __exit__(self, *_: Any) -> None:
+        self.destroy()
 
     class Error(Enum):
         bad_surface = 0
