@@ -3,7 +3,7 @@
 # pyright: reportPrivateUsage=false
 from __future__ import annotations
 from enum import Enum, Flag
-from typing import Callable, ClassVar, Optional
+from typing import Any, Callable, ClassVar, Optional
 from ..base import *
 from .wayland import *
 

@@ -24,7 +24,7 @@ def generate_client(
         "# pyright: reportPrivateUsage=false\n"
         "from __future__ import annotations\n"
         "from enum import Enum, Flag\n"
-        "from typing import Callable, ClassVar, Optional\n"
+        "from typing import Any, Callable, ClassVar, Optional\n"
         f"from {wayland_base} import *",
         file=module,
     )
