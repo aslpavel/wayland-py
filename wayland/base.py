@@ -531,28 +531,28 @@ class Interface:
         "enums",
     ]
     name: str
-    events: List[Tuple[str, List[Arg]]]
-    events_by_name: Dict[str, Tuple[OpCode, List[Arg]]]
-    requests: List[Tuple[str, List[Arg]]]
-    requests_by_name: Dict[str, Tuple[OpCode, List[Arg]]]
+    events: List[WEvent]
+    events_by_name: Dict[str, Tuple[OpCode, WEvent]]
+    requests: List[WRequest]
+    requests_by_name: Dict[str, Tuple[OpCode, WRequest]]
     enums: List[WEnum]
 
     def __init__(
         self,
         name: str,
-        requests: List[Tuple[str, List[Arg]]],
-        events: List[Tuple[str, List[Arg]]],
+        requests: List[WRequest],
+        events: List[WEvent],
         enums: List[WEnum],
     ) -> None:
         self.name = name
         self.requests = requests
         self.events = events
         self.requests_by_name = {}
-        for opcode, (name, args) in enumerate(requests):
-            self.requests_by_name[name] = (OpCode(opcode), args)
+        for opcode, request in enumerate(requests):
+            self.requests_by_name[request.name] = (OpCode(opcode), request)
         self.events_by_name = {}
-        for opcode, (name, args) in enumerate(events):
-            self.events_by_name[name] = (OpCode(opcode), args)
+        for opcode, event in enumerate(events):
+            self.events_by_name[event.name] = (OpCode(opcode), event)
         self.enums = enums
 
     def pack(
@@ -564,14 +564,14 @@ class Interface:
 
         Returns bytes data and descritpros to be send
         """
-        name, args_desc = self.requests[opcode]
-        if len(args) != len(args_desc):
+        req = self.requests[opcode]
+        if len(args) != len(req.args):
             raise TypeError(
-                f"[{self.name}.{name}] takes {len(args_desc)} arguments ({len(args)} given)"
+                f"[{self.name}.{req.name}] takes {len(req.args)} arguments ({len(args)} given)"
             )
         write = io.BytesIO()
         fds: List[int] = []
-        for arg, arg_desc in zip(args, args_desc):
+        for arg, arg_desc in zip(args, req.args):
             arg_desc.pack(write, arg)
             if isinstance(arg_desc, ArgFd):
                 fd: int
@@ -581,7 +581,7 @@ class Interface:
                     fd = arg
                 else:
                     raise TypeError(
-                        f"[{self.name}.{name}({arg_desc.name})] "
+                        f"[{self.name}.{req.name}({arg_desc.name})] "
                         f"expected file descriptor '{arg}'"
                     )
                 fds.append(fd)
@@ -596,10 +596,10 @@ class Interface:
         """Unpack opcode and data into request name and list of arguments"""
         if opcode >= len(self.events):
             raise RuntimeError(f"[{self.name}] received unknown event {opcode}")
-        _, args_desc = self.events[opcode]
+        request = self.events[opcode]
         read = io.BytesIO(data)
         args: List[Any] = []
-        for arg_desc in args_desc:
+        for arg_desc in request.args:
             args.append(arg_desc.unpack(read, connection))
         return args
 
@@ -696,6 +696,18 @@ class Proxy:
         return f"{self._interface.name}@{self._id}"
 
 
+class WRequest(NamedTuple):
+    name: str
+    args: List[Arg]
+    summary: Optional[str] = None
+
+
+class WEvent(NamedTuple):
+    name: str
+    args: List[Arg]
+    summary: Optional[str] = None
+
+
 class WEnum:
     name: str
     values: Dict[str, int]
@@ -744,8 +756,8 @@ class Protocol:
             iface_name = node.get("name")
             if iface_name is None:
                 raise ValueError("interface must have name attribute")
-            events: List[Tuple[str, List[Arg]]] = []
-            requests: List[Tuple[str, List[Arg]]] = []
+            events: List[WEvent] = []
+            requests: List[WRequest] = []
             enums: List[WEnum] = []
 
             for child in node:
@@ -754,7 +766,11 @@ class Protocol:
                     if name is None:
                         raise ValueError(f"[{iface_name}] {child.tag} without a name")
                     args: List[Arg] = []
+                    summary: Optional[str] = None
                     for arg_node in child:
+                        if arg_node.tag == "description":
+                            summary = arg_node.get("summary")
+                            continue
                         if arg_node.tag != "arg":
                             continue
                         arg_name = arg_node.get("name")
@@ -799,9 +815,9 @@ class Protocol:
                                 args.append(ArgNewId(arg_name, None))
 
                     if child.tag == "request":
-                        requests.append((name, args))
+                        requests.append(WRequest(name, args, summary))
                     else:
-                        events.append((name, args))
+                        events.append(WEvent(name, args, summary))
 
                 elif child.tag == "enum":
                     name = child.get("name")

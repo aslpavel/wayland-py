@@ -3,7 +3,7 @@ import sys
 import argparse
 from pathlib import Path
 from typing import Dict, List, Set
-from .base import Arg, ArgFd, ArgNewId, ArgObject, ArgUInt, Protocol
+from .base import ArgFd, ArgNewId, ArgObject, ArgUInt, Protocol, WEvent, WRequest
 
 
 def generate_client(
@@ -46,12 +46,15 @@ def generate_client(
         print(f"    interface: ClassVar[Interface] = Interface(", file=module)
         print(f'        name="{iface_name}",', file=module)
         print(f"        requests=[", file=module)
-        for request, args_desc in interface.requests:
-            print(f'            ("{request}", {args_desc}),', file=module)
+        for request in interface.requests:
+            print(
+                f'            WRequest("{request.name}", {request.args}),',
+                file=module,
+            )
         print(f"        ],", file=module)
         print(f"        events=[", file=module)
-        for event, args_desc in interface.events:
-            print(f'            ("{event}", {args_desc}),', file=module)
+        for event in interface.events:
+            print(f'            WEvent("{event.name}", {event.args}),', file=module)
         print(f"        ],", file=module)
         print("        enums=[", file=module)
         for enum in interface.enums:
@@ -76,10 +79,10 @@ def generate_client(
 
         # define requests
         has_destroy = False
-        for opcode, (request, args_desc) in enumerate(interface.requests):
-            if request == "destroy" and not args_desc:
+        for opcode, request in enumerate(interface.requests):
+            if request.name == "destroy" and not request.args:
                 has_destroy = True
-            _generate_request(module, opcode, request, args_desc)
+            _generate_request(module, opcode, request)
 
         # destroy scope
         if has_destroy:
@@ -93,8 +96,8 @@ def generate_client(
             )
 
         # define events
-        for opcode, (event, args_desc) in enumerate(interface.events):
-            _generate_events(module, opcode, event, args_desc)
+        for opcode, event in enumerate(interface.events):
+            _generate_events(module, opcode, event)
 
         # define enums
         for enum in interface.enums:
@@ -114,12 +117,11 @@ def generate_client(
 def _generate_request(
     module: io.StringIO,
     opcode: int,
-    request: str,
-    args_desc: List[Arg],
+    request: WRequest,
 ) -> None:
     results_desc: List[ArgNewId] = []
     args_types: List[str] = []
-    for arg_desc in args_desc:
+    for arg_desc in request.args:
         if isinstance(arg_desc, ArgObject):
             arg_type: str
             if arg_desc.interface is None:
@@ -157,11 +159,10 @@ def _generate_request(
             f"{_camle_case(desc.interface)}" for desc in results_desc if desc.interface
         )
         result_type = "Tuple[{}]".format(", ".join(results))
-    print(
-        f"    def {request}(self{args}) -> {result_type}:\n"
-        f"        _opcode = OpCode({opcode})",
-        file=module,
-    )
+    print(f"    def {request.name}(self{args}) -> {result_type}:", file=module)
+    if request.summary:
+        print(f'        """{request.summary}"""', file=module)
+    print(f"        _opcode = OpCode({opcode})", file=module)
 
     # proxies
     result_vals: List[str] = []
@@ -184,8 +185,8 @@ def _generate_request(
 
     # submit
     values = "tuple()"
-    if args_desc:
-        values = "({},)".format(", ".join(arg_desc.name for arg_desc in args_desc))
+    if request.args:
+        values = "({},)".format(", ".join(arg.name for arg in request.args))
     print(
         f"        _data, _fds = self._interface.pack(_opcode, {values})\n"
         f"        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))\n"
@@ -197,11 +198,10 @@ def _generate_request(
 def _generate_events(
     module: io.StringIO,
     opcode: int,
-    event: str,
-    args_desc: List[Arg],
+    event: WEvent,
 ) -> None:
     args_types: List[str] = []
-    for arg_desc in args_desc:
+    for arg_desc in event.args:
         if isinstance(arg_desc, (ArgObject, ArgNewId)):
             arg_type: str
             if arg_desc.interface is None:
@@ -215,7 +215,12 @@ def _generate_events(
             args_types.append(arg_desc.type_name)
     handler_sig = "Callable[[{}], bool]".format(", ".join(args_types))
     print(
-        f"    def on_{event}(self, handler: {handler_sig}) -> Optional[{handler_sig}]:\n"
+        f"    def on_{event.name}(self, handler: {handler_sig}) -> Optional[{handler_sig}]:",
+        file=module,
+    )
+    if event.summary:
+        print(f'        """{event.summary}"""', file=module)
+    print(
         f"        _opcode = OpCode({opcode})\n"
         f"        old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler\n"
         f"        return old_handler\n",
