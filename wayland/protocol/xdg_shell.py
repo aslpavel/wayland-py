@@ -16,6 +16,7 @@ __all__ = [
 ]
 
 class XdgWmBase(Proxy):
+    """create desktop-style surfaces"""
     interface: ClassVar[Interface] = Interface(
         name="xdg_wm_base",
         requests=[
@@ -96,6 +97,7 @@ class XdgWmBase(Proxy):
         INVALID_POSITIONER = 5
 
 class XdgPositioner(Proxy):
+    """child surface positioner"""
     interface: ClassVar[Interface] = Interface(
         name="xdg_positioner",
         requests=[
@@ -276,6 +278,7 @@ class XdgPositioner(Proxy):
         RESIZE_Y = 32
 
 class XdgSurface(Proxy):
+    """desktop user interface surface base interface"""
     interface: ClassVar[Interface] = Interface(
         name="xdg_surface",
         requests=[
@@ -358,6 +361,7 @@ class XdgSurface(Proxy):
         UNCONFIGURED_BUFFER = 3
 
 class XdgToplevel(Proxy):
+    """toplevel surface"""
     interface: ClassVar[Interface] = Interface(
         name="xdg_toplevel",
         requests=[
@@ -552,6 +556,7 @@ class XdgToplevel(Proxy):
         TILED_BOTTOM = 8
 
 class XdgPopup(Proxy):
+    """short-lived, popup surfaces for menus"""
     interface: ClassVar[Interface] = Interface(
         name="xdg_popup",
         requests=[

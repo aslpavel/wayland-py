@@ -529,6 +529,7 @@ class Interface:
         "requests_by_name",
         "events_by_name",
         "enums",
+        "summary",
     ]
     name: str
     events: List[WEvent]
@@ -536,6 +537,7 @@ class Interface:
     requests: List[WRequest]
     requests_by_name: Dict[str, Tuple[OpCode, WRequest]]
     enums: List[WEnum]
+    summary: Optional[str]
 
     def __init__(
         self,
@@ -543,17 +545,20 @@ class Interface:
         requests: List[WRequest],
         events: List[WEvent],
         enums: List[WEnum],
+        summary: Optional[str] = None,
     ) -> None:
         self.name = name
         self.requests = requests
         self.events = events
+        self.enums = enums
+        self.summary = summary
+
         self.requests_by_name = {}
         for opcode, request in enumerate(requests):
             self.requests_by_name[request.name] = (OpCode(opcode), request)
         self.events_by_name = {}
         for opcode, event in enumerate(events):
             self.events_by_name[event.name] = (OpCode(opcode), event)
-        self.enums = enums
 
     def pack(
         self,
@@ -725,7 +730,12 @@ class Protocol:
     interfaces: Dict[str, Interface]
     extern: Set[str]
 
-    def __init__(self, name: str, interfaces: Dict[str, Interface], extern: Set[str]):
+    def __init__(
+        self,
+        name: str,
+        interfaces: Dict[str, Interface],
+        extern: Set[str],
+    ):
         self.name = name
         self.interfaces = interfaces
         self.extern = extern
@@ -756,9 +766,11 @@ class Protocol:
             iface_name = node.get("name")
             if iface_name is None:
                 raise ValueError("interface must have name attribute")
+
             events: List[WEvent] = []
             requests: List[WRequest] = []
             enums: List[WEnum] = []
+            iface_summary: Optional[str] = None
 
             for child in node:
                 if child.tag in {"request", "event"}:
@@ -845,7 +857,10 @@ class Protocol:
                     flag = child.get("bitfield") == "true"
                     enums.append(WEnum(name, enum, flag))
 
-            iface = Interface(iface_name, requests, events, enums)
+                elif child.tag == "description":
+                    iface_summary = child.get("summary")
+
+            iface = Interface(iface_name, requests, events, enums, iface_summary)
             ifaces[iface_name] = iface
 
         extern -= set(ifaces)

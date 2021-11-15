@@ -41,6 +41,8 @@ def generate_client(
         # define class
         class_name = _camle_case(iface_name)
         print(f"class {class_name}(Proxy):", file=module)
+        if interface.summary is not None:
+            print(f'    """{interface.summary}"""', file=module)
 
         # define interface
         print(f"    interface: ClassVar[Interface] = Interface(", file=module)

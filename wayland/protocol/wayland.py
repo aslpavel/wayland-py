@@ -32,6 +32,7 @@ __all__ = [
 ]
 
 class WlDisplay(Proxy):
+    """core global object"""
     interface: ClassVar[Interface] = Interface(
         name="wl_display",
         requests=[
@@ -93,6 +94,7 @@ class WlDisplay(Proxy):
         IMPLEMENTATION = 3
 
 class WlRegistry(Proxy):
+    """global registry object"""
     interface: ClassVar[Interface] = Interface(
         name="wl_registry",
         requests=[
@@ -133,6 +135,7 @@ class WlRegistry(Proxy):
         return old_handler
 
 class WlCallback(Proxy):
+    """callback object"""
     interface: ClassVar[Interface] = Interface(
         name="wl_callback",
         requests=[
@@ -154,6 +157,7 @@ class WlCallback(Proxy):
         return old_handler
 
 class WlCompositor(Proxy):
+    """the compositor singleton"""
     interface: ClassVar[Interface] = Interface(
         name="wl_compositor",
         requests=[
@@ -186,6 +190,7 @@ class WlCompositor(Proxy):
         return id
 
 class WlShmPool(Proxy):
+    """a shared memory pool"""
     interface: ClassVar[Interface] = Interface(
         name="wl_shm_pool",
         requests=[
@@ -231,6 +236,7 @@ class WlShmPool(Proxy):
         self.destroy()
 
 class WlShm(Proxy):
+    """shared memory support"""
     interface: ClassVar[Interface] = Interface(
         name="wl_shm",
         requests=[
@@ -489,6 +495,7 @@ class WlShm(Proxy):
         Q401 = 825242705
 
 class WlBuffer(Proxy):
+    """content for a wl_surface"""
     interface: ClassVar[Interface] = Interface(
         name="wl_buffer",
         requests=[
@@ -524,6 +531,7 @@ class WlBuffer(Proxy):
         return old_handler
 
 class WlDataOffer(Proxy):
+    """offer to transfer data"""
     interface: ClassVar[Interface] = Interface(
         name="wl_data_offer",
         requests=[
@@ -620,6 +628,7 @@ class WlDataOffer(Proxy):
         INVALID_OFFER = 3
 
 class WlDataSource(Proxy):
+    """offer to transfer data"""
     interface: ClassVar[Interface] = Interface(
         name="wl_data_source",
         requests=[
@@ -717,6 +726,7 @@ class WlDataSource(Proxy):
         INVALID_SOURCE = 1
 
 class WlDataDevice(Proxy):
+    """data transfer device"""
     interface: ClassVar[Interface] = Interface(
         name="wl_data_device",
         requests=[
@@ -806,6 +816,7 @@ class WlDataDevice(Proxy):
         ROLE = 0
 
 class WlDataDeviceManager(Proxy):
+    """data transfer interface"""
     interface: ClassVar[Interface] = Interface(
         name="wl_data_device_manager",
         requests=[
@@ -854,6 +865,7 @@ class WlDataDeviceManager(Proxy):
         ASK = 4
 
 class WlShell(Proxy):
+    """create desktop-style surfaces"""
     interface: ClassVar[Interface] = Interface(
         name="wl_shell",
         requests=[
@@ -886,6 +898,7 @@ class WlShell(Proxy):
         ROLE = 0
 
 class WlShellSurface(Proxy):
+    """desktop-style metadata interface"""
     interface: ClassVar[Interface] = Interface(
         name="wl_shell_surface",
         requests=[
@@ -1052,6 +1065,7 @@ class WlShellSurface(Proxy):
         FILL = 3
 
 class WlSurface(Proxy):
+    """an onscreen surface"""
     interface: ClassVar[Interface] = Interface(
         name="wl_surface",
         requests=[
@@ -1180,6 +1194,7 @@ class WlSurface(Proxy):
         INVALID_SIZE = 2
 
 class WlSeat(Proxy):
+    """group of input devices"""
     interface: ClassVar[Interface] = Interface(
         name="wl_seat",
         requests=[
@@ -1266,6 +1281,7 @@ class WlSeat(Proxy):
         MISSING_CAPABILITY = 0
 
 class WlPointer(Proxy):
+    """pointer input device"""
     interface: ClassVar[Interface] = Interface(
         name="wl_pointer",
         requests=[
@@ -1405,6 +1421,7 @@ class WlPointer(Proxy):
         WHEEL_TILT = 3
 
 class WlKeyboard(Proxy):
+    """keyboard input device"""
     interface: ClassVar[Interface] = Interface(
         name="wl_keyboard",
         requests=[
@@ -1491,6 +1508,7 @@ class WlKeyboard(Proxy):
         PRESSED = 1
 
 class WlTouch(Proxy):
+    """touchscreen input device"""
     interface: ClassVar[Interface] = Interface(
         name="wl_touch",
         requests=[
@@ -1562,6 +1580,7 @@ class WlTouch(Proxy):
         return old_handler
 
 class WlOutput(Proxy):
+    """compositor output region"""
     interface: ClassVar[Interface] = Interface(
         name="wl_output",
         requests=[
@@ -1666,6 +1685,7 @@ class WlOutput(Proxy):
         PREFERRED = 2
 
 class WlRegion(Proxy):
+    """region interface"""
     interface: ClassVar[Interface] = Interface(
         name="wl_region",
         requests=[
@@ -1710,6 +1730,7 @@ class WlRegion(Proxy):
         self.destroy()
 
 class WlSubcompositor(Proxy):
+    """sub-surface compositing"""
     interface: ClassVar[Interface] = Interface(
         name="wl_subcompositor",
         requests=[
@@ -1756,6 +1777,7 @@ class WlSubcompositor(Proxy):
         BAD_SURFACE = 0
 
 class WlSubsurface(Proxy):
+    """sub-surface interface to a wl_surface"""
     interface: ClassVar[Interface] = Interface(
         name="wl_subsurface",
         requests=[
