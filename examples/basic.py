@@ -52,8 +52,8 @@ async def main() -> None:
     # handle updates
     def on_configure(serial: int) -> bool:
         print("draw")
-        xdg_surf.ack_configure(serial)
         wl_surf.attach(buf, 0, 0)
+        xdg_surf.ack_configure(serial)
         wl_surf.commit()
         return True
 
