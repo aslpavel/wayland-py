@@ -688,7 +688,9 @@ class Proxy:
         if handler is None:
             name = self._interface.events[opcode][0]
             args_repr = ", ".join(repr(arg) for arg in args)
-            print(f"\x1b[93mUNHANDLED: {self}.{name}({args_repr})\x1b[m", file=sys.stderr)
+            print(
+                f"\x1b[93mUNHANDLED: {self}.{name}({args_repr})\x1b[m", file=sys.stderr
+            )
             return
         try:
             if not handler(*args):
@@ -709,6 +711,7 @@ class WRequest(NamedTuple):
     name: str
     args: List[Arg]
     summary: Optional[str] = None
+    destructor: bool = False
 
 
 class WEvent(NamedTuple):
@@ -831,7 +834,8 @@ class Protocol:
                                 args.append(ArgNewId(arg_name, None))
 
                     if child.tag == "request":
-                        requests.append(WRequest(name, args, summary))
+                        destructor = child.get("type") == "destructor"
+                        requests.append(WRequest(name, args, summary, destructor))
                     else:
                         events.append(WEvent(name, args, summary))
 

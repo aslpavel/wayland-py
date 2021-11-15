@@ -776,6 +776,12 @@ class WlDataDevice(Proxy):
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return None
 
+    def __enter__(self) -> WlDataDevice:
+        return self
+
+    def __exit__(self, *_: Any) -> None:
+        self.release()
+
     def on_data_offer(self, handler: Callable[[WlDataOffer], bool]) -> Optional[Callable[[WlDataOffer], bool]]:
         """introduce a new wl_data_offer"""
         _opcode = OpCode(0)
@@ -1260,6 +1266,12 @@ class WlSeat(Proxy):
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return None
 
+    def __enter__(self) -> WlSeat:
+        return self
+
+    def __exit__(self, *_: Any) -> None:
+        self.release()
+
     def on_capabilities(self, handler: Callable[[int], bool]) -> Optional[Callable[[int], bool]]:
         """seat capabilities changed"""
         _opcode = OpCode(0)
@@ -1348,6 +1360,12 @@ class WlPointer(Proxy):
         _data, _fds = self._interface.pack(_opcode, tuple())
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return None
+
+    def __enter__(self) -> WlPointer:
+        return self
+
+    def __exit__(self, *_: Any) -> None:
+        self.release()
 
     def on_enter(self, handler: Callable[[int, WlSurface, float, float], bool]) -> Optional[Callable[[int, WlSurface, float, float], bool]]:
         """enter event"""
@@ -1463,6 +1481,12 @@ class WlKeyboard(Proxy):
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return None
 
+    def __enter__(self) -> WlKeyboard:
+        return self
+
+    def __exit__(self, *_: Any) -> None:
+        self.release()
+
     def on_keymap(self, handler: Callable[[int, Fd, int], bool]) -> Optional[Callable[[int, Fd, int], bool]]:
         """keyboard mapping"""
         _opcode = OpCode(0)
@@ -1536,6 +1560,12 @@ class WlTouch(Proxy):
         _data, _fds = self._interface.pack(_opcode, tuple())
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return None
+
+    def __enter__(self) -> WlTouch:
+        return self
+
+    def __exit__(self, *_: Any) -> None:
+        self.release()
 
     def on_down(self, handler: Callable[[int, int, WlSurface, int, float, float], bool]) -> Optional[Callable[[int, int, WlSurface, int, float, float], bool]]:
         """touch down event and beginning of a touch sequence"""
@@ -1637,6 +1667,12 @@ class WlOutput(Proxy):
         _data, _fds = self._interface.pack(_opcode, tuple())
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return None
+
+    def __enter__(self) -> WlOutput:
+        return self
+
+    def __exit__(self, *_: Any) -> None:
+        self.release()
 
     def on_geometry(self, handler: Callable[[int, int, int, int, int, str, str, int], bool]) -> Optional[Callable[[int, int, int, int, int, str, str, int], bool]]:
         """properties of the output"""

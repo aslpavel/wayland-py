@@ -2,7 +2,7 @@ import io
 import sys
 import argparse
 from pathlib import Path
-from typing import Dict, List, Set
+from typing import Dict, List, Optional, Set
 from .base import ArgFd, ArgNewId, ArgObject, ArgUInt, Protocol, WEvent, WRequest
 
 
@@ -80,20 +80,20 @@ def generate_client(
         )
 
         # define requests
-        has_destroy = False
+        destructor: Optional[str] = None
         for opcode, request in enumerate(interface.requests):
-            if request.name == "destroy" and not request.args:
-                has_destroy = True
+            if request.destructor and not request.args:
+                destructor = request.name
             _generate_request(module, opcode, request)
 
         # destroy scope
-        if has_destroy:
+        if destructor:
             print(
                 f"    def __enter__(self) -> {class_name}:\n"
                 f"        return self\n"
                 "\n"
                 f"    def __exit__(self, *_: Any) -> None:\n"
-                f"        self.destroy()\n",
+                f"        self.{destructor}()\n",
                 file=module,
             )
 
