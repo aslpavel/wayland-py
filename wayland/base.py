@@ -35,6 +35,7 @@ from typing import (
     Type,
     TypeVar,
     Union,
+    runtime_checkable,
 )
 
 
@@ -52,7 +53,7 @@ class Message(NamedTuple):
     id: Id
     opcode: OpCode
     data: bytes
-    fds: List[int]
+    fds: List[Fd]
 
 
 class Connection(ABC):
@@ -77,12 +78,12 @@ class Connection(ABC):
     _is_terminated: bool
     _on_terminated: asyncio.Event
 
-    _write_fds: List[int]
+    _write_fds: List[Fd]
     _write_buff: bytearray
     _write_queue: Deque[Message]
 
     _read_buff: bytearray
-    _read_fds: Deque[int]
+    _read_fds: Deque[Fd]
 
     _id_last: Id
     _id_free: List[Id]
@@ -205,8 +206,14 @@ class Connection(ABC):
             offset = 0
             while offset < len(self._write_buff):
                 try:
+                    fds: List[int] = []
+                    for fd in self._write_fds:
+                        if isinstance(fd, _Fd):
+                            fds.append(fd.fileno())
+                        else:
+                            fds.append(fd)
                     offset += socket.send_fds(
-                        self._socket, [self._write_buff[offset:]], self._write_fds
+                        self._socket, [self._write_buff[offset:]], fds
                     )
                     self._write_fds.clear()
                 except BlockingIOError:
@@ -243,7 +250,7 @@ class Connection(ABC):
                 if not data:
                     self.terminate("connection closed")
                     break
-                self._read_fds.extend(fds)
+                self._read_fds.extend(open(fd, "w+b") for fd in fds)
                 self._read_buff.extend(data)
             except BlockingIOError:
                 break
@@ -286,7 +293,7 @@ class Connection(ABC):
             self._id_last = Id(self._id_last + 1)
             return self._id_last
 
-    def _fd_recv(self) -> Optional[int]:
+    def _fd_recv(self) -> Optional[Fd]:
         """Pop next descriptor from file descriptor queue"""
         if self._read_fds:
             return self._read_fds.popleft()
@@ -565,7 +572,7 @@ class Interface:
         self,
         opcode: OpCode,
         args: Tuple[Any, ...],
-    ) -> Tuple[bytes, List[int]]:
+    ) -> Tuple[bytes, List[Fd]]:
         """Pack arguments for the specified opcode
 
         Returns bytes data and descritpros to be send
@@ -576,21 +583,17 @@ class Interface:
                 f"[{self.name}.{req.name}] takes {len(req.args)} arguments ({len(args)} given)"
             )
         write = io.BytesIO()
-        fds: List[int] = []
+        fds: List[Fd] = []
         for arg, arg_desc in zip(args, req.args):
             arg_desc.pack(write, arg)
             if isinstance(arg_desc, ArgFd):
-                fd: int
-                if hasattr(arg, "fileno"):
-                    fd = arg.fileno()
-                elif isinstance(arg, int):
-                    fd = arg
+                if isinstance(arg, (int, _Fd)):
+                    fds.append(arg)
                 else:
                     raise TypeError(
                         f"[{self.name}.{req.name}({arg_desc.name})] "
                         f"expected file descriptor '{arg}'"
                     )
-                fds.append(fd)
         return write.getvalue(), fds
 
     def unpack(
@@ -875,6 +878,7 @@ class Protocol:
         return Protocol(protocol_name, ifaces, extern)
 
 
+@runtime_checkable
 class _Fd(Proto):
     def fileno(self) -> int:
         ...
@@ -911,7 +915,7 @@ class SharedMemory:
             if isinstance(fd, int):
                 self._fd = fd
             else:
-                self._fd = fd.fileno()
+                self._fd = os.dup(fd.fileno())
             self._mmap = mmap(self._fd, size)
 
     def fileno(self) -> int:
