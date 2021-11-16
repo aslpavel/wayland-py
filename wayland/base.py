@@ -538,6 +538,7 @@ class Interface:
         "events_by_name",
         "enums",
         "summary",
+        "unpack_enum",
     ]
     name: str
     events: List[WEvent]
@@ -546,6 +547,7 @@ class Interface:
     requests_by_name: Dict[str, Tuple[OpCode, WRequest]]
     enums: List[WEnum]
     summary: Optional[str]
+    unpack_enum: Optional[Callable[[str, int], Any]]
 
     def __init__(
         self,
@@ -560,6 +562,7 @@ class Interface:
         self.events = events
         self.enums = enums
         self.summary = summary
+        self.unpack_enum = None
 
         self.requests_by_name = {}
         for opcode, request in enumerate(requests):
@@ -609,7 +612,16 @@ class Interface:
         read = io.BytesIO(data)
         args: List[Any] = []
         for arg_desc in request.args:
-            args.append(arg_desc.unpack(read, connection))
+            if (
+                isinstance(arg_desc, ArgUInt)
+                and arg_desc.enum is not None
+                and self.unpack_enum is not None
+            ):
+                args.append(
+                    self.unpack_enum(arg_desc.enum, arg_desc.unpack(read, connection))
+                )
+            else:
+                args.append(arg_desc.unpack(read, connection))
         return args
 
     def __repr__(self) -> str:

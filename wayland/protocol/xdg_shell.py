@@ -96,6 +96,12 @@ class XdgWmBase(Proxy):
         INVALID_SURFACE_STATE = 4
         INVALID_POSITIONER = 5
 
+def _unpack_enum_xdg_wm_base(name: str, value: int) -> Any:
+    if name == "error":
+        return XdgWmBase.Error(value)
+    return None
+XdgWmBase.interface.unpack_enum = _unpack_enum_xdg_wm_base
+
 class XdgPositioner(Proxy):
     """child surface positioner"""
     interface: ClassVar[Interface] = Interface(
@@ -277,6 +283,18 @@ class XdgPositioner(Proxy):
         RESIZE_X = 16
         RESIZE_Y = 32
 
+def _unpack_enum_xdg_positioner(name: str, value: int) -> Any:
+    if name == "error":
+        return XdgPositioner.Error(value)
+    if name == "anchor":
+        return XdgPositioner.Anchor(value)
+    if name == "gravity":
+        return XdgPositioner.Gravity(value)
+    if name == "constraint_adjustment":
+        return XdgPositioner.ConstraintAdjustment(value)
+    return None
+XdgPositioner.interface.unpack_enum = _unpack_enum_xdg_positioner
+
 class XdgSurface(Proxy):
     """desktop user interface surface base interface"""
     interface: ClassVar[Interface] = Interface(
@@ -359,6 +377,12 @@ class XdgSurface(Proxy):
         NOT_CONSTRUCTED = 1
         ALREADY_CONSTRUCTED = 2
         UNCONFIGURED_BUFFER = 3
+
+def _unpack_enum_xdg_surface(name: str, value: int) -> Any:
+    if name == "error":
+        return XdgSurface.Error(value)
+    return None
+XdgSurface.interface.unpack_enum = _unpack_enum_xdg_surface
 
 class XdgToplevel(Proxy):
     """toplevel surface"""
@@ -555,6 +579,14 @@ class XdgToplevel(Proxy):
         TILED_TOP = 7
         TILED_BOTTOM = 8
 
+def _unpack_enum_xdg_toplevel(name: str, value: int) -> Any:
+    if name == "resize_edge":
+        return XdgToplevel.ResizeEdge(value)
+    if name == "state":
+        return XdgToplevel.State(value)
+    return None
+XdgToplevel.interface.unpack_enum = _unpack_enum_xdg_toplevel
+
 class XdgPopup(Proxy):
     """short-lived, popup surfaces for menus"""
     interface: ClassVar[Interface] = Interface(
@@ -629,5 +661,11 @@ class XdgPopup(Proxy):
 
     class Error(Enum):
         INVALID_GRAB = 0
+
+def _unpack_enum_xdg_popup(name: str, value: int) -> Any:
+    if name == "error":
+        return XdgPopup.Error(value)
+    return None
+XdgPopup.interface.unpack_enum = _unpack_enum_xdg_popup
 
 # fmt: on

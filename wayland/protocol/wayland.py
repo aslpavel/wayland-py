@@ -93,6 +93,12 @@ class WlDisplay(Proxy):
         NO_MEMORY = 2
         IMPLEMENTATION = 3
 
+def _unpack_enum_wl_display(name: str, value: int) -> Any:
+    if name == "error":
+        return WlDisplay.Error(value)
+    return None
+WlDisplay.interface.unpack_enum = _unpack_enum_wl_display
+
 class WlRegistry(Proxy):
     """global registry object"""
     interface: ClassVar[Interface] = Interface(
@@ -377,7 +383,7 @@ class WlShm(Proxy):
         self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
         return id
 
-    def on_format(self, handler: Callable[[int], bool]) -> Optional[Callable[[int], bool]]:
+    def on_format(self, handler: Callable[[Format], bool]) -> Optional[Callable[[Format], bool]]:
         """pixel format description"""
         _opcode = OpCode(0)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
@@ -494,6 +500,14 @@ class WlShm(Proxy):
         Q410 = 808531025
         Q401 = 825242705
 
+def _unpack_enum_wl_shm(name: str, value: int) -> Any:
+    if name == "error":
+        return WlShm.Error(value)
+    if name == "format":
+        return WlShm.Format(value)
+    return None
+WlShm.interface.unpack_enum = _unpack_enum_wl_shm
+
 class WlBuffer(Proxy):
     """content for a wl_surface"""
     interface: ClassVar[Interface] = Interface(
@@ -609,13 +623,13 @@ class WlDataOffer(Proxy):
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    def on_source_actions(self, handler: Callable[[int], bool]) -> Optional[Callable[[int], bool]]:
+    def on_source_actions(self, handler: Callable[[WlDataDeviceManager.DndAction], bool]) -> Optional[Callable[[WlDataDeviceManager.DndAction], bool]]:
         """notify the source-side available actions"""
         _opcode = OpCode(1)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    def on_action(self, handler: Callable[[int], bool]) -> Optional[Callable[[int], bool]]:
+    def on_action(self, handler: Callable[[WlDataDeviceManager.DndAction], bool]) -> Optional[Callable[[WlDataDeviceManager.DndAction], bool]]:
         """notify the selected action"""
         _opcode = OpCode(2)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
@@ -626,6 +640,12 @@ class WlDataOffer(Proxy):
         INVALID_ACTION_MASK = 1
         INVALID_ACTION = 2
         INVALID_OFFER = 3
+
+def _unpack_enum_wl_data_offer(name: str, value: int) -> Any:
+    if name == "error":
+        return WlDataOffer.Error(value)
+    return None
+WlDataOffer.interface.unpack_enum = _unpack_enum_wl_data_offer
 
 class WlDataSource(Proxy):
     """offer to transfer data"""
@@ -715,7 +735,7 @@ class WlDataSource(Proxy):
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    def on_action(self, handler: Callable[[int], bool]) -> Optional[Callable[[int], bool]]:
+    def on_action(self, handler: Callable[[WlDataDeviceManager.DndAction], bool]) -> Optional[Callable[[WlDataDeviceManager.DndAction], bool]]:
         """notify the selected action"""
         _opcode = OpCode(5)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
@@ -724,6 +744,12 @@ class WlDataSource(Proxy):
     class Error(Enum):
         INVALID_ACTION_MASK = 0
         INVALID_SOURCE = 1
+
+def _unpack_enum_wl_data_source(name: str, value: int) -> Any:
+    if name == "error":
+        return WlDataSource.Error(value)
+    return None
+WlDataSource.interface.unpack_enum = _unpack_enum_wl_data_source
 
 class WlDataDevice(Proxy):
     """data transfer device"""
@@ -821,6 +847,12 @@ class WlDataDevice(Proxy):
     class Error(Enum):
         ROLE = 0
 
+def _unpack_enum_wl_data_device(name: str, value: int) -> Any:
+    if name == "error":
+        return WlDataDevice.Error(value)
+    return None
+WlDataDevice.interface.unpack_enum = _unpack_enum_wl_data_device
+
 class WlDataDeviceManager(Proxy):
     """data transfer interface"""
     interface: ClassVar[Interface] = Interface(
@@ -870,6 +902,12 @@ class WlDataDeviceManager(Proxy):
         MOVE = 2
         ASK = 4
 
+def _unpack_enum_wl_data_device_manager(name: str, value: int) -> Any:
+    if name == "dnd_action":
+        return WlDataDeviceManager.DndAction(value)
+    return None
+WlDataDeviceManager.interface.unpack_enum = _unpack_enum_wl_data_device_manager
+
 class WlShell(Proxy):
     """create desktop-style surfaces"""
     interface: ClassVar[Interface] = Interface(
@@ -902,6 +940,12 @@ class WlShell(Proxy):
 
     class Error(Enum):
         ROLE = 0
+
+def _unpack_enum_wl_shell(name: str, value: int) -> Any:
+    if name == "error":
+        return WlShell.Error(value)
+    return None
+WlShell.interface.unpack_enum = _unpack_enum_wl_shell
 
 class WlShellSurface(Proxy):
     """desktop-style metadata interface"""
@@ -1038,7 +1082,7 @@ class WlShellSurface(Proxy):
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    def on_configure(self, handler: Callable[[int, int, int], bool]) -> Optional[Callable[[int, int, int], bool]]:
+    def on_configure(self, handler: Callable[[Resize, int, int], bool]) -> Optional[Callable[[Resize, int, int], bool]]:
         """suggest resize"""
         _opcode = OpCode(1)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
@@ -1069,6 +1113,16 @@ class WlShellSurface(Proxy):
         SCALE = 1
         DRIVER = 2
         FILL = 3
+
+def _unpack_enum_wl_shell_surface(name: str, value: int) -> Any:
+    if name == "resize":
+        return WlShellSurface.Resize(value)
+    if name == "transient":
+        return WlShellSurface.Transient(value)
+    if name == "fullscreen_method":
+        return WlShellSurface.FullscreenMethod(value)
+    return None
+WlShellSurface.interface.unpack_enum = _unpack_enum_wl_shell_surface
 
 class WlSurface(Proxy):
     """an onscreen surface"""
@@ -1199,6 +1253,12 @@ class WlSurface(Proxy):
         INVALID_TRANSFORM = 1
         INVALID_SIZE = 2
 
+def _unpack_enum_wl_surface(name: str, value: int) -> Any:
+    if name == "error":
+        return WlSurface.Error(value)
+    return None
+WlSurface.interface.unpack_enum = _unpack_enum_wl_surface
+
 class WlSeat(Proxy):
     """group of input devices"""
     interface: ClassVar[Interface] = Interface(
@@ -1272,7 +1332,7 @@ class WlSeat(Proxy):
     def __exit__(self, *_: Any) -> None:
         self.release()
 
-    def on_capabilities(self, handler: Callable[[int], bool]) -> Optional[Callable[[int], bool]]:
+    def on_capabilities(self, handler: Callable[[Capability], bool]) -> Optional[Callable[[Capability], bool]]:
         """seat capabilities changed"""
         _opcode = OpCode(0)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
@@ -1291,6 +1351,14 @@ class WlSeat(Proxy):
 
     class Error(Enum):
         MISSING_CAPABILITY = 0
+
+def _unpack_enum_wl_seat(name: str, value: int) -> Any:
+    if name == "capability":
+        return WlSeat.Capability(value)
+    if name == "error":
+        return WlSeat.Error(value)
+    return None
+WlSeat.interface.unpack_enum = _unpack_enum_wl_seat
 
 class WlPointer(Proxy):
     """pointer input device"""
@@ -1385,13 +1453,13 @@ class WlPointer(Proxy):
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    def on_button(self, handler: Callable[[int, int, int, int], bool]) -> Optional[Callable[[int, int, int, int], bool]]:
+    def on_button(self, handler: Callable[[int, int, int, ButtonState], bool]) -> Optional[Callable[[int, int, int, ButtonState], bool]]:
         """pointer button event"""
         _opcode = OpCode(3)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    def on_axis(self, handler: Callable[[int, int, float], bool]) -> Optional[Callable[[int, int, float], bool]]:
+    def on_axis(self, handler: Callable[[int, Axis, float], bool]) -> Optional[Callable[[int, Axis, float], bool]]:
         """axis event"""
         _opcode = OpCode(4)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
@@ -1403,19 +1471,19 @@ class WlPointer(Proxy):
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    def on_axis_source(self, handler: Callable[[int], bool]) -> Optional[Callable[[int], bool]]:
+    def on_axis_source(self, handler: Callable[[AxisSource], bool]) -> Optional[Callable[[AxisSource], bool]]:
         """axis source event"""
         _opcode = OpCode(6)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    def on_axis_stop(self, handler: Callable[[int, int], bool]) -> Optional[Callable[[int, int], bool]]:
+    def on_axis_stop(self, handler: Callable[[int, Axis], bool]) -> Optional[Callable[[int, Axis], bool]]:
         """axis stop event"""
         _opcode = OpCode(7)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    def on_axis_discrete(self, handler: Callable[[int, int], bool]) -> Optional[Callable[[int, int], bool]]:
+    def on_axis_discrete(self, handler: Callable[[Axis, int], bool]) -> Optional[Callable[[Axis, int], bool]]:
         """axis click event"""
         _opcode = OpCode(8)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
@@ -1437,6 +1505,18 @@ class WlPointer(Proxy):
         FINGER = 1
         CONTINUOUS = 2
         WHEEL_TILT = 3
+
+def _unpack_enum_wl_pointer(name: str, value: int) -> Any:
+    if name == "error":
+        return WlPointer.Error(value)
+    if name == "button_state":
+        return WlPointer.ButtonState(value)
+    if name == "axis":
+        return WlPointer.Axis(value)
+    if name == "axis_source":
+        return WlPointer.AxisSource(value)
+    return None
+WlPointer.interface.unpack_enum = _unpack_enum_wl_pointer
 
 class WlKeyboard(Proxy):
     """keyboard input device"""
@@ -1487,7 +1567,7 @@ class WlKeyboard(Proxy):
     def __exit__(self, *_: Any) -> None:
         self.release()
 
-    def on_keymap(self, handler: Callable[[int, Fd, int], bool]) -> Optional[Callable[[int, Fd, int], bool]]:
+    def on_keymap(self, handler: Callable[[KeymapFormat, Fd, int], bool]) -> Optional[Callable[[KeymapFormat, Fd, int], bool]]:
         """keyboard mapping"""
         _opcode = OpCode(0)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
@@ -1505,7 +1585,7 @@ class WlKeyboard(Proxy):
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    def on_key(self, handler: Callable[[int, int, int, int], bool]) -> Optional[Callable[[int, int, int, int], bool]]:
+    def on_key(self, handler: Callable[[int, int, int, KeyState], bool]) -> Optional[Callable[[int, int, int, KeyState], bool]]:
         """key event"""
         _opcode = OpCode(3)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
@@ -1530,6 +1610,14 @@ class WlKeyboard(Proxy):
     class KeyState(Enum):
         RELEASED = 0
         PRESSED = 1
+
+def _unpack_enum_wl_keyboard(name: str, value: int) -> Any:
+    if name == "keymap_format":
+        return WlKeyboard.KeymapFormat(value)
+    if name == "key_state":
+        return WlKeyboard.KeyState(value)
+    return None
+WlKeyboard.interface.unpack_enum = _unpack_enum_wl_keyboard
 
 class WlTouch(Proxy):
     """touchscreen input device"""
@@ -1680,7 +1768,7 @@ class WlOutput(Proxy):
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    def on_mode(self, handler: Callable[[int, int, int, int], bool]) -> Optional[Callable[[int, int, int, int], bool]]:
+    def on_mode(self, handler: Callable[[Mode, int, int, int], bool]) -> Optional[Callable[[Mode, int, int, int], bool]]:
         """advertise available modes for the output"""
         _opcode = OpCode(1)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
@@ -1719,6 +1807,16 @@ class WlOutput(Proxy):
     class Mode(Flag):
         CURRENT = 1
         PREFERRED = 2
+
+def _unpack_enum_wl_output(name: str, value: int) -> Any:
+    if name == "subpixel":
+        return WlOutput.Subpixel(value)
+    if name == "transform":
+        return WlOutput.Transform(value)
+    if name == "mode":
+        return WlOutput.Mode(value)
+    return None
+WlOutput.interface.unpack_enum = _unpack_enum_wl_output
 
 class WlRegion(Proxy):
     """region interface"""
@@ -1812,6 +1910,12 @@ class WlSubcompositor(Proxy):
     class Error(Enum):
         BAD_SURFACE = 0
 
+def _unpack_enum_wl_subcompositor(name: str, value: int) -> Any:
+    if name == "error":
+        return WlSubcompositor.Error(value)
+    return None
+WlSubcompositor.interface.unpack_enum = _unpack_enum_wl_subcompositor
+
 class WlSubsurface(Proxy):
     """sub-surface interface to a wl_surface"""
     interface: ClassVar[Interface] = Interface(
@@ -1889,5 +1993,11 @@ class WlSubsurface(Proxy):
 
     class Error(Enum):
         BAD_SURFACE = 0
+
+def _unpack_enum_wl_subsurface(name: str, value: int) -> Any:
+    if name == "error":
+        return WlSubsurface.Error(value)
+    return None
+WlSubsurface.interface.unpack_enum = _unpack_enum_wl_subsurface
 
 # fmt: on

@@ -102,8 +102,10 @@ def generate_client(
             _generate_events(module, opcode, event)
 
         # define enums
+        enums: Dict[str, str] = {}
         for enum in interface.enums:
             enum_name = _camle_case(enum.name)
+            enums[enum.name] = enum_name
             enum_type = "Flag" if enum.flag else "Enum"
             print(f"    class {enum_name}({enum_type}):", file=module)
             for var_name, value in enum.values.items():
@@ -111,6 +113,20 @@ def generate_client(
                 prefix = "U" if var_name.isdigit() else ""
                 print(f"        {prefix}{var_name.upper()} = {value}", file=module)
             print(file=module)
+        if enums:
+            module.write(
+                f"def _unpack_enum_{iface_name}(name: str, value: int) -> Any:\n"
+            )
+            for enum_name, enum_type in enums.items():
+                print(
+                    f'    if name == "{enum_name}":\n'
+                    f"        return {class_name}.{enum_type}(value)",
+                    file=module,
+                )
+            module.write("    return None\n")
+            module.write(
+                f"{class_name}.interface.unpack_enum = _unpack_enum_{iface_name}\n\n"
+            )
 
     module.write("# fmt: on")
     return module.getvalue()
@@ -213,6 +229,8 @@ def _generate_events(
             if isinstance(arg_desc, ArgObject) and arg_desc.optional:
                 arg_type = f"Optional[{arg_type}]"
             args_types.append(arg_type)
+        elif isinstance(arg_desc, ArgUInt) and arg_desc.enum:
+            args_types.append(_camle_case(arg_desc.enum))
         else:
             args_types.append(arg_desc.type_name)
     handler_sig = "Callable[[{}], bool]".format(", ".join(args_types))
