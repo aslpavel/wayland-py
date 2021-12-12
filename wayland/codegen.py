@@ -180,7 +180,6 @@ def _generate_request(
     print(f"    def {request.name}(self{args}) -> {result_type}:", file=module)
     if request.summary:
         print(f'        """{request.summary}"""', file=module)
-    print(f"        _opcode = OpCode({opcode})", file=module)
 
     # proxies
     result_vals: List[str] = []
@@ -206,8 +205,7 @@ def _generate_request(
     if request.args:
         values = "({},)".format(", ".join(arg.name for arg in request.args))
     print(
-        f"        _data, _fds = self._interface.pack(_opcode, {values})\n"
-        f"        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))\n"
+        f"        self._call(OpCode({opcode}), {values})\n"
         f'        return {",".join(result_vals) if result_vals else None}\n',
         file=module,
     )

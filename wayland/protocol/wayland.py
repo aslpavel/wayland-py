@@ -61,18 +61,14 @@ class WlDisplay(Proxy):
 
     def sync(self) -> WlCallback:
         """asynchronous roundtrip"""
-        _opcode = OpCode(0)
         callback = self._connection.create_proxy(WlCallback)
-        _data, _fds = self._interface.pack(_opcode, (callback,))
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(0), (callback,))
         return callback
 
     def get_registry(self) -> WlRegistry:
         """get global registry object"""
-        _opcode = OpCode(1)
         registry = self._connection.create_proxy(WlRegistry)
-        _data, _fds = self._interface.pack(_opcode, (registry,))
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(1), (registry,))
         return registry
 
     def on_error(self, handler: Callable[[Proxy, int, str], bool]) -> Optional[Callable[[Proxy, int, str], bool]]:
@@ -119,13 +115,11 @@ class WlRegistry(Proxy):
 
     def bind(self, name: int, id_interface: str, id_version: int, id: Proxy) -> None:
         """bind an object to the display"""
-        _opcode = OpCode(0)
         _proxy_iface = id._interface.name
         if _proxy_iface != id_interface:
             raise TypeError("[{}(id)] expected {} (got {})"
                             .format(self, id_interface, _proxy_iface))
-        _data, _fds = self._interface.pack(_opcode, (name, id_interface, id_version, id,))
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(0), (name, id_interface, id_version, id,))
         return None
 
     def on_global(self, handler: Callable[[int, str, int], bool]) -> Optional[Callable[[int, str, int], bool]]:
@@ -181,18 +175,14 @@ class WlCompositor(Proxy):
 
     def create_surface(self) -> WlSurface:
         """create new surface"""
-        _opcode = OpCode(0)
         id = self._connection.create_proxy(WlSurface)
-        _data, _fds = self._interface.pack(_opcode, (id,))
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(0), (id,))
         return id
 
     def create_region(self) -> WlRegion:
         """create new region"""
-        _opcode = OpCode(1)
         id = self._connection.create_proxy(WlRegion)
-        _data, _fds = self._interface.pack(_opcode, (id,))
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(1), (id,))
         return id
 
 class WlShmPool(Proxy):
@@ -215,24 +205,18 @@ class WlShmPool(Proxy):
 
     def create_buffer(self, offset: int, width: int, height: int, stride: int, format: WlShm.Format) -> WlBuffer:
         """create a buffer from the pool"""
-        _opcode = OpCode(0)
         id = self._connection.create_proxy(WlBuffer)
-        _data, _fds = self._interface.pack(_opcode, (id, offset, width, height, stride, format,))
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(0), (id, offset, width, height, stride, format,))
         return id
 
     def destroy(self) -> None:
         """destroy the pool"""
-        _opcode = OpCode(1)
-        _data, _fds = self._interface.pack(_opcode, tuple())
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(1), tuple())
         return None
 
     def resize(self, size: int) -> None:
         """change the size of the pool mapping"""
-        _opcode = OpCode(2)
-        _data, _fds = self._interface.pack(_opcode, (size,))
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(2), (size,))
         return None
 
     def __enter__(self) -> WlShmPool:
@@ -377,10 +361,8 @@ class WlShm(Proxy):
 
     def create_pool(self, fd: Fd, size: int) -> WlShmPool:
         """create a shm pool"""
-        _opcode = OpCode(0)
         id = self._connection.create_proxy(WlShmPool)
-        _data, _fds = self._interface.pack(_opcode, (id, fd, size,))
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(0), (id, fd, size,))
         return id
 
     def on_format(self, handler: Callable[[Format], bool]) -> Optional[Callable[[Format], bool]]:
@@ -527,9 +509,7 @@ class WlBuffer(Proxy):
 
     def destroy(self) -> None:
         """destroy a buffer"""
-        _opcode = OpCode(0)
-        _data, _fds = self._interface.pack(_opcode, tuple())
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(0), tuple())
         return None
 
     def __enter__(self) -> WlBuffer:
@@ -578,37 +558,27 @@ class WlDataOffer(Proxy):
 
     def accept(self, serial: int, mime_type: str) -> None:
         """accept one of the offered mime types"""
-        _opcode = OpCode(0)
-        _data, _fds = self._interface.pack(_opcode, (serial, mime_type,))
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(0), (serial, mime_type,))
         return None
 
     def receive(self, mime_type: str, fd: Fd) -> None:
         """request that the data is transferred"""
-        _opcode = OpCode(1)
-        _data, _fds = self._interface.pack(_opcode, (mime_type, fd,))
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(1), (mime_type, fd,))
         return None
 
     def destroy(self) -> None:
         """destroy data offer"""
-        _opcode = OpCode(2)
-        _data, _fds = self._interface.pack(_opcode, tuple())
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(2), tuple())
         return None
 
     def finish(self) -> None:
         """the offer will no longer be used"""
-        _opcode = OpCode(3)
-        _data, _fds = self._interface.pack(_opcode, tuple())
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(3), tuple())
         return None
 
     def set_actions(self, dnd_actions: WlDataDeviceManager.DndAction, preferred_action: WlDataDeviceManager.DndAction) -> None:
         """set the available/preferred drag-and-drop actions"""
-        _opcode = OpCode(4)
-        _data, _fds = self._interface.pack(_opcode, (dnd_actions, preferred_action,))
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(4), (dnd_actions, preferred_action,))
         return None
 
     def __enter__(self) -> WlDataOffer:
@@ -680,23 +650,17 @@ class WlDataSource(Proxy):
 
     def offer(self, mime_type: str) -> None:
         """add an offered mime type"""
-        _opcode = OpCode(0)
-        _data, _fds = self._interface.pack(_opcode, (mime_type,))
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(0), (mime_type,))
         return None
 
     def destroy(self) -> None:
         """destroy the data source"""
-        _opcode = OpCode(1)
-        _data, _fds = self._interface.pack(_opcode, tuple())
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(1), tuple())
         return None
 
     def set_actions(self, dnd_actions: WlDataDeviceManager.DndAction) -> None:
         """set the available drag-and-drop actions"""
-        _opcode = OpCode(2)
-        _data, _fds = self._interface.pack(_opcode, (dnd_actions,))
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(2), (dnd_actions,))
         return None
 
     def __enter__(self) -> WlDataSource:
@@ -783,23 +747,17 @@ class WlDataDevice(Proxy):
 
     def start_drag(self, source: Optional[WlDataSource], origin: WlSurface, icon: Optional[WlSurface], serial: int) -> None:
         """start drag-and-drop operation"""
-        _opcode = OpCode(0)
-        _data, _fds = self._interface.pack(_opcode, (source, origin, icon, serial,))
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(0), (source, origin, icon, serial,))
         return None
 
     def set_selection(self, source: Optional[WlDataSource], serial: int) -> None:
         """copy data to the selection"""
-        _opcode = OpCode(1)
-        _data, _fds = self._interface.pack(_opcode, (source, serial,))
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(1), (source, serial,))
         return None
 
     def release(self) -> None:
         """destroy data device"""
-        _opcode = OpCode(2)
-        _data, _fds = self._interface.pack(_opcode, tuple())
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(2), tuple())
         return None
 
     def __enter__(self) -> WlDataDevice:
@@ -882,18 +840,14 @@ class WlDataDeviceManager(Proxy):
 
     def create_data_source(self) -> WlDataSource:
         """create a new data source"""
-        _opcode = OpCode(0)
         id = self._connection.create_proxy(WlDataSource)
-        _data, _fds = self._interface.pack(_opcode, (id,))
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(0), (id,))
         return id
 
     def get_data_device(self, seat: WlSeat) -> WlDataDevice:
         """create a new data device"""
-        _opcode = OpCode(1)
         id = self._connection.create_proxy(WlDataDevice)
-        _data, _fds = self._interface.pack(_opcode, (id, seat,))
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(1), (id, seat,))
         return id
 
     class DndAction(Flag):
@@ -932,10 +886,8 @@ class WlShell(Proxy):
 
     def get_shell_surface(self, surface: WlSurface) -> WlShellSurface:
         """create a shell surface from a surface"""
-        _opcode = OpCode(0)
         id = self._connection.create_proxy(WlShellSurface)
-        _data, _fds = self._interface.pack(_opcode, (id, surface,))
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(0), (id, surface,))
         return id
 
     class Error(Enum):
@@ -1008,72 +960,52 @@ class WlShellSurface(Proxy):
 
     def pong(self, serial: int) -> None:
         """respond to a ping event"""
-        _opcode = OpCode(0)
-        _data, _fds = self._interface.pack(_opcode, (serial,))
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(0), (serial,))
         return None
 
     def move(self, seat: WlSeat, serial: int) -> None:
         """start an interactive move"""
-        _opcode = OpCode(1)
-        _data, _fds = self._interface.pack(_opcode, (seat, serial,))
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(1), (seat, serial,))
         return None
 
     def resize(self, seat: WlSeat, serial: int, edges: Resize) -> None:
         """start an interactive resize"""
-        _opcode = OpCode(2)
-        _data, _fds = self._interface.pack(_opcode, (seat, serial, edges,))
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(2), (seat, serial, edges,))
         return None
 
     def set_toplevel(self) -> None:
         """make the surface a toplevel surface"""
-        _opcode = OpCode(3)
-        _data, _fds = self._interface.pack(_opcode, tuple())
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(3), tuple())
         return None
 
     def set_transient(self, parent: WlSurface, x: int, y: int, flags: Transient) -> None:
         """make the surface a transient surface"""
-        _opcode = OpCode(4)
-        _data, _fds = self._interface.pack(_opcode, (parent, x, y, flags,))
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(4), (parent, x, y, flags,))
         return None
 
     def set_fullscreen(self, method: FullscreenMethod, framerate: int, output: Optional[WlOutput]) -> None:
         """make the surface a fullscreen surface"""
-        _opcode = OpCode(5)
-        _data, _fds = self._interface.pack(_opcode, (method, framerate, output,))
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(5), (method, framerate, output,))
         return None
 
     def set_popup(self, seat: WlSeat, serial: int, parent: WlSurface, x: int, y: int, flags: Transient) -> None:
         """make the surface a popup surface"""
-        _opcode = OpCode(6)
-        _data, _fds = self._interface.pack(_opcode, (seat, serial, parent, x, y, flags,))
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(6), (seat, serial, parent, x, y, flags,))
         return None
 
     def set_maximized(self, output: Optional[WlOutput]) -> None:
         """make the surface a maximized surface"""
-        _opcode = OpCode(7)
-        _data, _fds = self._interface.pack(_opcode, (output,))
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(7), (output,))
         return None
 
     def set_title(self, title: str) -> None:
         """set surface title"""
-        _opcode = OpCode(8)
-        _data, _fds = self._interface.pack(_opcode, (title,))
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(8), (title,))
         return None
 
     def set_class(self, class_: str) -> None:
         """set surface class"""
-        _opcode = OpCode(9)
-        _data, _fds = self._interface.pack(_opcode, (class_,))
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(9), (class_,))
         return None
 
     def on_ping(self, handler: Callable[[int], bool]) -> Optional[Callable[[int], bool]]:
@@ -1161,73 +1093,53 @@ class WlSurface(Proxy):
 
     def destroy(self) -> None:
         """delete surface"""
-        _opcode = OpCode(0)
-        _data, _fds = self._interface.pack(_opcode, tuple())
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(0), tuple())
         return None
 
     def attach(self, buffer: Optional[WlBuffer], x: int, y: int) -> None:
         """set the surface contents"""
-        _opcode = OpCode(1)
-        _data, _fds = self._interface.pack(_opcode, (buffer, x, y,))
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(1), (buffer, x, y,))
         return None
 
     def damage(self, x: int, y: int, width: int, height: int) -> None:
         """mark part of the surface damaged"""
-        _opcode = OpCode(2)
-        _data, _fds = self._interface.pack(_opcode, (x, y, width, height,))
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(2), (x, y, width, height,))
         return None
 
     def frame(self) -> WlCallback:
         """request a frame throttling hint"""
-        _opcode = OpCode(3)
         callback = self._connection.create_proxy(WlCallback)
-        _data, _fds = self._interface.pack(_opcode, (callback,))
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(3), (callback,))
         return callback
 
     def set_opaque_region(self, region: Optional[WlRegion]) -> None:
         """set opaque region"""
-        _opcode = OpCode(4)
-        _data, _fds = self._interface.pack(_opcode, (region,))
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(4), (region,))
         return None
 
     def set_input_region(self, region: Optional[WlRegion]) -> None:
         """set input region"""
-        _opcode = OpCode(5)
-        _data, _fds = self._interface.pack(_opcode, (region,))
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(5), (region,))
         return None
 
     def commit(self) -> None:
         """commit pending surface state"""
-        _opcode = OpCode(6)
-        _data, _fds = self._interface.pack(_opcode, tuple())
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(6), tuple())
         return None
 
     def set_buffer_transform(self, transform: int) -> None:
         """sets the buffer transformation"""
-        _opcode = OpCode(7)
-        _data, _fds = self._interface.pack(_opcode, (transform,))
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(7), (transform,))
         return None
 
     def set_buffer_scale(self, scale: int) -> None:
         """sets the buffer scaling factor"""
-        _opcode = OpCode(8)
-        _data, _fds = self._interface.pack(_opcode, (scale,))
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(8), (scale,))
         return None
 
     def damage_buffer(self, x: int, y: int, width: int, height: int) -> None:
         """mark part of the surface damaged using buffer coordinates"""
-        _opcode = OpCode(9)
-        _data, _fds = self._interface.pack(_opcode, (x, y, width, height,))
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(9), (x, y, width, height,))
         return None
 
     def __enter__(self) -> WlSurface:
@@ -1297,33 +1209,25 @@ class WlSeat(Proxy):
 
     def get_pointer(self) -> WlPointer:
         """return pointer object"""
-        _opcode = OpCode(0)
         id = self._connection.create_proxy(WlPointer)
-        _data, _fds = self._interface.pack(_opcode, (id,))
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(0), (id,))
         return id
 
     def get_keyboard(self) -> WlKeyboard:
         """return keyboard object"""
-        _opcode = OpCode(1)
         id = self._connection.create_proxy(WlKeyboard)
-        _data, _fds = self._interface.pack(_opcode, (id,))
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(1), (id,))
         return id
 
     def get_touch(self) -> WlTouch:
         """return touch object"""
-        _opcode = OpCode(2)
         id = self._connection.create_proxy(WlTouch)
-        _data, _fds = self._interface.pack(_opcode, (id,))
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(2), (id,))
         return id
 
     def release(self) -> None:
         """release the seat object"""
-        _opcode = OpCode(3)
-        _data, _fds = self._interface.pack(_opcode, tuple())
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(3), tuple())
         return None
 
     def __enter__(self) -> WlSeat:
@@ -1417,16 +1321,12 @@ class WlPointer(Proxy):
 
     def set_cursor(self, serial: int, surface: Optional[WlSurface], hotspot_x: int, hotspot_y: int) -> None:
         """set the pointer surface"""
-        _opcode = OpCode(0)
-        _data, _fds = self._interface.pack(_opcode, (serial, surface, hotspot_x, hotspot_y,))
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(0), (serial, surface, hotspot_x, hotspot_y,))
         return None
 
     def release(self) -> None:
         """release the pointer object"""
-        _opcode = OpCode(1)
-        _data, _fds = self._interface.pack(_opcode, tuple())
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(1), tuple())
         return None
 
     def __enter__(self) -> WlPointer:
@@ -1556,9 +1456,7 @@ class WlKeyboard(Proxy):
 
     def release(self) -> None:
         """release the keyboard object"""
-        _opcode = OpCode(0)
-        _data, _fds = self._interface.pack(_opcode, tuple())
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(0), tuple())
         return None
 
     def __enter__(self) -> WlKeyboard:
@@ -1644,9 +1542,7 @@ class WlTouch(Proxy):
 
     def release(self) -> None:
         """release the touch object"""
-        _opcode = OpCode(0)
-        _data, _fds = self._interface.pack(_opcode, tuple())
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(0), tuple())
         return None
 
     def __enter__(self) -> WlTouch:
@@ -1751,9 +1647,7 @@ class WlOutput(Proxy):
 
     def release(self) -> None:
         """release the output object"""
-        _opcode = OpCode(0)
-        _data, _fds = self._interface.pack(_opcode, tuple())
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(0), tuple())
         return None
 
     def __enter__(self) -> WlOutput:
@@ -1838,23 +1732,17 @@ class WlRegion(Proxy):
 
     def destroy(self) -> None:
         """destroy region"""
-        _opcode = OpCode(0)
-        _data, _fds = self._interface.pack(_opcode, tuple())
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(0), tuple())
         return None
 
     def add(self, x: int, y: int, width: int, height: int) -> None:
         """add rectangle to region"""
-        _opcode = OpCode(1)
-        _data, _fds = self._interface.pack(_opcode, (x, y, width, height,))
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(1), (x, y, width, height,))
         return None
 
     def subtract(self, x: int, y: int, width: int, height: int) -> None:
         """subtract rectangle from region"""
-        _opcode = OpCode(2)
-        _data, _fds = self._interface.pack(_opcode, (x, y, width, height,))
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(2), (x, y, width, height,))
         return None
 
     def __enter__(self) -> WlRegion:
@@ -1888,17 +1776,13 @@ class WlSubcompositor(Proxy):
 
     def destroy(self) -> None:
         """unbind from the subcompositor interface"""
-        _opcode = OpCode(0)
-        _data, _fds = self._interface.pack(_opcode, tuple())
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(0), tuple())
         return None
 
     def get_subsurface(self, surface: WlSurface, parent: WlSurface) -> WlSubsurface:
         """give a surface the role sub-surface"""
-        _opcode = OpCode(1)
         id = self._connection.create_proxy(WlSubsurface)
-        _data, _fds = self._interface.pack(_opcode, (id, surface, parent,))
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(1), (id, surface, parent,))
         return id
 
     def __enter__(self) -> WlSubcompositor:
@@ -1945,44 +1829,32 @@ class WlSubsurface(Proxy):
 
     def destroy(self) -> None:
         """remove sub-surface interface"""
-        _opcode = OpCode(0)
-        _data, _fds = self._interface.pack(_opcode, tuple())
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(0), tuple())
         return None
 
     def set_position(self, x: int, y: int) -> None:
         """reposition the sub-surface"""
-        _opcode = OpCode(1)
-        _data, _fds = self._interface.pack(_opcode, (x, y,))
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(1), (x, y,))
         return None
 
     def place_above(self, sibling: WlSurface) -> None:
         """restack the sub-surface"""
-        _opcode = OpCode(2)
-        _data, _fds = self._interface.pack(_opcode, (sibling,))
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(2), (sibling,))
         return None
 
     def place_below(self, sibling: WlSurface) -> None:
         """restack the sub-surface"""
-        _opcode = OpCode(3)
-        _data, _fds = self._interface.pack(_opcode, (sibling,))
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(3), (sibling,))
         return None
 
     def set_sync(self) -> None:
         """set sub-surface to synchronized mode"""
-        _opcode = OpCode(4)
-        _data, _fds = self._interface.pack(_opcode, tuple())
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(4), tuple())
         return None
 
     def set_desync(self) -> None:
         """set sub-surface to desynchronized mode"""
-        _opcode = OpCode(5)
-        _data, _fds = self._interface.pack(_opcode, tuple())
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(5), tuple())
         return None
 
     def __enter__(self) -> WlSubsurface:

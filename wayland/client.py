@@ -15,7 +15,7 @@ class ClientConnection(Connection):
     _display: WlDisplay
     _registry: WlRegistry
     # interface_name -> (name, verison, proxy)
-    _registry_globals: Dict[str, Tuple[int, int, Optional["Proxy"]]]
+    _registry_globals: Dict[str, Tuple[int, int, Optional[Proxy]]]
 
     def __init__(self, path: Optional[str] = None):
         super().__init__()
@@ -55,6 +55,7 @@ class ClientConnection(Connection):
         if proxy is None:
             proxy = self.create_proxy(proxy_type)
             self._registry.bind(name, interface.name, version, proxy)
+            self._proxy_setup(proxy)
             self._registry_globals[interface.name] = (name, version, proxy)
         if not isinstance(proxy, proxy_type):
             raise ValueError("global has already been bound by untyped proxy")
@@ -69,13 +70,9 @@ class ClientConnection(Connection):
         if proxy is None:
             proxy = self.create_proxy_by_interface(interface)
             self._registry.bind(name, interface.name, version, proxy)
+            self._proxy_setup(proxy)
             self._registry_globals[interface.name] = (name, version, proxy)
         return proxy
-
-    async def _create_socket(self) -> socket.socket:
-        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM, 0)
-        sock.connect(self._path)
-        return sock
 
     async def connect(self) -> ClientConnection:
         await super().connect()
@@ -91,7 +88,22 @@ class ClientConnection(Connection):
         callback = self.display.sync()
         await callback.on_async("done")
 
-    def _on_display_error(self, proxy: "Proxy", code: int, message: str) -> bool:
+    async def _create_socket(self) -> socket.socket:
+        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM, 0)
+        sock.connect(self._path)
+        return sock
+
+    def _proxy_setup(self, proxy: Proxy) -> None:
+        """Do additional proxy setup based on its type"""
+        if proxy._interface.name == "xdg_wm_base":
+
+            def pong(serial: int) -> bool:
+                proxy("pong", serial)
+                return True
+
+            proxy.on("ping", pong)
+
+    def _on_display_error(self, proxy: Proxy, code: int, message: str) -> bool:
         """Handle for `wl_display.error` event"""
         print(
             f"\x1b[91mERROR: proxy='{proxy}' code='{code}' message='{message}'\x1b[m",

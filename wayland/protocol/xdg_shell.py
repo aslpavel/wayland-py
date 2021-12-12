@@ -48,32 +48,24 @@ class XdgWmBase(Proxy):
 
     def destroy(self) -> None:
         """destroy xdg_wm_base"""
-        _opcode = OpCode(0)
-        _data, _fds = self._interface.pack(_opcode, tuple())
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(0), tuple())
         return None
 
     def create_positioner(self) -> XdgPositioner:
         """create a positioner object"""
-        _opcode = OpCode(1)
         id = self._connection.create_proxy(XdgPositioner)
-        _data, _fds = self._interface.pack(_opcode, (id,))
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(1), (id,))
         return id
 
     def get_xdg_surface(self, surface: WlSurface) -> XdgSurface:
         """create a shell surface from a surface"""
-        _opcode = OpCode(2)
         id = self._connection.create_proxy(XdgSurface)
-        _data, _fds = self._interface.pack(_opcode, (id, surface,))
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(2), (id, surface,))
         return id
 
     def pong(self, serial: int) -> None:
         """respond to a ping event"""
-        _opcode = OpCode(3)
-        _data, _fds = self._interface.pack(_opcode, (serial,))
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(3), (serial,))
         return None
 
     def __enter__(self) -> XdgWmBase:
@@ -176,71 +168,51 @@ class XdgPositioner(Proxy):
 
     def destroy(self) -> None:
         """destroy the xdg_positioner object"""
-        _opcode = OpCode(0)
-        _data, _fds = self._interface.pack(_opcode, tuple())
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(0), tuple())
         return None
 
     def set_size(self, width: int, height: int) -> None:
         """set the size of the to-be positioned rectangle"""
-        _opcode = OpCode(1)
-        _data, _fds = self._interface.pack(_opcode, (width, height,))
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(1), (width, height,))
         return None
 
     def set_anchor_rect(self, x: int, y: int, width: int, height: int) -> None:
         """set the anchor rectangle within the parent surface"""
-        _opcode = OpCode(2)
-        _data, _fds = self._interface.pack(_opcode, (x, y, width, height,))
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(2), (x, y, width, height,))
         return None
 
     def set_anchor(self, anchor: Anchor) -> None:
         """set anchor rectangle anchor"""
-        _opcode = OpCode(3)
-        _data, _fds = self._interface.pack(_opcode, (anchor,))
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(3), (anchor,))
         return None
 
     def set_gravity(self, gravity: Gravity) -> None:
         """set child surface gravity"""
-        _opcode = OpCode(4)
-        _data, _fds = self._interface.pack(_opcode, (gravity,))
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(4), (gravity,))
         return None
 
     def set_constraint_adjustment(self, constraint_adjustment: int) -> None:
         """set the adjustment to be done when constrained"""
-        _opcode = OpCode(5)
-        _data, _fds = self._interface.pack(_opcode, (constraint_adjustment,))
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(5), (constraint_adjustment,))
         return None
 
     def set_offset(self, x: int, y: int) -> None:
         """set surface position offset"""
-        _opcode = OpCode(6)
-        _data, _fds = self._interface.pack(_opcode, (x, y,))
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(6), (x, y,))
         return None
 
     def set_reactive(self) -> None:
         """continuously reconstrain the surface"""
-        _opcode = OpCode(7)
-        _data, _fds = self._interface.pack(_opcode, tuple())
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(7), tuple())
         return None
 
     def set_parent_size(self, parent_width: int, parent_height: int) -> None:
-        _opcode = OpCode(8)
-        _data, _fds = self._interface.pack(_opcode, (parent_width, parent_height,))
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(8), (parent_width, parent_height,))
         return None
 
     def set_parent_configure(self, serial: int) -> None:
         """set parent configure this is a response to"""
-        _opcode = OpCode(9)
-        _data, _fds = self._interface.pack(_opcode, (serial,))
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(9), (serial,))
         return None
 
     def __enter__(self) -> XdgPositioner:
@@ -326,39 +298,29 @@ class XdgSurface(Proxy):
 
     def destroy(self) -> None:
         """destroy the xdg_surface"""
-        _opcode = OpCode(0)
-        _data, _fds = self._interface.pack(_opcode, tuple())
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(0), tuple())
         return None
 
     def get_toplevel(self) -> XdgToplevel:
         """assign the xdg_toplevel surface role"""
-        _opcode = OpCode(1)
         id = self._connection.create_proxy(XdgToplevel)
-        _data, _fds = self._interface.pack(_opcode, (id,))
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(1), (id,))
         return id
 
     def get_popup(self, parent: Optional[XdgSurface], positioner: XdgPositioner) -> XdgPopup:
         """assign the xdg_popup surface role"""
-        _opcode = OpCode(2)
         id = self._connection.create_proxy(XdgPopup)
-        _data, _fds = self._interface.pack(_opcode, (id, parent, positioner,))
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(2), (id, parent, positioner,))
         return id
 
     def set_window_geometry(self, x: int, y: int, width: int, height: int) -> None:
         """set the new window geometry"""
-        _opcode = OpCode(3)
-        _data, _fds = self._interface.pack(_opcode, (x, y, width, height,))
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(3), (x, y, width, height,))
         return None
 
     def ack_configure(self, serial: int) -> None:
         """ack a configure event"""
-        _opcode = OpCode(4)
-        _data, _fds = self._interface.pack(_opcode, (serial,))
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(4), (serial,))
         return None
 
     def __enter__(self) -> XdgSurface:
@@ -444,100 +406,72 @@ class XdgToplevel(Proxy):
 
     def destroy(self) -> None:
         """destroy the xdg_toplevel"""
-        _opcode = OpCode(0)
-        _data, _fds = self._interface.pack(_opcode, tuple())
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(0), tuple())
         return None
 
     def set_parent(self, parent: Optional[XdgToplevel]) -> None:
         """set the parent of this surface"""
-        _opcode = OpCode(1)
-        _data, _fds = self._interface.pack(_opcode, (parent,))
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(1), (parent,))
         return None
 
     def set_title(self, title: str) -> None:
         """set surface title"""
-        _opcode = OpCode(2)
-        _data, _fds = self._interface.pack(_opcode, (title,))
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(2), (title,))
         return None
 
     def set_app_id(self, app_id: str) -> None:
         """set application ID"""
-        _opcode = OpCode(3)
-        _data, _fds = self._interface.pack(_opcode, (app_id,))
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(3), (app_id,))
         return None
 
     def show_window_menu(self, seat: WlSeat, serial: int, x: int, y: int) -> None:
         """show the window menu"""
-        _opcode = OpCode(4)
-        _data, _fds = self._interface.pack(_opcode, (seat, serial, x, y,))
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(4), (seat, serial, x, y,))
         return None
 
     def move(self, seat: WlSeat, serial: int) -> None:
         """start an interactive move"""
-        _opcode = OpCode(5)
-        _data, _fds = self._interface.pack(_opcode, (seat, serial,))
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(5), (seat, serial,))
         return None
 
     def resize(self, seat: WlSeat, serial: int, edges: ResizeEdge) -> None:
         """start an interactive resize"""
-        _opcode = OpCode(6)
-        _data, _fds = self._interface.pack(_opcode, (seat, serial, edges,))
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(6), (seat, serial, edges,))
         return None
 
     def set_max_size(self, width: int, height: int) -> None:
         """set the maximum size"""
-        _opcode = OpCode(7)
-        _data, _fds = self._interface.pack(_opcode, (width, height,))
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(7), (width, height,))
         return None
 
     def set_min_size(self, width: int, height: int) -> None:
         """set the minimum size"""
-        _opcode = OpCode(8)
-        _data, _fds = self._interface.pack(_opcode, (width, height,))
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(8), (width, height,))
         return None
 
     def set_maximized(self) -> None:
         """maximize the window"""
-        _opcode = OpCode(9)
-        _data, _fds = self._interface.pack(_opcode, tuple())
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(9), tuple())
         return None
 
     def unset_maximized(self) -> None:
         """unmaximize the window"""
-        _opcode = OpCode(10)
-        _data, _fds = self._interface.pack(_opcode, tuple())
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(10), tuple())
         return None
 
     def set_fullscreen(self, output: Optional[WlOutput]) -> None:
         """set the window as fullscreen on an output"""
-        _opcode = OpCode(11)
-        _data, _fds = self._interface.pack(_opcode, (output,))
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(11), (output,))
         return None
 
     def unset_fullscreen(self) -> None:
         """unset the window as fullscreen"""
-        _opcode = OpCode(12)
-        _data, _fds = self._interface.pack(_opcode, tuple())
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(12), tuple())
         return None
 
     def set_minimized(self) -> None:
         """set the window as minimized"""
-        _opcode = OpCode(13)
-        _data, _fds = self._interface.pack(_opcode, tuple())
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(13), tuple())
         return None
 
     def __enter__(self) -> XdgToplevel:
@@ -616,23 +550,17 @@ class XdgPopup(Proxy):
 
     def destroy(self) -> None:
         """remove xdg_popup interface"""
-        _opcode = OpCode(0)
-        _data, _fds = self._interface.pack(_opcode, tuple())
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(0), tuple())
         return None
 
     def grab(self, seat: WlSeat, serial: int) -> None:
         """make the popup take an explicit grab"""
-        _opcode = OpCode(1)
-        _data, _fds = self._interface.pack(_opcode, (seat, serial,))
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(1), (seat, serial,))
         return None
 
     def reposition(self, positioner: XdgPositioner, token: int) -> None:
         """recalculate the popup's location"""
-        _opcode = OpCode(2)
-        _data, _fds = self._interface.pack(_opcode, (positioner, token,))
-        self._connection._message_submit(Message(self._id, _opcode, _data, _fds))
+        self._call(OpCode(2), (positioner, token,))
         return None
 
     def __enter__(self) -> XdgPopup:

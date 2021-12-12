@@ -47,11 +47,6 @@ async def main() -> None:
     wl_surf.commit()
 
     # handlers
-    @xdg_wm_base.on_ping
-    def _(serial: int) -> bool:
-        xdg_wm_base.pong(serial)
-        return True
-
     @xdg_toplevel.on_close
     def _() -> bool:
         conn.terminate()

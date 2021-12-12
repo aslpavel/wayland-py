@@ -35,6 +35,7 @@ from typing import (
     Type,
     TypeVar,
     Union,
+    cast,
     runtime_checkable,
 )
 
@@ -71,12 +72,14 @@ class Connection(ABC):
         "_id_free",
         "_proxies",
         "_futures",
+        "_debug",
     ]
 
     _socket: Optional[socket.socket]
     _loop: asyncio.AbstractEventLoop
     _is_terminated: bool
     _on_terminated: asyncio.Event
+    _debug: bool
 
     _write_fds: List[Fd]
     _write_buff: bytearray
@@ -90,11 +93,14 @@ class Connection(ABC):
     _proxies: Dict[Id, "Proxy"]
     _futures: WeakSet[Future[Any]]
 
-    def __init__(self, path: Optional[str] = None) -> None:
+    def __init__(
+        self, path: Optional[str] = None, debug: Optional[bool] = None
+    ) -> None:
         self._socket = None
         self._loop = asyncio.get_running_loop()
         self._is_terminated = False
         self._on_terminated = asyncio.Event()
+        self._debug = bool(os.getenv("WAYLAND_DEBUG")) if debug is None else debug
 
         self._write_fds = []
         self._write_buff = bytearray()
@@ -202,8 +208,8 @@ class Connection(ABC):
             self._write_fds.extend(message.fds)
 
         # send messages
+        offset = 0
         try:
-            offset = 0
             while offset < len(self._write_buff):
                 try:
                     fds: List[int] = []
@@ -665,15 +671,26 @@ class Proxy:
         self._handlers = [None] * len(interface.events)
 
     def __call__(self, name: str, *args: Any) -> None:
-        # print(f"{self._interface.name}.{name}{args}")
         if not self._is_attached:
             raise RuntimeError(f"[{self}.{name}({args}) proxy is not attached]")
         desc = self._interface.requests_by_name.get(name)
         if desc is None:
             raise ValueError(f"[{self}] does not have request '{name}'")
         opcode, _ = desc
+        self._call(opcode, args)
+
+    def _call(self, opcode: OpCode, args: Tuple[Any, ...]) -> None:
+        if self._connection._debug:
+            print(f"-> {self._call_fmt(opcode, args)}", file=sys.stderr)
         data, fds = self._interface.pack(opcode, args)
         self._connection._message_submit(Message(self._id, opcode, data, fds))
+
+    def _call_fmt(self, opcode: OpCode, args: Tuple[Any, ...]) -> str:
+        request = self._interface.requests[opcode]
+        args_repr = ", ".join(
+            f"{arg.name}={repr(value)}" for arg, value in zip(request.args, args)
+        )
+        return f"{self}.{request.name}({args_repr})"
 
     def on(self, name: str, handler: EventHandler) -> Optional[EventHandler]:
         """Register handler for the event"""
@@ -699,21 +716,28 @@ class Proxy:
 
     def _dispatch(self, opcode: OpCode, args: List[Any]) -> None:
         """Dispatch event to the handler"""
+        if self._connection._debug:
+            print(f"<- {self._dispatch_fmt(opcode, args)}", file=sys.stderr)
         handler = self._handlers[opcode]
         if handler is None:
-            name = self._interface.events[opcode][0]
-            args_repr = ", ".join(repr(arg) for arg in args)
-            print(
-                f"\x1b[93mUNHANDLED: {self}.{name}({args_repr})\x1b[m", file=sys.stderr
-            )
+            fmt = self._dispatch_fmt(opcode, args)
+            print(f"\x1b[93mUNHANDLED: {fmt}\x1b[m", file=sys.stderr)
             return
         try:
             if not handler(*args):
                 self._handlers[opcode] = None
         except Exception:
-            name = self._interface.events[opcode][0]
-            logging.exception(f"[{self}.{name}] handler raised and error")
+            event = self._interface.events[opcode]
+            logging.exception(f"[{self}.{event.name}] handler raised an error")
             self._handlers[opcode] = None
+
+    def _dispatch_fmt(self, opcode: OpCode, args: List[Any]) -> str:
+        """Format incomming message"""
+        event = self._interface.events[opcode]
+        args_repr = ", ".join(
+            f"{arg.name}={repr(value)}" for arg, value in zip(event.args, args)
+        )
+        return f"{self}.{event.name}({args_repr})"
 
     def __str__(self) -> str:
         return repr(self)
@@ -904,7 +928,7 @@ class SharedMemory:
 
     This can be send over to wayland compositor, or converted to numpy array:
         shm = SharedMemory(8192)
-        array = numpy.ndarray(shape=(32,32), dtype=float, shm)
+        array = numpy.ndarray(shape=(32,32), dtype=float, shm.buf)
     """
 
     __slots__ = ["_fd", "_mmap", "_is_closed"]
@@ -936,8 +960,8 @@ class SharedMemory:
         return self._fd
 
     @property
-    def buf(self) -> mmap:
-        return self._mmap
+    def buf(self) -> memoryview:
+        return cast(memoryview, self._mmap)
 
     def close(self) -> None:
         is_closed, self._is_closed = self._is_closed, True
