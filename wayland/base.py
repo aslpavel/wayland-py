@@ -681,7 +681,7 @@ class Proxy:
 
     def _call(self, opcode: OpCode, args: Tuple[Any, ...]) -> None:
         if self._connection._debug:
-            print(f"-> {self._call_fmt(opcode, args)}", file=sys.stderr)
+            print(f" -> {self._call_fmt(opcode, args)}", file=sys.stderr)
         data, fds = self._interface.pack(opcode, args)
         self._connection._message_submit(Message(self._id, opcode, data, fds))
 
@@ -717,7 +717,7 @@ class Proxy:
     def _dispatch(self, opcode: OpCode, args: List[Any]) -> None:
         """Dispatch event to the handler"""
         if self._connection._debug:
-            print(f"<- {self._dispatch_fmt(opcode, args)}", file=sys.stderr)
+            print(f"{self._dispatch_fmt(opcode, args)}", file=sys.stderr)
         handler = self._handlers[opcode]
         if handler is None:
             fmt = self._dispatch_fmt(opcode, args)
