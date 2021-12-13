@@ -3,89 +3,11 @@ from __future__ import annotations
 import asyncio
 import numpy as np
 import numpy.typing as npt
-from typing import Callable, Optional, Tuple, List
+from typing import Callable, Optional, List
 from wayland.client import ClientConnection
 from wayland.protocol.wayland import WlBuffer, WlShm, WlCompositor, WlSurface
 from wayland.protocol.xdg_shell import XdgSurface, XdgToplevel, XdgWmBase
 from wayland import SharedMemory
-
-
-class Metaball:
-    __slots__ = ["position", "velocity", "radius"]
-    radius: float
-    position: npt.NDArray[np.float64]
-    velocity: npt.NDArray[np.float64]
-
-    def __init__(
-        self,
-        radius: float,
-        position: npt.NDArray[np.float64],
-        velocity: npt.NDArray[np.float64],
-    ) -> None:
-        self.radius = radius
-        self.position = np.array(position)
-        self.velocity = np.array(velocity)
-
-    def tick(self, width: float, height: float) -> None:
-        self.position += self.velocity
-        x, y = self.position
-        dx, dy = self.velocity
-        if x < self.radius or x > width - self.radius:
-            dx = -dx
-        if y < self.radius or y > height - self.radius:
-            dy = -dy
-        self.velocity = np.array([dx, dy])
-
-
-class Metaballs:
-    __slots__ = ["metaballs"]
-
-    def __init__(self, metaballs: List[Metaball]):
-        self.metaballs = metaballs
-
-    def tick(self, width: float, height: float):
-        for metaball in self.metaballs:
-            metaball.tick(width, height)
-
-    def at(self, points: npt.NDArray[np.float64]):
-        """Isosurface of 0 represent metaballs
-
-        Function defined as f(point) = \\sum radii_i/||coors_i - point||_2 - 1
-        radii: (balls_count, 1) radii of metaballs
-        coords: (balls_count, 2) coordinates of metaballs
-        points: (points_shape, coord) coordinate of a point where we computing value
-        """
-        radii = np.array([metaball.radius for metaball in self.metaballs])
-        coords = np.array([metaball.position for metaball in self.metaballs])
-        positions_flat = points.reshape(-1, 1, 2)
-        mballs = radii / la.norm(coords - positions_flat, axis=-1).clip(1e-6, None)
-        return np.sum(mballs, axis=-1).reshape(points.shape[:-1])
-
-
-def draw(wl_shm: WlShm, width: int, height: int) -> WlBuffer:
-    stride = width * 4
-    size = stride * height
-    buf_mem = SharedMemory(size)
-
-    for y in range(height):
-        for x in range(width):
-            offset = y * stride + x * 4
-            if (x + int(y / 8) * 8) % 16 < 8:
-                buf_mem.buf[offset : offset + 4] = b"\x66\x66\x66\xff"
-            else:
-                buf_mem.buf[offset : offset + 4] = b"\xee\xee\xee\xff"
-
-    with wl_shm.create_pool(buf_mem, size) as pool:
-        buf = pool.create_buffer(0, width, height, stride, WlShm.Format.XRGB8888)
-
-    @buf.on_release
-    def _() -> bool:
-        buf.destroy()
-        buf_mem.close()
-        return False
-
-    return buf
-
 
 COLOR_SIZE = 4  # WlShm.Format.XRGB8888
 INT32_MAX = (1 << 31) - 1
@@ -168,6 +90,14 @@ class Window:
         self._buf_index = 0
         self._draw()
 
+    @property
+    def width(self) -> int:
+        return self._width
+
+    @property
+    def height(self) -> int:
+        return self._height
+
     def draw(self, image: npt.NDArray[np.uint8]) -> None:
         image[:, :] = [211, 134, 155, 255]
 
@@ -236,10 +166,67 @@ class Window:
         return True
 
 
+class Metaball:
+    __slots__ = ["position", "velocity", "radius"]
+    radius: float
+    position: npt.NDArray[np.float64]
+    velocity: npt.NDArray[np.float64]
+
+    def __init__(
+        self,
+        radius: float,
+        position: npt.NDArray[np.float64],
+        velocity: npt.NDArray[np.float64],
+    ) -> None:
+        self.radius = radius
+        self.position = np.array(position)
+        self.velocity = np.array(velocity)
+
+    def tick(self, width: float, height: float) -> None:
+        self.position += self.velocity
+        x, y = self.position
+        dx, dy = self.velocity
+        if x < self.radius or x > width - self.radius:
+            dx = -dx
+        if y < self.radius or y > height - self.radius:
+            dy = -dy
+        self.velocity = np.array([dx, dy])
+
+
+class Metaballs(Window):
+    __slots__ = ["metaballs"]
+
+    def __init__(self, conn: ClientConnection, metaballs: List[Metaball]):
+        super().__init__(conn)
+        self.metaballs = metaballs
+
+    def tick(self, width: float, height: float):
+        for metaball in self.metaballs:
+            metaball.tick(width, height)
+
+    def at(self, points: npt.NDArray[np.float64]):
+        """Isosurface of 0 represent metaballs
+
+        Function defined as f(point) = \\sum radii_i/||coors_i - point||_2 - 1
+        radii: (balls_count, 1) radii of metaballs
+        coords: (balls_count, 2) coordinates of metaballs
+        points: (points_shape, coord) coordinate of a point where we computing value
+        """
+        radii = np.array([metaball.radius for metaball in self.metaballs])
+        coords = np.array([metaball.position for metaball in self.metaballs])
+        positions_flat = points.reshape(-1, 1, 2)
+        mballs = radii / la.norm(coords - positions_flat, axis=-1).clip(1e-6, None)
+        return np.sum(mballs, axis=-1).reshape(points.shape[:-1])
+
+
 async def main() -> None:
-    # globals
+    metaballs = [
+        Metaball(0.3, [1.0, 1.0], [0.3, 0.2]),
+        Metaball(1, [1.5, 1.5], [0.1, 0.4]),
+        Metaball(1.5, [7.0, 5.0], [-0.25, 0.13]),
+    ]
     async with ClientConnection() as conn:
-        window = Window(conn)
+        window = Metaballs(conn, metaballs)
         window.on_close(lambda: conn.terminate())
         # await conn.sync()
         await window.anmiate()
