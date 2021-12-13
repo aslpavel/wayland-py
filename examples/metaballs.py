@@ -172,6 +172,7 @@ class Window:
         image[:, :] = [211, 134, 155, 255]
 
     async def anmiate(self) -> None:
+        await self._conn.sync()  # wait for first xdg_sruface.configure
         while not self._is_closed and not self._conn.is_terminated:
             callback = self._wl_surf.frame()
             done = callback.on_async("done")
