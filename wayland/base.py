@@ -252,11 +252,12 @@ class Connection(ABC):
             return
 
         # reading data
+        close = False
         while True:
             try:
                 data, fds, _, _ = socket.recv_fds(self._socket, 4096, 32)
                 if not data:
-                    self.terminate("connection closed")
+                    close = True
                     break
                 self._read_fds.extend(open(fd, "w+b") for fd in fds)
                 self._read_buff.extend(data)
@@ -293,6 +294,9 @@ class Connection(ABC):
                 message.data,
             )
             proxy._dispatch(opcode, args)
+
+        if close:
+            self.terminate("connection closed")
 
     def _id_alloc(self) -> Id:
         if self._id_free:
