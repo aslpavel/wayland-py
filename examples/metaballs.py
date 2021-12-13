@@ -172,10 +172,9 @@ class Window:
         image[:, :] = [211, 134, 155, 255]
 
     async def anmiate(self) -> None:
-        callback = self._wl_surf.frame()
         while not self._is_closed and not self._conn.is_terminated:
+            callback = self._wl_surf.frame()
             done = callback.on_async("done")
-            print(".", end="", flush=True)
             self._draw()
             self._wl_surf.commit()
             await done
@@ -238,14 +237,11 @@ class Window:
 
 async def main() -> None:
     # globals
-    conn = await ClientConnection().connect()
-
-    window = Window(conn)
-    window.on_close(lambda: conn.terminate())
-    await conn.sync()
-    await window.anmiate()
-
-    await conn.on_terminated()
+    async with ClientConnection() as conn:
+        window = Window(conn)
+        window.on_close(lambda: conn.terminate())
+        # await conn.sync()
+        await window.anmiate()
 
 
 if __name__ == "__main__":

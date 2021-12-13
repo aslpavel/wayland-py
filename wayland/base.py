@@ -91,7 +91,6 @@ class Connection(ABC):
     _id_last: Id
     _id_free: List[Id]
     _proxies: Dict[Id, "Proxy"]
-    _futures: WeakSet[Future[Any]]
 
     def __init__(
         self, path: Optional[str] = None, debug: Optional[bool] = None
@@ -112,7 +111,6 @@ class Connection(ABC):
         self._id_last = Id(0)
         self._id_free = []
         self._proxies = {}
-        self._futures = WeakSet()
 
     def create_proxy(self, proxy_type: Type[P]) -> P:
         """Create proxy by proxy type"""
@@ -145,21 +143,16 @@ class Connection(ABC):
         if is_terminated:
             return
 
-        term_msg = "wayland connection has been terminated"
-        if msg is not None:
-            term_msg = msg
-
         # disconnect
         self._writer_disable()
         self._reader_disable()
         if self._socket is not None:
             self._socket.close()
 
-        # cancel futures
-        futures = self._futures.copy()
-        self._futures.clear()
-        for future in futures:
-            future.cancel(term_msg)
+        # detach all proxies
+        for proxy in self._proxies.values():
+            proxy._detach(msg if msg else "wayland connection terminated")
+        self._proxies.clear()
 
         # notify termination
         self._on_terminated.set()
@@ -177,6 +170,15 @@ class Connection(ABC):
         self._writer_enable()
         self._reader_enable()
         return self
+
+    async def __aenter__(self: C) -> C:
+        return await self.connect()
+
+    async def __aexit__(self, et: Any, *_: Any) -> None:
+        if et is None:
+            await self.on_terminated()
+        else:
+            self.terminate()
 
     def _writer_enable(self) -> None:
         if self._is_terminated:
@@ -642,17 +644,19 @@ class Proxy:
         "_id",
         "_interface",
         "_connection",
-        "_is_deleted",
         "_is_attached",
+        "_is_detached",
         "_handlers",
+        "_futures",
     ]
     interface: ClassVar[Interface]
     _id: Id
     _interface: Interface
     _connection: Connection
-    _is_deleted: bool
     _is_attached: bool
+    _is_detached: bool
     _handlers: List[Optional[EventHandler]]
+    _futures: WeakSet[Future[Any]]
 
     def __init__(
         self,
@@ -666,13 +670,14 @@ class Proxy:
         self._id = id
         self._interface = interface
         self._connection = connection
-        self._is_deleted = False
         self._is_attached = False
+        self._is_detached = False
         self._handlers = [None] * len(interface.events)
+        self._futures = WeakSet()
 
     def __call__(self, name: str, *args: Any) -> None:
-        if not self._is_attached:
-            raise RuntimeError(f"[{self}.{name}({args}) proxy is not attached]")
+        if not self._is_attached or self._is_detached:
+            raise RuntimeError(f"[{self}] {name}({args}) proxy is not attached")
         desc = self._interface.requests_by_name.get(name)
         if desc is None:
             raise ValueError(f"[{self}] does not have request '{name}'")
@@ -694,6 +699,8 @@ class Proxy:
 
     def on(self, name: str, handler: EventHandler) -> Optional[EventHandler]:
         """Register handler for the event"""
+        if self._is_detached:
+            raise RuntimeError(f"[{self}] is deleted")
         desc = self._interface.events_by_name.get(name)
         if desc is None:
             raise ValueError(f"[{self}] does not have event '{name}'")
@@ -710,7 +717,7 @@ class Proxy:
 
         self.on(name, handler)
         future: Future[Tuple[Any, ...]] = asyncio.get_running_loop().create_future()
-        self._connection._futures.add(future)
+        self._futures.add(future)
 
         return future
 
@@ -738,6 +745,14 @@ class Proxy:
             f"{arg.name}={repr(value)}" for arg, value in zip(event.args, args)
         )
         return f"{self}.{event.name}({args_repr})"
+
+    def _detach(self, msg: str) -> None:
+        is_detached, self._is_detached = self._is_detached, True
+        if is_detached:
+            return None
+        for future in self._futures:
+            future.cancel(f"{self} {msg}")
+        self._futures.clear()
 
     def __str__(self) -> str:
         return repr(self)
@@ -972,3 +987,9 @@ class SharedMemory:
 
     def __del__(self) -> None:
         return self.close()
+
+    def __str__(self) -> str:
+        return f"SharedMemory(fd={self._fd}, size={len(self._mmap)})"
+
+    def __repr__(self) -> str:
+        return str(self)
