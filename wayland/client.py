@@ -133,5 +133,6 @@ class ClientConnection(Connection):
                 self._registry_globals.pop(interface)
                 if proxy is not None:
                     self._proxies.pop(proxy._id)
+                    proxy._detach("global removed")
                 break
         return True
