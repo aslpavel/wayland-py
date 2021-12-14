@@ -1,2 +1,3 @@
 [tool.pyright]
 typeCheckingMode = "strict"
+ignore = ["examples/metaballs.py"]  #TODO: try again with numpy 1.22

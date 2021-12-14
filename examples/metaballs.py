@@ -1,13 +1,15 @@
 #!/usr/bin/env python
 from __future__ import annotations
 import asyncio
+import math
 import numpy as np
+import numpy.linalg as la
 import numpy.typing as npt
-from typing import Callable, Optional, List
+from typing import Callable, Optional, List, Tuple
+from wayland import SharedMemory
 from wayland.client import ClientConnection
 from wayland.protocol.wayland import WlBuffer, WlShm, WlCompositor, WlSurface
 from wayland.protocol.xdg_shell import XdgSurface, XdgToplevel, XdgWmBase
-from wayland import SharedMemory
 
 COLOR_SIZE = 4  # WlShm.Format.XRGB8888
 INT32_MAX = (1 << 31) - 1
@@ -56,11 +58,11 @@ class Window:
         self._bufs = []
         self.resize(640, 480)
 
-    def resize(self, width: int, height: int):
+    def resize(self, width: int, height: int) -> bool:
         if width <= 0 or height <= 0:
-            return
+            return False
         if self._width == width and self._height == height:
-            return
+            return False
         self._width = width
         self._height = height
 
@@ -88,7 +90,8 @@ class Window:
                 self._bufs.append(buf)
                 buf.on_release(self._on_buf_release(index))
         self._buf_index = 0
-        self._draw()
+        self.draw()
+        return True
 
     @property
     def width(self) -> int:
@@ -98,17 +101,18 @@ class Window:
     def height(self) -> int:
         return self._height
 
-    def draw(self, image: npt.NDArray[np.uint8]) -> None:
+    def render(self, image: npt.NDArray[np.uint8], now: Optional[int] = None) -> None:
         image[:, :] = [211, 134, 155, 255]
 
     async def anmiate(self) -> None:
         await self._conn.sync()  # wait for first xdg_sruface.configure
+        now: Optional[int] = None
         while not self._is_closed and not self._conn.is_terminated:
             callback = self._wl_surf.frame()
             done = callback.on_async("done")
-            self._draw()
+            self.draw(now)
             self._wl_surf.commit()
-            await done
+            now = (await done)[0]
 
     def on_close(self, handler: Callable[[], None]) -> None:
         @self._xdg_toplevel.on_close
@@ -133,7 +137,7 @@ class Window:
         self._xdg_surf.destroy()
         self._wl_surf.destroy()
 
-    def _draw(self) -> None:
+    def draw(self, now: Optional[int] = None) -> None:
         size = self._width * self._height * COLOR_SIZE
         if self._buf_mem is None or not self._bufs:
             return
@@ -145,7 +149,7 @@ class Window:
             offset=size * self._buf_index,
         )
         self._buf_index = (self._buf_index + 1) % len(self._bufs)
-        self.draw(image)
+        self.render(image, now)
         self._wl_surf.attach(buf, 0, 0)
         self._wl_surf.damage_buffer(0, 0, INT32_MAX, INT32_MAX)
 
@@ -169,42 +173,85 @@ class Window:
 class Metaball:
     __slots__ = ["position", "velocity", "radius"]
     radius: float
-    position: npt.NDArray[np.float64]
-    velocity: npt.NDArray[np.float64]
+    position: Tuple[float, float]
+    velocity: Tuple[float, float]
 
     def __init__(
         self,
         radius: float,
-        position: npt.NDArray[np.float64],
-        velocity: npt.NDArray[np.float64],
+        position: Tuple[float, float],
+        velocity: Tuple[float, float],
     ) -> None:
         self.radius = radius
-        self.position = np.array(position)
-        self.velocity = np.array(velocity)
+        self.position = position
+        self.velocity = velocity
 
-    def tick(self, width: float, height: float) -> None:
-        self.position += self.velocity
+    def tick(self, width: float, height: float, delta: int) -> None:
         x, y = self.position
         dx, dy = self.velocity
+
+        scale = delta / 64
+        x += dx * scale
+        y += dy * scale
+
         if x < self.radius or x > width - self.radius:
-            dx = -dx
+            dx = math.copysign(dx, width / 2 - x)
         if y < self.radius or y > height - self.radius:
-            dy = -dy
-        self.velocity = np.array([dx, dy])
+            dy = math.copysign(dy, height / 2 - y)
+
+        self.position = x, y
+        self.velocity = dx, dy
+
+
+# B, G, R, A
+BLACK = np.array([0, 0, 0, 0], dtype=np.uint8)
+BLUE = np.array([0x78, 0x66, 0x07, 0xFF], dtype=np.uint8)
+YELLOW = np.array([0x21, 0x99, 0xD7, 0xFF], dtype=np.uint8)
+WIDTH = 10.0
 
 
 class Metaballs(Window):
-    __slots__ = ["metaballs"]
+    __slots__ = ["metaballs", "_grid", "_now"]
+    metaballs: List[Metaball]
+    _grid: npt.NDArray[np.float64]
+    _now: Optional[int]
 
     def __init__(self, conn: ClientConnection, metaballs: List[Metaball]):
-        super().__init__(conn)
         self.metaballs = metaballs
+        self._grid = np.array([], dtype=np.uint8)
+        self._now = None
+        super().__init__(conn)
 
-    def tick(self, width: float, height: float):
+    def tick(self, now: Optional[int]):
+        width = WIDTH
+        height = width / self.width * self.height
+        delta = now - self._now if now and self._now else 16
+        self._now = now
         for metaball in self.metaballs:
-            metaball.tick(width, height)
+            metaball.tick(height, width, delta)
 
-    def at(self, points: npt.NDArray[np.float64]):
+    def render(self, image: npt.NDArray[np.uint8], now: Optional[int] = None):
+        if self._grid.shape[:2] != image.shape[:2]:
+            self._grid = self._make_grid()
+        self.tick(now)
+        values = self.at(self._grid)
+        image[..., :] = BLACK
+        image[values >= 0.9] = YELLOW
+        image[values >= 1.1] = BLUE
+
+    def _make_grid(self) -> npt.NDArray[np.float64]:
+        width = WIDTH
+        height = width / self.width * self.height
+        xs: npt.NDArray[np.float64] = np.broadcast_to(
+            np.linspace(0, width, self.width), (self.height, self.width)
+        )
+        ys: npt.NDArray[np.float64] = np.broadcast_to(
+            np.linspace(0, height, self.height)[..., np.newaxis],
+            (self.height, self.width),
+        )
+        return np.stack((ys, xs), axis=-1)
+
+    def at(self, points: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
         """Isosurface of 0 represent metaballs
 
         Function defined as f(point) = \\sum radii_i/||coors_i - point||_2 - 1
@@ -221,9 +268,9 @@ class Metaballs(Window):
 
 async def main() -> None:
     metaballs = [
-        Metaball(0.3, [1.0, 1.0], [0.3, 0.2]),
-        Metaball(1, [1.5, 1.5], [0.1, 0.4]),
-        Metaball(1.5, [7.0, 5.0], [-0.25, 0.13]),
+        Metaball(0.3, (1.0, 1.0), (0.3, 0.2)),
+        Metaball(1, (1.5, 1.5), (0.1, 0.4)),
+        Metaball(1.5, (7.0, 5.0), (-0.25, 0.13)),
     ]
     async with ClientConnection() as conn:
         window = Metaballs(conn, metaballs)

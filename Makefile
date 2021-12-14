@@ -1,12 +1,17 @@
 .PHONY: typecheck
 typecheck:
-	mypy --strict .
-	pyright .
+	mypy --strict . || true
+	pyright . || true
+
+.PHONY: codegen
+codegen:
+	python -mwayland.codegen
 
 .PHONY: basic
 basic:
 	PYTHONPATH=. python ./examples/basic.py
 
-.PHONY: codegen
-codegen:
-	python -mwayland.codegen
+.PHONY: metaballs
+metaballs:
+	PYTHONPATH=. python ./examples/metaballs.py
+
