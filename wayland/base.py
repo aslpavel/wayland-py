@@ -66,6 +66,7 @@ class Connection(ABC):
         "_write_buff",
         "_write_fds",
         "_write_queue",
+        "_write_done",
         "_read_buff",
         "_read_fds",
         "_id_last",
@@ -84,6 +85,7 @@ class Connection(ABC):
     _write_fds: List[Fd]
     _write_buff: bytearray
     _write_queue: Deque[Message]
+    _write_done: asyncio.Event
 
     _read_buff: bytearray
     _read_fds: Deque[Fd]
@@ -104,6 +106,8 @@ class Connection(ABC):
         self._write_fds = []
         self._write_buff = bytearray()
         self._write_queue = deque()
+        self._write_done = asyncio.Event()
+        self._write_done.set()
 
         self._read_fds = deque()
         self._read_buff = bytearray()
@@ -171,6 +175,10 @@ class Connection(ABC):
         self._reader_enable()
         return self
 
+    async def flush(self) -> None:
+        """Wait for all pending events to be send"""
+        await self._write_done.wait()
+
     async def __aenter__(self: C) -> C:
         return await self.connect()
 
@@ -183,12 +191,14 @@ class Connection(ABC):
     def _writer_enable(self) -> None:
         if self._is_terminated:
             raise RuntimeError("connection has beend terminated")
+        self._write_done.clear()
         if self._socket is not None:
             self._loop.add_writer(self._socket, self._writer)
 
     def _writer_disable(self) -> None:
         if self._socket is not None:
             self._loop.remove_writer(self._socket)
+        self._write_done.set()
 
     def _writer(self) -> None:
         """Write pending messages"""

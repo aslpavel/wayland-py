@@ -2,6 +2,7 @@
 from __future__ import annotations
 import asyncio
 import math
+import time
 import numpy as np
 import numpy.linalg as la
 import numpy.typing as npt
@@ -104,7 +105,7 @@ class Window:
     def render(self, image: npt.NDArray[np.uint8], now: Optional[int] = None) -> None:
         image[:, :] = [211, 134, 155, 255]
 
-    async def anmiate(self) -> None:
+    async def animate(self) -> None:
         await self._conn.sync()  # wait for first xdg_sruface.configure
         now: Optional[int] = None
         while not self._is_closed and not self._conn.is_terminated:
@@ -222,22 +223,33 @@ class Metaballs(Window):
         self._now = None
         super().__init__(conn)
 
-    def tick(self, now: Optional[int]):
+    def tick(self, delta: int):
         width = WIDTH
         height = width / self.width * self.height
-        delta = now - self._now if now and self._now else 16
-        self._now = now
         for metaball in self.metaballs:
             metaball.tick(height, width, delta)
 
-    def render(self, image: npt.NDArray[np.uint8], now: Optional[int] = None):
+    def render(self, image: npt.NDArray[np.uint8], now: Optional[int] = None) -> None:
         if self._grid.shape[:2] != image.shape[:2]:
             self._grid = self._make_grid()
-        self.tick(now)
+
+        delta = now - self._now if now and self._now else 16
+        self._now = now
+        self.tick(delta)
+
+        render_start = time.time()
         values = self.at(self._grid)
         image[..., :] = BLACK
         image[values >= 0.9] = YELLOW
         image[values >= 1.1] = BLUE
+        render_time = time.time() - render_start
+
+        print(
+            "\x1b[Kfps={:.2f} render={:.2f}ms\r".format(
+                1000 / delta, render_time * 1000
+            ),
+            end="",
+        )
 
     def _make_grid(self) -> npt.NDArray[np.float64]:
         width = WIDTH
@@ -275,8 +287,7 @@ async def main() -> None:
     async with ClientConnection() as conn:
         window = Metaballs(conn, metaballs)
         window.on_close(lambda: conn.terminate())
-        # await conn.sync()
-        await window.anmiate()
+        await window.animate()
 
 
 if __name__ == "__main__":
