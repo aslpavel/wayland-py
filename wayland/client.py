@@ -3,9 +3,9 @@ from __future__ import annotations
 import os
 import sys
 import socket
-from typing import Optional, TypeVar, Type, Dict, Tuple
+from typing import Optional, Set, TypeVar, Type, Dict, Tuple
 from .base import Connection, Interface, Proxy, Id
-from .protocol.wayland import WlDisplay, WlRegistry
+from .protocol.wayland import WlDisplay, WlRegistry, WlShm
 
 P = TypeVar("P", bound="Proxy")
 
@@ -16,6 +16,7 @@ class ClientConnection(Connection):
     _registry: WlRegistry
     # interface_name -> (name, verison, proxy)
     _registry_globals: Dict[str, Tuple[int, int, Optional[Proxy]]]
+    _shm_formats: Set[WlShm.Format]
 
     def __init__(self, path: Optional[str] = None):
         super().__init__()
@@ -28,6 +29,8 @@ class ClientConnection(Connection):
                 raise RuntimeError("XDG_RUNTIME_DIR is not set")
             display = os.getenv("WAYLAND_DISPLAY", "wayland-0")
             self._path = os.path.join(runtime_dir, display)
+
+        self._shm_formats = set()
 
         self._display = self.create_proxy(WlDisplay)
         self._display._is_attached = True  # display is always attached
@@ -42,6 +45,10 @@ class ClientConnection(Connection):
     @property
     def display(self) -> WlDisplay:
         return self._display
+
+    @property
+    def shm_formats(self) -> Set[WlShm.Format]:
+        return self._shm_formats
 
     def get_global(self, proxy_type: Type[P]) -> P:
         """Get global by proxy type"""
@@ -102,6 +109,14 @@ class ClientConnection(Connection):
                 return True
 
             proxy.on("ping", pong)
+
+        elif proxy._interface.name == "wl_shm":
+
+            def format(fmt: WlShm.Format) -> bool:
+                self._shm_formats.add(fmt)
+                return True
+
+            proxy.on("format", format)
 
     def _on_display_error(self, proxy: Proxy, code: int, message: str) -> bool:
         """Handle for `wl_display.error` event"""
