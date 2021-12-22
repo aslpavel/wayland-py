@@ -1,3 +1,7 @@
+.PHONY: test
+test:
+	python -munittest discover
+
 .PHONY: typecheck
 typecheck:
 	mypy --strict . || true
