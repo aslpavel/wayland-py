@@ -95,6 +95,8 @@ def _unpack_enum_wl_display(name: str, value: int) -> Any:
     return None
 WlDisplay.interface.unpack_enum = _unpack_enum_wl_display
 
+PROXIES["wl_display"] = WlDisplay
+
 class WlRegistry(Proxy):
     """global registry object"""
     interface: ClassVar[Interface] = Interface(
@@ -134,6 +136,8 @@ class WlRegistry(Proxy):
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
+PROXIES["wl_registry"] = WlRegistry
+
 class WlCallback(Proxy):
     """callback object"""
     interface: ClassVar[Interface] = Interface(
@@ -155,6 +159,8 @@ class WlCallback(Proxy):
         _opcode = OpCode(0)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
+
+PROXIES["wl_callback"] = WlCallback
 
 class WlCompositor(Proxy):
     """the compositor singleton"""
@@ -184,6 +190,8 @@ class WlCompositor(Proxy):
         id = self._connection.create_proxy(WlRegion)
         self._call(OpCode(1), (id,))
         return id
+
+PROXIES["wl_compositor"] = WlCompositor
 
 class WlShmPool(Proxy):
     """a shared memory pool"""
@@ -224,6 +232,8 @@ class WlShmPool(Proxy):
 
     def __exit__(self, *_: Any) -> None:
         self.destroy()
+
+PROXIES["wl_shm_pool"] = WlShmPool
 
 class WlShm(Proxy):
     """shared memory support"""
@@ -490,6 +500,8 @@ def _unpack_enum_wl_shm(name: str, value: int) -> Any:
     return None
 WlShm.interface.unpack_enum = _unpack_enum_wl_shm
 
+PROXIES["wl_shm"] = WlShm
+
 class WlBuffer(Proxy):
     """content for a wl_surface"""
     interface: ClassVar[Interface] = Interface(
@@ -523,6 +535,8 @@ class WlBuffer(Proxy):
         _opcode = OpCode(0)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
+
+PROXIES["wl_buffer"] = WlBuffer
 
 class WlDataOffer(Proxy):
     """offer to transfer data"""
@@ -616,6 +630,8 @@ def _unpack_enum_wl_data_offer(name: str, value: int) -> Any:
         return WlDataOffer.Error(value)
     return None
 WlDataOffer.interface.unpack_enum = _unpack_enum_wl_data_offer
+
+PROXIES["wl_data_offer"] = WlDataOffer
 
 class WlDataSource(Proxy):
     """offer to transfer data"""
@@ -715,6 +731,8 @@ def _unpack_enum_wl_data_source(name: str, value: int) -> Any:
     return None
 WlDataSource.interface.unpack_enum = _unpack_enum_wl_data_source
 
+PROXIES["wl_data_source"] = WlDataSource
+
 class WlDataDevice(Proxy):
     """data transfer device"""
     interface: ClassVar[Interface] = Interface(
@@ -811,6 +829,8 @@ def _unpack_enum_wl_data_device(name: str, value: int) -> Any:
     return None
 WlDataDevice.interface.unpack_enum = _unpack_enum_wl_data_device
 
+PROXIES["wl_data_device"] = WlDataDevice
+
 class WlDataDeviceManager(Proxy):
     """data transfer interface"""
     interface: ClassVar[Interface] = Interface(
@@ -862,6 +882,8 @@ def _unpack_enum_wl_data_device_manager(name: str, value: int) -> Any:
     return None
 WlDataDeviceManager.interface.unpack_enum = _unpack_enum_wl_data_device_manager
 
+PROXIES["wl_data_device_manager"] = WlDataDeviceManager
+
 class WlShell(Proxy):
     """create desktop-style surfaces"""
     interface: ClassVar[Interface] = Interface(
@@ -898,6 +920,8 @@ def _unpack_enum_wl_shell(name: str, value: int) -> Any:
         return WlShell.Error(value)
     return None
 WlShell.interface.unpack_enum = _unpack_enum_wl_shell
+
+PROXIES["wl_shell"] = WlShell
 
 class WlShellSurface(Proxy):
     """desktop-style metadata interface"""
@@ -1056,6 +1080,8 @@ def _unpack_enum_wl_shell_surface(name: str, value: int) -> Any:
     return None
 WlShellSurface.interface.unpack_enum = _unpack_enum_wl_shell_surface
 
+PROXIES["wl_shell_surface"] = WlShellSurface
+
 class WlSurface(Proxy):
     """an onscreen surface"""
     interface: ClassVar[Interface] = Interface(
@@ -1171,6 +1197,8 @@ def _unpack_enum_wl_surface(name: str, value: int) -> Any:
     return None
 WlSurface.interface.unpack_enum = _unpack_enum_wl_surface
 
+PROXIES["wl_surface"] = WlSurface
+
 class WlSeat(Proxy):
     """group of input devices"""
     interface: ClassVar[Interface] = Interface(
@@ -1263,6 +1291,8 @@ def _unpack_enum_wl_seat(name: str, value: int) -> Any:
         return WlSeat.Error(value)
     return None
 WlSeat.interface.unpack_enum = _unpack_enum_wl_seat
+
+PROXIES["wl_seat"] = WlSeat
 
 class WlPointer(Proxy):
     """pointer input device"""
@@ -1418,6 +1448,8 @@ def _unpack_enum_wl_pointer(name: str, value: int) -> Any:
     return None
 WlPointer.interface.unpack_enum = _unpack_enum_wl_pointer
 
+PROXIES["wl_pointer"] = WlPointer
+
 class WlKeyboard(Proxy):
     """keyboard input device"""
     interface: ClassVar[Interface] = Interface(
@@ -1517,6 +1549,8 @@ def _unpack_enum_wl_keyboard(name: str, value: int) -> Any:
     return None
 WlKeyboard.interface.unpack_enum = _unpack_enum_wl_keyboard
 
+PROXIES["wl_keyboard"] = WlKeyboard
+
 class WlTouch(Proxy):
     """touchscreen input device"""
     interface: ClassVar[Interface] = Interface(
@@ -1592,6 +1626,8 @@ class WlTouch(Proxy):
         _opcode = OpCode(6)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
+
+PROXIES["wl_touch"] = WlTouch
 
 class WlOutput(Proxy):
     """compositor output region"""
@@ -1712,6 +1748,8 @@ def _unpack_enum_wl_output(name: str, value: int) -> Any:
     return None
 WlOutput.interface.unpack_enum = _unpack_enum_wl_output
 
+PROXIES["wl_output"] = WlOutput
+
 class WlRegion(Proxy):
     """region interface"""
     interface: ClassVar[Interface] = Interface(
@@ -1750,6 +1788,8 @@ class WlRegion(Proxy):
 
     def __exit__(self, *_: Any) -> None:
         self.destroy()
+
+PROXIES["wl_region"] = WlRegion
 
 class WlSubcompositor(Proxy):
     """sub-surface compositing"""
@@ -1799,6 +1839,8 @@ def _unpack_enum_wl_subcompositor(name: str, value: int) -> Any:
         return WlSubcompositor.Error(value)
     return None
 WlSubcompositor.interface.unpack_enum = _unpack_enum_wl_subcompositor
+
+PROXIES["wl_subcompositor"] = WlSubcompositor
 
 class WlSubsurface(Proxy):
     """sub-surface interface to a wl_surface"""
@@ -1871,5 +1913,7 @@ def _unpack_enum_wl_subsurface(name: str, value: int) -> Any:
         return WlSubsurface.Error(value)
     return None
 WlSubsurface.interface.unpack_enum = _unpack_enum_wl_subsurface
+
+PROXIES["wl_subsurface"] = WlSubsurface
 
 # fmt: on

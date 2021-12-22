@@ -128,6 +128,8 @@ def generate_client(
                 f"{class_name}.interface.unpack_enum = _unpack_enum_{iface_name}\n\n"
             )
 
+        module.write(f'PROXIES["{iface_name}"] = {class_name}\n\n')
+
     module.write("# fmt: on")
     return module.getvalue()
 

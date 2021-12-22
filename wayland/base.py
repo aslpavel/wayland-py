@@ -39,10 +39,34 @@ from typing import (
     runtime_checkable,
 )
 
+__all__ = [
+    "Id",
+    "OpCode",
+    "Connection",
+    "Arg",
+    "ArgUInt",
+    "ArgInt",
+    "ArgFixed",
+    "ArgStr",
+    "ArgArray",
+    "ArgNewId",
+    "ArgObject",
+    "ArgFd",
+    "Interface",
+    "WRequest",
+    "WEvent",
+    "WEnum",
+    "Proxy",
+    "Protocol",
+    "Fd",
+    "SharedMemory",
+    "PROXIES",
+]
 
 Id = NewType("Id", int)
 OpCode = NewType("OpCode", int)
 MSG_HEADER = Struct("IHH")
+PROXIES: Dict[str, Type[Proxy]] = {}
 
 P = TypeVar("P", bound="Proxy")
 C = TypeVar("C", bound="Connection")
@@ -62,6 +86,7 @@ class Connection(ABC):
         "_socket",
         "_loop",
         "_is_terminated",
+        "_is_server",
         "_on_terminated",
         "_write_buff",
         "_write_fds",
@@ -79,6 +104,7 @@ class Connection(ABC):
     _socket: Optional[socket.socket]
     _loop: asyncio.AbstractEventLoop
     _is_terminated: bool
+    _is_server: bool
     _on_terminated: asyncio.Event
     _debug: bool
 
@@ -94,10 +120,11 @@ class Connection(ABC):
     _id_free: List[Id]
     _proxies: Dict[Id, "Proxy"]
 
-    def __init__(self, debug: Optional[bool] = None) -> None:
+    def __init__(self, debug: Optional[bool] = None, is_server: bool = False) -> None:
         self._socket = None
         self._loop = asyncio.get_running_loop()
         self._is_terminated = False
+        self._is_server = is_server
         self._on_terminated = asyncio.Event()
         self._debug = bool(os.getenv("WAYLAND_DEBUG")) if debug is None else debug
 
@@ -319,8 +346,28 @@ class Connection(ABC):
             return self._read_fds.popleft()
         return None
 
-    def _proxy_recv(self, id: Id, interface: str) -> Proxy:
-        raise NotImplementedError()
+    def _new_id_recv(self, id: Id, iface_name: str) -> Proxy:
+        """Receive proxy with new_id command"""
+        proxy_type = PROXIES.get(iface_name)
+        if proxy_type is None:
+            raise ValueError(f"failed to resolve proxy type {iface_name}")
+        proxy = proxy_type(id, self)
+        if self._is_server:
+            iface = proxy_type.interface.swap_events_and_requests()
+            proxy = Proxy(id, self, iface)
+        else:
+            proxy = proxy_type(id, self)
+        self._proxies[id] = proxy
+        proxy._is_attached = True
+        return proxy
+
+    def _delete_proxy(self, target: Union[Proxy, Id]) -> None:
+        """Delete proxy"""
+        id = target._id if isinstance(target, Proxy) else target
+        proxy = self._proxies.pop(id, None)
+        if proxy is not None:
+            proxy._detach("deleted by server")
+        self._id_free.append(id)
 
     def _message_submit(self, message: Message) -> None:
         """Submit message for writing"""
@@ -532,7 +579,7 @@ class ArgNewId(Arg):
         interface: Optional[str] = self.interface or hint
         if interface is None:
             raise RuntimeError(f"[{self.name}] cannot unpack proxy without intreface")
-        return connection._proxy_recv(id, interface)
+        return connection._new_id_recv(id, interface)
 
     def __str__(self) -> str:
         interface = f'"{self.interface}"' if self.interface is not None else "None"

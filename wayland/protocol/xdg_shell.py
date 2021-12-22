@@ -94,6 +94,8 @@ def _unpack_enum_xdg_wm_base(name: str, value: int) -> Any:
     return None
 XdgWmBase.interface.unpack_enum = _unpack_enum_xdg_wm_base
 
+PROXIES["xdg_wm_base"] = XdgWmBase
+
 class XdgPositioner(Proxy):
     """child surface positioner"""
     interface: ClassVar[Interface] = Interface(
@@ -267,6 +269,8 @@ def _unpack_enum_xdg_positioner(name: str, value: int) -> Any:
     return None
 XdgPositioner.interface.unpack_enum = _unpack_enum_xdg_positioner
 
+PROXIES["xdg_positioner"] = XdgPositioner
+
 class XdgSurface(Proxy):
     """desktop user interface surface base interface"""
     interface: ClassVar[Interface] = Interface(
@@ -345,6 +349,8 @@ def _unpack_enum_xdg_surface(name: str, value: int) -> Any:
         return XdgSurface.Error(value)
     return None
 XdgSurface.interface.unpack_enum = _unpack_enum_xdg_surface
+
+PROXIES["xdg_surface"] = XdgSurface
 
 class XdgToplevel(Proxy):
     """toplevel surface"""
@@ -521,6 +527,8 @@ def _unpack_enum_xdg_toplevel(name: str, value: int) -> Any:
     return None
 XdgToplevel.interface.unpack_enum = _unpack_enum_xdg_toplevel
 
+PROXIES["xdg_toplevel"] = XdgToplevel
+
 class XdgPopup(Proxy):
     """short-lived, popup surfaces for menus"""
     interface: ClassVar[Interface] = Interface(
@@ -595,5 +603,7 @@ def _unpack_enum_xdg_popup(name: str, value: int) -> Any:
         return XdgPopup.Error(value)
     return None
 XdgPopup.interface.unpack_enum = _unpack_enum_xdg_popup
+
+PROXIES["xdg_popup"] = XdgPopup
 
 # fmt: on

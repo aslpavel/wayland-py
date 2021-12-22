@@ -114,11 +114,7 @@ class ClientConnection(Connection):
 
     def _on_display_delete_id(self, id_int: int) -> bool:
         """Unregister proxy"""
-        id = Id(id_int)
-        proxy = self._proxies.pop(id, None)
-        if proxy is not None:
-            proxy._detach("deleted by server")
-        self._id_free.append(id)
+        self._delete_proxy(Id(id_int))
         return True
 
     def _on_registry_global(self, name: int, interface: str, version: int) -> bool:
