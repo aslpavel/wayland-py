@@ -1,7 +1,14 @@
 import io
+import os
+import socket
+import tempfile
 import unittest
 from unittest.mock import Mock
-from .base import ArgArray, ArgFixed, ArgInt, ArgStr, Connection
+
+from wayland.protocol.wayland import WlDisplay
+
+from .base import ArgArray, ArgFixed, ArgInt, ArgStr, Connection, Id, Proxy
+from .client import ClientConnection
 
 
 class TestArgs(unittest.TestCase):
@@ -41,3 +48,26 @@ class TestArgs(unittest.TestCase):
         self.assertEqual(file.getvalue(), b"\x06\x00\x00\x00string\x00\x00")
         file.seek(0)
         self.assertEqual(arg.unpack(file, self.conn), b"string")
+
+
+class TestClient(unittest.IsolatedAsyncioTestCase):
+    async def asyncSetUp(self):
+        with tempfile.TemporaryDirectory() as tempdir:
+            path = os.path.join(tempdir, "wayland-test")
+            client = ClientConnection(path)
+            with socket.socket(socket.AF_UNIX) as sock:
+                sock.bind(path)
+                sock.listen()
+                # await client.connect()
+
+    async def test_client_basic(self):
+        pass
+
+
+class ServerConnection(Connection):
+    def __init__(self):
+        super().__init__()
+
+        dispaly = self.create_proxy_by_interface(
+            WlDisplay.interface.swap_events_and_requests()
+        )

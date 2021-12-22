@@ -94,9 +94,7 @@ class Connection(ABC):
     _id_free: List[Id]
     _proxies: Dict[Id, "Proxy"]
 
-    def __init__(
-        self, path: Optional[str] = None, debug: Optional[bool] = None
-    ) -> None:
+    def __init__(self, debug: Optional[bool] = None) -> None:
         self._socket = None
         self._loop = asyncio.get_running_loop()
         self._is_terminated = False
@@ -321,6 +319,9 @@ class Connection(ABC):
             return self._read_fds.popleft()
         return None
 
+    def _proxy_recv(self, id: Id, interface: str) -> Proxy:
+        raise NotImplementedError()
+
     def _message_submit(self, message: Message) -> None:
         """Submit message for writing"""
         if message.id not in self._proxies:
@@ -341,7 +342,12 @@ class Arg(ABC):
         pass
 
     @abstractmethod
-    def unpack(self, read: io.BytesIO, connection: Connection) -> Any:
+    def unpack(
+        self,
+        read: io.BytesIO,
+        connection: Connection,
+        hint: Optional[Any] = None,
+    ) -> Any:
         pass
 
     def __str__(self) -> str:
@@ -368,7 +374,12 @@ class ArgUInt(Arg):
         else:
             raise TypeError(f"[{self.name}] unsigend integer expected")
 
-    def unpack(self, read: io.BytesIO, connection: Connection) -> Any:
+    def unpack(
+        self,
+        read: io.BytesIO,
+        connection: Connection,
+        hint: Optional[Any] = None,
+    ) -> Any:
         return self.struct.unpack(read.read(self.struct.size))[0]
 
     def __str__(self) -> str:
@@ -386,7 +397,12 @@ class ArgInt(Arg):
             raise TypeError(f"[{self.name}] signed integer expected")
         write.write(self.struct.pack(value))
 
-    def unpack(self, read: io.BytesIO, connection: Connection) -> Any:
+    def unpack(
+        self,
+        read: io.BytesIO,
+        connection: Connection,
+        hint: Optional[Any] = None,
+    ) -> Any:
         return self.struct.unpack(read.read(self.struct.size))[0]
 
 
@@ -402,7 +418,12 @@ class ArgFixed(Arg):
         value = (int(value) << 8) + int((value % 1.0) * 256)
         write.write(self.struct.pack(value))
 
-    def unpack(self, read: io.BytesIO, connection: Connection) -> Any:
+    def unpack(
+        self,
+        read: io.BytesIO,
+        connection: Connection,
+        hint: Optional[Any] = None,
+    ) -> Any:
         value = self.struct.unpack(read.read(self.struct.size))[0]
         return float(value >> 8) + ((value & 0xFF) / 256.0)
 
@@ -431,7 +452,12 @@ class ArgStr(Arg):
         padding = (-size % 4) + 1
         write.write(b"\x00" * padding)
 
-    def unpack(self, read: io.BytesIO, connection: Connection) -> Any:
+    def unpack(
+        self,
+        read: io.BytesIO,
+        connection: Connection,
+        hint: Optional[Any] = None,
+    ) -> Any:
         size = self.struct.unpack(read.read(self.struct.size))[0]
         value = read.read(size - 1).decode()
         read.read((-size % 4) + 1)
@@ -460,7 +486,12 @@ class ArgArray(Arg):
         write.write(data)
         write.write(b"\x00" * (-size % 4))
 
-    def unpack(self, read: io.BytesIO, connection: Connection) -> Any:
+    def unpack(
+        self,
+        read: io.BytesIO,
+        connection: Connection,
+        hint: Optional[Any] = None,
+    ) -> Any:
         size = self.struct.unpack(read.read(self.struct.size))[0]
         value = read.read(size)
         read.read(-size % 4)
@@ -489,8 +520,19 @@ class ArgNewId(Arg):
             )
         write.write(self.struct.pack(value._id))
 
-    def unpack(self, read: io.BytesIO, connection: Connection) -> Any:
-        raise NotImplementedError()
+    def unpack(
+        self,
+        read: io.BytesIO,
+        connection: Connection,
+        hint: Optional[Any] = None,
+    ) -> Any:
+        id = Id(self.struct.unpack(read.read(self.struct.size))[0])
+        if id in connection._proxies:
+            raise RuntimeError(f"[{self.name}] proxy with id={id} already exists")
+        interface: Optional[str] = self.interface or hint
+        if interface is None:
+            raise RuntimeError(f"[{self.name}] cannot unpack proxy without intreface")
+        return connection._proxy_recv(id, interface)
 
     def __str__(self) -> str:
         interface = f'"{self.interface}"' if self.interface is not None else "None"
@@ -520,7 +562,12 @@ class ArgObject(Arg):
             )
         write.write(self.struct.pack(value._id))
 
-    def unpack(self, read: io.BytesIO, connection: Connection) -> Any:
+    def unpack(
+        self,
+        read: io.BytesIO,
+        connection: Connection,
+        hint: Optional[Any] = None,
+    ) -> Any:
         id = self.struct.unpack(read.read(self.struct.size))[0]
         if self.optional and id == 0:
             return None
@@ -544,7 +591,12 @@ class ArgFd(Arg):
         # not actually writing anything, magic happanes on the _writer side
         pass
 
-    def unpack(self, read: io.BytesIO, connection: Connection) -> Any:
+    def unpack(
+        self,
+        read: io.BytesIO,
+        connection: Connection,
+        hint: Optional[Any] = None,
+    ) -> Any:
         fd = connection._fd_recv()
         if fd is None:
             raise RuntimeError(f"[{self.name}] expected file descriptor")
@@ -633,7 +685,7 @@ class Interface:
         request = self.events[opcode]
         read = io.BytesIO(data)
         args: List[Any] = []
-        for arg_desc in request.args:
+        for index, arg_desc in enumerate(request.args):
             if (
                 isinstance(arg_desc, ArgUInt)
                 and arg_desc.enum is not None
@@ -642,9 +694,21 @@ class Interface:
                 args.append(
                     self.unpack_enum(arg_desc.enum, arg_desc.unpack(read, connection))
                 )
+            elif isinstance(arg_desc, ArgNewId) and arg_desc.interface is None:
+                args.append(arg_desc.unpack(read, connection, args[index - 2]))
             else:
                 args.append(arg_desc.unpack(read, connection))
         return args
+
+    def swap_events_and_requests(self) -> Interface:
+        """Create new interface with swapped events and requests"""
+        return Interface(
+            name=self.name,
+            requests=[event.to_request() for event in self.events],
+            events=[request.to_event() for request in self.requests],
+            enums=self.enums,
+            summary=self.summary,
+        )
 
     def __repr__(self) -> str:
         return self.name
@@ -781,11 +845,19 @@ class WRequest(NamedTuple):
     summary: Optional[str] = None
     destructor: bool = False
 
+    def to_event(self) -> WEvent:
+        """Convert request definition to event definition"""
+        return WEvent(self.name, self.args, self.summary)
+
 
 class WEvent(NamedTuple):
     name: str
     args: List[Arg]
     summary: Optional[str] = None
+
+    def to_request(self) -> WRequest:
+        """Convert event definition to request definition"""
+        return WRequest(self.name, self.args, self.summary)
 
 
 class WEnum:
