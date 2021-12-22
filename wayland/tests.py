@@ -1,14 +1,26 @@
+# pyright: reportPrivateUsage=false
 from __future__ import annotations
+
 import asyncio
 import io
 import os
 import socket
 import tempfile
-from typing import Any, Callable, List, Set, Tuple
 import unittest
+from typing import Any, Callable, Dict, Set, Tuple
 from unittest.mock import Mock
 
-from .base import ArgArray, ArgFixed, ArgInt, ArgStr, Connection, Id, Proxy
+from .base import (
+    ArgArray,
+    ArgFixed,
+    ArgInt,
+    ArgStr,
+    Connection,
+    FdFile,
+    Id,
+    Proxy,
+    SharedMemory,
+)
 from .client import ClientConnection
 from .protocol.wayland import *
 
@@ -53,22 +65,101 @@ class TestArgs(unittest.TestCase):
 
 
 class TestClient(unittest.IsolatedAsyncioTestCase):
-    async def test_client_basic(self):
-        def bind(name: int, iface: str, ver: int, proxy: Proxy):
-            binds.add(iface)
+    async def test_client_basic(self) -> None:
+        def bind(proxy: Proxy) -> None:
+            binds.add(proxy._interface.name)
 
         binds: Set[str] = set()
-        server, client = await create_connection_pair(["wl_compositor"], bind)
+        server, client = await create_connection_pair({"wl_compositor": bind})
         _compositor = client.get_global(WlCompositor)
         await client.sync()
         self.assertEqual(binds, {"wl_compositor"})
+
+        client.terminate()
+        server.terminate()
+
+    async def test_create_buffer(self) -> None:
+        def wl_shm_bind(proxy: Proxy) -> None:
+            def on_create_pool(pool: Proxy, fd: FdFile, size: int) -> bool:
+                def on_create_buffer(
+                    buff: Proxy,
+                    offset: int,
+                    width: int,
+                    height: int,
+                    stride: int,
+                    fmt: WlShm.Format,
+                ) -> bool:
+                    state.buff = buff
+                    return True
+
+                pool.on("destroy", ignore)
+                pool.on("create_buffer", on_create_buffer)
+                state.buff_mem = SharedMemory(size, fd)
+                fd.close()
+                return False
+
+            proxy("format", WlShm.Format.XRGB8888)
+            proxy.on("create_pool", on_create_pool)
+
+        def wl_compositor_bind(proxy: Proxy) -> None:
+            def on_create_surface(proxy: Proxy) -> bool:
+                def on_attach(buff: Proxy, x: int, y: int) -> bool:
+                    state.attached = True
+                    return True
+
+                def on_commit() -> bool:
+                    state.commited = True
+                    return True
+
+                state.surf = proxy
+                state.surf.on("attach", on_attach)
+                state.surf.on("commit", on_commit)
+                return False
+
+            proxy.on("create_surface", on_create_surface)
+
+        class State:
+            surf: Proxy
+            buff: Proxy
+            buff_mem: SharedMemory
+            attached: bool
+            commited: bool
+
+        state = State()
+        state.attached = False
+        state.commited = False
+        server, client = await create_connection_pair(
+            {
+                "wl_compositor": wl_compositor_bind,
+                "wl_shm": wl_shm_bind,
+            }
+        )
+
+        wl_compositor = client.get_global(WlCompositor)
+        wl_shm = client.get_global(WlShm)
+        wl_surf = wl_compositor.create_surface()
+        buff_mem = SharedMemory(16)
+        with wl_shm.create_pool(buff_mem, 16) as pool:
+            buff = pool.create_buffer(0, 2, 2, 8, WlShm.Format.XRGB8888)
+        buff_mem.buf[:] = b"x" * 16
+        wl_surf.attach(buff, 0, 0)
+        wl_surf.commit()
+        await client.sync()
+
+        self.assertTrue(state.attached)
+        self.assertTrue(state.commited)
+        self.assertEqual(bytes(state.buff_mem.buf), b"x" * 16)
+
         client.terminate()
         server.terminate()
 
 
+def ignore(*_: Any) -> bool:
+    return True
+
+
 async def create_connection_pair(
-    names: List[str],
-    bind: Callable[[int, str, int, Proxy], Any],
+    binds: Dict[str, Callable[[Proxy], Any]],
 ) -> Tuple[ServerConnection, ClientConnection]:
     """Create wayland server/client connection pair"""
     with tempfile.TemporaryDirectory() as tempdir:
@@ -77,7 +168,7 @@ async def create_connection_pair(
         with socket.socket(socket.AF_UNIX) as sock:
             sock.bind(path)
             sock.listen()
-            server = ServerConnection(sock, names, bind)
+            server = ServerConnection(sock, binds)
             connect = asyncio.gather(client.connect(), server.connect())
             try:
                 await connect
@@ -90,18 +181,15 @@ class ServerConnection(Connection):
     display: Proxy
     serial: int
     server_sock: socket.socket
-    names: List[str]
-    bind: Callable[[int, str, int, Proxy], Any]
+    binds: Dict[str, Callable[[Proxy], Any]]
 
     def __init__(
         self,
         server_sock: socket.socket,
-        names: List[str],
-        bind: Callable[[int, str, int, Proxy], Any],
+        binds: Dict[str, Callable[[Proxy], Any]],
     ):
         super().__init__(is_server=True)
-        self.names = names
-        self.bind = bind
+        self.binds = binds
         self.server_sock = server_sock
         self.serial = 0
 
@@ -112,12 +200,13 @@ class ServerConnection(Connection):
 
     def on_get_registry(self, registry: Proxy) -> bool:
         registry.on("bind", self.on_bind)
-        for index, name in enumerate(self.names):
+        for index, name in enumerate(self.binds):
             registry("global", index, name, 128)
         return True
 
-    def on_bind(self, name: int, iface: str, ver: int, proxy: Proxy):
-        self.bind(name, iface, ver, proxy)
+    def on_bind(self, name: int, iface: str, ver: int, proxy: Proxy) -> bool:
+        assert proxy._interface.name == iface
+        self.binds[iface](proxy)
         return True
 
     def on_sync(self, callback: Proxy) -> bool:

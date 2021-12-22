@@ -59,6 +59,7 @@ __all__ = [
     "Proxy",
     "Protocol",
     "Fd",
+    "FdFile",
     "SharedMemory",
     "PROXIES",
 ]
@@ -251,7 +252,7 @@ class Connection(ABC):
                 try:
                     fds: List[int] = []
                     for fd in self._write_fds:
-                        if isinstance(fd, _Fd):
+                        if isinstance(fd, FdFile):
                             fds.append(fd.fileno())
                         else:
                             fds.append(fd)
@@ -711,7 +712,7 @@ class Interface:
         for arg, arg_desc in zip(args, req.args):
             arg_desc.pack(write, arg)
             if isinstance(arg_desc, ArgFd):
-                if isinstance(arg, (int, _Fd)):
+                if isinstance(arg, (int, FdFile)):
                     fds.append(arg)
                 else:
                     raise TypeError(
@@ -1063,12 +1064,15 @@ class Protocol:
 
 
 @runtime_checkable
-class _Fd(Proto):
+class FdFile(Proto):
     def fileno(self) -> int:
         ...
 
+    def close(self) -> None:
+        ...
 
-Fd = Union[_Fd, int]
+
+Fd = Union[FdFile, int]
 
 
 class SharedMemory:
