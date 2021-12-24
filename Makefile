@@ -11,6 +11,11 @@ typecheck:
 codegen:
 	python -mwayland.codegen
 
+.PHONY: coverage
+coverage:
+	coverage run -m unittest discover
+	coverage html
+
 .PHONY: basic
 basic:
 	PYTHONPATH=. python ./examples/basic.py

@@ -1,0 +1,6 @@
+.coverage
+.pdm.toml
+pdm.lock
+htmlcov/
+dist/
+__pypackages__/

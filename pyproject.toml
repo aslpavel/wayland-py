@@ -1,3 +1,39 @@
+[project]
+name = "wayland"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "Pavel Aslanov", email = "asl.pavel@gmail.com"},
+]
+dependencies = []
+requires-python = ">=3.9"
+license = {text = "MIT"}
+
+[project.urls]
+homepage = "https://github.com/aslpavel/wayland-py"
+Repository = "https://github.com/aslpavel/wayland-py"
+
+[project.optional-dependencies]
+[tool]
+[tool.pdm]
+[tool.pdm.dev-dependencies]
+dev = [
+    "numpy>=1.21.1",
+]
+
+[build-system]
+requires = ["pdm-pep517"]
+build-backend = "pdm.pep517.api"
+
 [tool.pyright]
 typeCheckingMode = "strict"
-ignore = ["examples/metaballs.py"]  #TODO: try again with numpy 1.22
+exclude = [
+    "**/__pypackages__",
+]
+ignore = [
+    "examples/metaballs.py"  #TODO: try again with numpy 1.22
+]
+
+[tool.mypy]
+exclude = "^(__pypackages__/.*|examples/metaballs\\.py)$"
+
