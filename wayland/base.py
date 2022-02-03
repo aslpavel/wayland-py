@@ -13,7 +13,7 @@ import socket
 import secrets
 from enum import Enum
 from _posixshmem import shm_open, shm_unlink
-from xml.etree import ElementTree
+from xml.etree import ElementTree  # nosec
 from abc import ABC, abstractmethod
 from asyncio import Future
 from collections import deque
