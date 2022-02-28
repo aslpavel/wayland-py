@@ -6,7 +6,7 @@ This is a very basic but complete, pure python implementation of wayland protoco
 
 ## Examples
 - Checkerboard window `make basic`
-- Render animated metabalss `make metaballs`
+- Render animated metaballs `make metaballs`
 
 ## Why
 I was trying to figure out how wayland protocol works, and as an exercise implemented it in python

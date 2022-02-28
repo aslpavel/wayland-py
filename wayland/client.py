@@ -14,7 +14,7 @@ class ClientConnection(Connection):
     _path: str
     _display: WlDisplay
     _registry: WlRegistry
-    # interface_name -> (name, verison, proxy)
+    # interface_name -> (name, version, proxy)
     _registry_globals: Dict[str, Tuple[int, int, Optional[Proxy]]]
     _shm_formats: Set[WlShm.Format]
 
@@ -89,7 +89,7 @@ class ClientConnection(Connection):
     async def sync(self) -> None:
         """Ensures all requests are processed
 
-        This funciton can be used as a berrier to ensure all previous
+        This function can be used as a barrier to ensure all previous
         requests and resulting events have been handled.
         """
         callback = self.display.sync()

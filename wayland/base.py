@@ -168,7 +168,7 @@ class Connection(ABC):
         await self._on_terminated.wait()
 
     def terminate(self, msg: Optional[Any] = None) -> None:
-        """Teminate wayland connection"""
+        """Terminate wayland connection"""
         is_terminated, self._is_terminated = self._is_terminated, True
         if is_terminated:
             return
@@ -282,7 +282,7 @@ class Connection(ABC):
             self._loop.remove_reader(self._socket)
 
     def _reader(self) -> None:
-        """Read incomming messages"""
+        """Read incoming messages"""
         if self._is_terminated or self._socket is None:
             self._reader_disable()
             return
@@ -865,7 +865,7 @@ class Proxy:
             self._handlers[opcode] = None
 
     def _dispatch_fmt(self, opcode: OpCode, args: List[Any]) -> str:
-        """Format incomming message"""
+        """Format incoming message"""
         event = self._interface.events[opcode]
         args_repr = ", ".join(
             f"{arg.name}={repr(value)}" for arg, value in zip(event.args, args)
@@ -1079,8 +1079,8 @@ class SharedMemory:
     """Create shared memory file
 
     This can be send over to wayland compositor, or converted to numpy array:
-        shm = SharedMemory(8192)
-        array = numpy.ndarray(shape=(32,32), dtype=float, shm.buf)
+    >>> shm = SharedMemory(8192)
+    >>> array = numpy.ndarray(shape=(32,32), dtype=float, shm.buf)
     """
 
     __slots__ = ["_fd", "_mmap", "_is_closed"]

@@ -249,7 +249,7 @@ def _generate_events(
 
 
 def _camle_case(name: str) -> str:
-    """Convert name to CamleCase"""
+    """Convert name to CamelCase"""
     upper = True
     chars: List[str] = []
     for char in name:
