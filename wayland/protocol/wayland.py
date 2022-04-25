@@ -361,6 +361,10 @@ class WlShm(Proxy):
                     "nv15": 892425806,
                     "q410": 808531025,
                     "q401": 825242705,
+                    "xrgb16161616": 942953048,
+                    "xbgr16161616": 942948952,
+                    "argb16161616": 942953025,
+                    "abgr16161616": 942948929,
                 },
             ),
         ],
@@ -491,6 +495,10 @@ class WlShm(Proxy):
         NV15 = 892425806
         Q410 = 808531025
         Q401 = 825242705
+        XRGB16161616 = 942953048
+        XBGR16161616 = 942948952
+        ARGB16161616 = 942953025
+        ABGR16161616 = 942948929
 
 def _unpack_enum_wl_shm(name: str, value: int) -> Any:
     if name == "error":
@@ -1097,6 +1105,7 @@ class WlSurface(Proxy):
             WRequest("set_buffer_transform", [ArgInt("transform")]),
             WRequest("set_buffer_scale", [ArgInt("scale")]),
             WRequest("damage_buffer", [ArgInt("x"), ArgInt("y"), ArgInt("width"), ArgInt("height")]),
+            WRequest("offset", [ArgInt("x"), ArgInt("y")]),
         ],
         events=[
             WEvent("enter", [ArgObject("output", "wl_output")]),
@@ -1109,6 +1118,7 @@ class WlSurface(Proxy):
                     "invalid_scale": 0,
                     "invalid_transform": 1,
                     "invalid_size": 2,
+                    "invalid_offset": 3,
                 },
             ),
         ],
@@ -1168,6 +1178,11 @@ class WlSurface(Proxy):
         self._call(OpCode(9), (x, y, width, height,))
         return None
 
+    def offset(self, x: int, y: int) -> None:
+        """set the surface contents offset"""
+        self._call(OpCode(10), (x, y,))
+        return None
+
     def __enter__(self) -> WlSurface:
         return self
 
@@ -1190,6 +1205,7 @@ class WlSurface(Proxy):
         INVALID_SCALE = 0
         INVALID_TRANSFORM = 1
         INVALID_SIZE = 2
+        INVALID_OFFSET = 3
 
 def _unpack_enum_wl_surface(name: str, value: int) -> Any:
     if name == "error":
@@ -1641,6 +1657,8 @@ class WlOutput(Proxy):
             WEvent("mode", [ArgUInt("flags", "mode"), ArgInt("width"), ArgInt("height"), ArgInt("refresh")]),
             WEvent("done", []),
             WEvent("scale", [ArgInt("factor")]),
+            WEvent("name", [ArgStr("name")]),
+            WEvent("description", [ArgStr("description")]),
         ],
         enums=[
             WEnum(
@@ -1713,6 +1731,18 @@ class WlOutput(Proxy):
     def on_scale(self, handler: Callable[[int], bool]) -> Optional[Callable[[int], bool]]:
         """output scaling properties"""
         _opcode = OpCode(3)
+        old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
+        return old_handler
+
+    def on_name(self, handler: Callable[[str], bool]) -> Optional[Callable[[str], bool]]:
+        """name of this output"""
+        _opcode = OpCode(4)
+        old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
+        return old_handler
+
+    def on_description(self, handler: Callable[[str], bool]) -> Optional[Callable[[str], bool]]:
+        """human-readable description of this output"""
+        _opcode = OpCode(5)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 

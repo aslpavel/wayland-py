@@ -205,7 +205,7 @@ class ServerConnection(Connection):
         return True
 
     def on_bind(self, name: int, iface: str, ver: int, proxy: Proxy) -> bool:
-        assert proxy._interface.name == iface
+        assert proxy._interface.name == iface  # nosec
         self.binds[iface](proxy)
         return True
 

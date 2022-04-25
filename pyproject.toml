@@ -27,6 +27,7 @@ build-backend = "pdm.pep517.api"
 
 [tool.pyright]
 typeCheckingMode = "strict"
+extraPaths = ["."]
 exclude = [
     "**/__pypackages__",
 ]

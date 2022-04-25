@@ -375,8 +375,15 @@ class XdgToplevel(Proxy):
         events=[
             WEvent("configure", [ArgInt("width"), ArgInt("height"), ArgArray("states")]),
             WEvent("close", []),
+            WEvent("configure_bounds", [ArgInt("width"), ArgInt("height")]),
         ],
         enums=[
+            WEnum(
+                name="error",
+                values={
+                    "invalid_resize_edge": 0,
+                },
+            ),
             WEnum(
                 name="resize_edge",
                 values={
@@ -498,6 +505,15 @@ class XdgToplevel(Proxy):
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
+    def on_configure_bounds(self, handler: Callable[[int, int], bool]) -> Optional[Callable[[int, int], bool]]:
+        """recommended window geometry bounds"""
+        _opcode = OpCode(2)
+        old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
+        return old_handler
+
+    class Error(Enum):
+        INVALID_RESIZE_EDGE = 0
+
     class ResizeEdge(Enum):
         NONE = 0
         TOP = 1
@@ -520,6 +536,8 @@ class XdgToplevel(Proxy):
         TILED_BOTTOM = 8
 
 def _unpack_enum_xdg_toplevel(name: str, value: int) -> Any:
+    if name == "error":
+        return XdgToplevel.Error(value)
     if name == "resize_edge":
         return XdgToplevel.ResizeEdge(value)
     if name == "state":
