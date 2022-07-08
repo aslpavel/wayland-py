@@ -50,6 +50,7 @@ class Window:
         self._xdg_surf = xdg_wm_base.get_xdg_surface(self._wl_surf)
         self._xdg_surf.on_configure(self._on_xdg_surf_configure)
         self._xdg_toplevel = self._xdg_surf.get_toplevel()
+        self._xdg_toplevel.set_app_id("metaballs")
         self._xdg_toplevel.on_configure(self._on_tolevel_configure)
         self._wl_surf.commit()
 
