@@ -479,7 +479,7 @@ class ArgFixed(Arg):
 class ArgStr(Arg):
     """String argument
 
-    String is zero teminated and 32-bit aligned
+    String is zero terminated and 32-bit aligned
     """
 
     type_name: ClassVar[str] = "str"
@@ -636,7 +636,7 @@ class ArgFd(Arg):
     type_name: ClassVar[str] = "Fd"
 
     def pack(self, write: io.BytesIO, value: Any) -> None:
-        # not actually writing anything, magic happanes on the _writer side
+        # not actually writing anything, magic happens on the _writer side
         pass
 
     def unpack(
@@ -700,7 +700,7 @@ class Interface:
     ) -> Tuple[bytes, List[Fd]]:
         """Pack arguments for the specified opcode
 
-        Returns bytes data and descritpros to be send
+        Returns bytes data and descriptors to be send
         """
         req = self.requests[opcode]
         if len(args) != len(req.args):
@@ -791,7 +791,7 @@ class Proxy:
         interface: Optional[Interface] = None,
     ) -> None:
         if interface is None:
-            # interface must always be provided and only seem optional for typechecker
+            # interface must always be provided and only seem optional for type checker
             raise RuntimeError("interface must be providied")
         self._id = id
         self._interface = interface

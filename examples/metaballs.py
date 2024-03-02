@@ -265,7 +265,7 @@ class Metaballs(Window):
         return np.stack((ys, xs), axis=-1)
 
     def at(self, points: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
-        """Isosurface of 0 represent metaballs
+        """Iso surface of 0 represent metaballs
 
         Function defined as f(point) = \\sum radii_i/||coors_i - point||_2 - 1
         radii: (balls_count, 1) radii of metaballs
