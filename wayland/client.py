@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 import sys
 import socket
-from typing import Optional, Set, TypeVar, Type, Dict, Tuple
+from typing import Optional, Set, TypeVar, Type, Dict, Tuple, List
 from .base import Connection, Interface, Proxy, Id
 from .protocol.wayland import WlDisplay, WlRegistry, WlShm
 
@@ -15,7 +15,7 @@ class ClientConnection(Connection):
     _display: WlDisplay
     _registry: WlRegistry
     # interface_name -> (name, version, proxy)
-    _registry_globals: Dict[str, Tuple[int, int, Optional[Proxy]]]
+    _registry_globals: Dict[str, List[Tuple[int, int, Optional[Proxy]]]]
     _shm_formats: Set[WlShm.Format]
 
     def __init__(self, path: Optional[str] = None):
@@ -50,6 +50,12 @@ class ClientConnection(Connection):
     def shm_formats(self) -> Set[WlShm.Format]:
         return self._shm_formats
 
+    def add_global(self, interface_name : str, values):
+        if interface_name in self._registry_globals:
+            self._registry_globals[interface_name].append(values)
+        else:
+            self._registry_globals[interface_name] = [ values ]
+
     def get_global(self, proxy_type: Type[P]) -> P:
         """Get global by proxy type"""
         if not hasattr(proxy_type, "interface"):
@@ -58,27 +64,51 @@ class ClientConnection(Connection):
         entry = self._registry_globals.get(interface.name)
         if entry is None:
             raise RuntimeError(f"no globals provide: {interface}")
-        name, version, proxy = entry
+        if len(entry) != 1:
+            raise RuntimeError(f"There's more than one {interface}, use get_globals")
+        name, version, proxy = entry[0]
         if proxy is None:
             proxy = self.create_proxy(proxy_type)
             self._registry.bind(name, interface.name, version, proxy)
             self._proxy_setup(proxy)
-            self._registry_globals[interface.name] = (name, version, proxy)
+            self.add_global(interface.name, (name, version, proxy))
         if not isinstance(proxy, proxy_type):
             raise ValueError("global has already been bound by untyped proxy")
         return proxy
+
+    def get_globals(self, proxy_type: Type[P]) -> List[P]:
+        """Get global by proxy type"""
+        if not hasattr(proxy_type, "interface"):
+            raise TypeError("cannot get untyped proxy")
+        interface = proxy_type.interface
+        entries = self._registry_globals.get(interface.name)
+        if entries is None or len(entries) == 0:
+            raise RuntimeError(f"no globals provide: {interface}")
+
+        proxies = []
+        for entry in entries:
+            name, version, proxy = entry
+            if proxy is None:
+                proxy = self.create_proxy(proxy_type)
+                self._registry.bind(name, interface.name, version, proxy)
+                self._proxy_setup(proxy)
+                self.add_global(interface.name, (name, version, proxy))
+                proxies.append(proxy)
+            if not isinstance(proxy, proxy_type):
+                raise ValueError("global has already been bound by untyped proxy")
+        return proxies
 
     def get_global_by_interface(self, interface: Interface) -> Proxy:
         """Get global exposing interface"""
         entry = self._registry_globals.get(interface.name)
         if entry is None:
             raise RuntimeError(f"no globals provide: {interface}")
-        name, version, proxy = entry
+        name, version, proxy = entry[0]
         if proxy is None:
             proxy = self.create_proxy_by_interface(interface)
             self._registry.bind(name, interface.name, version, proxy)
             self._proxy_setup(proxy)
-            self._registry_globals[interface.name] = (name, version, proxy)
+            self.add_global(interface.name, (name, version, proxy))
         return proxy
 
     async def connect(self) -> ClientConnection:
@@ -134,16 +164,16 @@ class ClientConnection(Connection):
 
     def _on_registry_global(self, name: int, interface: str, version: int) -> bool:
         """Register name in registry globals"""
-        self._registry_globals[interface] = (name, version, None)
+        self.add_global(interface, (name, version, None))
         return True
 
     def _on_registry_global_remove(self, target_name: int) -> bool:
         """Unregister name from registry globals"""
-        for interface, (name, _, proxy) in self._registry_globals.items():
-            if target_name == name:
-                self._registry_globals.pop(interface)
-                if proxy is not None:
-                    self._proxies.pop(proxy._id)
-                    proxy._detach("global removed")
-                break
+        for interface, values in self._registry_globals.items():
+            for (name, _, proxy) in values:
+                if target_name == name:
+                    self._registry_globals.pop(interface)
+                    if proxy is not None:
+                        self._proxies.pop(proxy._id)
+                        proxy._detach("global removed: {interface}")
         return True
