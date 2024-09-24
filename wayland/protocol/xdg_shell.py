@@ -3,7 +3,8 @@
 # pyright: reportPrivateUsage=false
 from __future__ import annotations
 from enum import Enum, Flag
-from typing import Any, Callable, ClassVar, Optional
+from typing import Any, ClassVar
+from collections.abc import Callable
 from ..base import *
 from .wayland import *
 
@@ -75,7 +76,7 @@ class XdgWmBase(Proxy):
     def __exit__(self, *_: Any) -> None:
         self.destroy()
 
-    def on_ping(self, handler: Callable[[int], bool]) -> Optional[Callable[[int], bool]]:
+    def on_ping(self, handler: Callable[[int], bool]) -> Callable[[int], bool] | None:
         """check if the client is alive"""
         _opcode = OpCode(0)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
@@ -316,7 +317,7 @@ class XdgSurface(Proxy):
         self._call(OpCode(1), (id,))
         return id
 
-    def get_popup(self, parent: Optional[XdgSurface], positioner: XdgPositioner) -> XdgPopup:
+    def get_popup(self, parent: XdgSurface | None, positioner: XdgPositioner) -> XdgPopup:
         """assign the xdg_popup surface role"""
         id = self._connection.create_proxy(XdgPopup)
         self._call(OpCode(2), (id, parent, positioner,))
@@ -338,7 +339,7 @@ class XdgSurface(Proxy):
     def __exit__(self, *_: Any) -> None:
         self.destroy()
 
-    def on_configure(self, handler: Callable[[int], bool]) -> Optional[Callable[[int], bool]]:
+    def on_configure(self, handler: Callable[[int], bool]) -> Callable[[int], bool] | None:
         """suggest a surface change"""
         _opcode = OpCode(0)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
@@ -443,7 +444,7 @@ class XdgToplevel(Proxy):
         self._call(OpCode(0), tuple())
         return None
 
-    def set_parent(self, parent: Optional[XdgToplevel]) -> None:
+    def set_parent(self, parent: XdgToplevel | None) -> None:
         """set the parent of this surface"""
         self._call(OpCode(1), (parent,))
         return None
@@ -493,7 +494,7 @@ class XdgToplevel(Proxy):
         self._call(OpCode(10), tuple())
         return None
 
-    def set_fullscreen(self, output: Optional[WlOutput]) -> None:
+    def set_fullscreen(self, output: WlOutput | None) -> None:
         """set the window as fullscreen on an output"""
         self._call(OpCode(11), (output,))
         return None
@@ -514,25 +515,25 @@ class XdgToplevel(Proxy):
     def __exit__(self, *_: Any) -> None:
         self.destroy()
 
-    def on_configure(self, handler: Callable[[int, int, bytes], bool]) -> Optional[Callable[[int, int, bytes], bool]]:
+    def on_configure(self, handler: Callable[[int, int, bytes], bool]) -> Callable[[int, int, bytes], bool] | None:
         """suggest a surface change"""
         _opcode = OpCode(0)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    def on_close(self, handler: Callable[[], bool]) -> Optional[Callable[[], bool]]:
+    def on_close(self, handler: Callable[[], bool]) -> Callable[[], bool] | None:
         """surface wants to be closed"""
         _opcode = OpCode(1)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    def on_configure_bounds(self, handler: Callable[[int, int], bool]) -> Optional[Callable[[int, int], bool]]:
+    def on_configure_bounds(self, handler: Callable[[int, int], bool]) -> Callable[[int, int], bool] | None:
         """recommended window geometry bounds"""
         _opcode = OpCode(2)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    def on_wm_capabilities(self, handler: Callable[[bytes], bool]) -> Optional[Callable[[bytes], bool]]:
+    def on_wm_capabilities(self, handler: Callable[[bytes], bool]) -> Callable[[bytes], bool] | None:
         """compositor capabilities"""
         _opcode = OpCode(3)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
@@ -633,19 +634,19 @@ class XdgPopup(Proxy):
     def __exit__(self, *_: Any) -> None:
         self.destroy()
 
-    def on_configure(self, handler: Callable[[int, int, int, int], bool]) -> Optional[Callable[[int, int, int, int], bool]]:
+    def on_configure(self, handler: Callable[[int, int, int, int], bool]) -> Callable[[int, int, int, int], bool] | None:
         """configure the popup surface"""
         _opcode = OpCode(0)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    def on_popup_done(self, handler: Callable[[], bool]) -> Optional[Callable[[], bool]]:
+    def on_popup_done(self, handler: Callable[[], bool]) -> Callable[[], bool] | None:
         """popup interaction is done"""
         _opcode = OpCode(1)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    def on_repositioned(self, handler: Callable[[int], bool]) -> Optional[Callable[[int], bool]]:
+    def on_repositioned(self, handler: Callable[[int], bool]) -> Callable[[int], bool] | None:
         """signal the completion of a repositioned request"""
         _opcode = OpCode(2)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler

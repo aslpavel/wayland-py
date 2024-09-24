@@ -3,7 +3,8 @@
 # pyright: reportPrivateUsage=false
 from __future__ import annotations
 from enum import Enum, Flag
-from typing import Any, Callable, ClassVar, Optional
+from typing import Any, ClassVar
+from collections.abc import Callable
 from ..base import *
 
 __all__ = [
@@ -71,13 +72,13 @@ class WlDisplay(Proxy):
         self._call(OpCode(1), (registry,))
         return registry
 
-    def on_error(self, handler: Callable[[Proxy, int, str], bool]) -> Optional[Callable[[Proxy, int, str], bool]]:
+    def on_error(self, handler: Callable[[Proxy, int, str], bool]) -> Callable[[Proxy, int, str], bool] | None:
         """fatal error event"""
         _opcode = OpCode(0)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    def on_delete_id(self, handler: Callable[[int], bool]) -> Optional[Callable[[int], bool]]:
+    def on_delete_id(self, handler: Callable[[int], bool]) -> Callable[[int], bool] | None:
         """acknowledge object ID deletion"""
         _opcode = OpCode(1)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
@@ -124,13 +125,13 @@ class WlRegistry(Proxy):
         self._call(OpCode(0), (name, id_interface, id_version, id,))
         return None
 
-    def on_global(self, handler: Callable[[int, str, int], bool]) -> Optional[Callable[[int, str, int], bool]]:
+    def on_global(self, handler: Callable[[int, str, int], bool]) -> Callable[[int, str, int], bool] | None:
         """announce global object"""
         _opcode = OpCode(0)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    def on_global_remove(self, handler: Callable[[int], bool]) -> Optional[Callable[[int], bool]]:
+    def on_global_remove(self, handler: Callable[[int], bool]) -> Callable[[int], bool] | None:
         """announce removal of global object"""
         _opcode = OpCode(1)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
@@ -154,7 +155,7 @@ class WlCallback(Proxy):
     def __init__(self, id: Id, connection: Connection) -> None:
         super().__init__(id, connection, self.interface)
 
-    def on_done(self, handler: Callable[[int], bool]) -> Optional[Callable[[int], bool]]:
+    def on_done(self, handler: Callable[[int], bool]) -> Callable[[int], bool] | None:
         """done event"""
         _opcode = OpCode(0)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
@@ -406,7 +407,7 @@ class WlShm(Proxy):
     def __exit__(self, *_: Any) -> None:
         self.release()
 
-    def on_format(self, handler: Callable[[Format], bool]) -> Optional[Callable[[Format], bool]]:
+    def on_format(self, handler: Callable[[Format], bool]) -> Callable[[Format], bool] | None:
         """pixel format description"""
         _opcode = OpCode(0)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
@@ -580,7 +581,7 @@ class WlBuffer(Proxy):
     def __exit__(self, *_: Any) -> None:
         self.destroy()
 
-    def on_release(self, handler: Callable[[], bool]) -> Optional[Callable[[], bool]]:
+    def on_release(self, handler: Callable[[], bool]) -> Callable[[], bool] | None:
         """compositor releases buffer"""
         _opcode = OpCode(0)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
@@ -651,19 +652,19 @@ class WlDataOffer(Proxy):
     def __exit__(self, *_: Any) -> None:
         self.destroy()
 
-    def on_offer(self, handler: Callable[[str], bool]) -> Optional[Callable[[str], bool]]:
+    def on_offer(self, handler: Callable[[str], bool]) -> Callable[[str], bool] | None:
         """advertise offered mime type"""
         _opcode = OpCode(0)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    def on_source_actions(self, handler: Callable[[WlDataDeviceManager.DndAction], bool]) -> Optional[Callable[[WlDataDeviceManager.DndAction], bool]]:
+    def on_source_actions(self, handler: Callable[[WlDataDeviceManager.DndAction], bool]) -> Callable[[WlDataDeviceManager.DndAction], bool] | None:
         """notify the source-side available actions"""
         _opcode = OpCode(1)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    def on_action(self, handler: Callable[[WlDataDeviceManager.DndAction], bool]) -> Optional[Callable[[WlDataDeviceManager.DndAction], bool]]:
+    def on_action(self, handler: Callable[[WlDataDeviceManager.DndAction], bool]) -> Callable[[WlDataDeviceManager.DndAction], bool] | None:
         """notify the selected action"""
         _opcode = OpCode(2)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
@@ -735,37 +736,37 @@ class WlDataSource(Proxy):
     def __exit__(self, *_: Any) -> None:
         self.destroy()
 
-    def on_target(self, handler: Callable[[str], bool]) -> Optional[Callable[[str], bool]]:
+    def on_target(self, handler: Callable[[str], bool]) -> Callable[[str], bool] | None:
         """a target accepts an offered mime type"""
         _opcode = OpCode(0)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    def on_send(self, handler: Callable[[str, Fd], bool]) -> Optional[Callable[[str, Fd], bool]]:
+    def on_send(self, handler: Callable[[str, Fd], bool]) -> Callable[[str, Fd], bool] | None:
         """send the data"""
         _opcode = OpCode(1)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    def on_cancelled(self, handler: Callable[[], bool]) -> Optional[Callable[[], bool]]:
+    def on_cancelled(self, handler: Callable[[], bool]) -> Callable[[], bool] | None:
         """selection was cancelled"""
         _opcode = OpCode(2)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    def on_dnd_drop_performed(self, handler: Callable[[], bool]) -> Optional[Callable[[], bool]]:
+    def on_dnd_drop_performed(self, handler: Callable[[], bool]) -> Callable[[], bool] | None:
         """the drag-and-drop operation physically finished"""
         _opcode = OpCode(3)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    def on_dnd_finished(self, handler: Callable[[], bool]) -> Optional[Callable[[], bool]]:
+    def on_dnd_finished(self, handler: Callable[[], bool]) -> Callable[[], bool] | None:
         """the drag-and-drop operation concluded"""
         _opcode = OpCode(4)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    def on_action(self, handler: Callable[[WlDataDeviceManager.DndAction], bool]) -> Optional[Callable[[WlDataDeviceManager.DndAction], bool]]:
+    def on_action(self, handler: Callable[[WlDataDeviceManager.DndAction], bool]) -> Callable[[WlDataDeviceManager.DndAction], bool] | None:
         """notify the selected action"""
         _opcode = OpCode(5)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
@@ -814,12 +815,12 @@ class WlDataDevice(Proxy):
     def __init__(self, id: Id, connection: Connection) -> None:
         super().__init__(id, connection, self.interface)
 
-    def start_drag(self, source: Optional[WlDataSource], origin: WlSurface, icon: Optional[WlSurface], serial: int) -> None:
+    def start_drag(self, source: WlDataSource | None, origin: WlSurface, icon: WlSurface | None, serial: int) -> None:
         """start drag-and-drop operation"""
         self._call(OpCode(0), (source, origin, icon, serial,))
         return None
 
-    def set_selection(self, source: Optional[WlDataSource], serial: int) -> None:
+    def set_selection(self, source: WlDataSource | None, serial: int) -> None:
         """copy data to the selection"""
         self._call(OpCode(1), (source, serial,))
         return None
@@ -835,37 +836,37 @@ class WlDataDevice(Proxy):
     def __exit__(self, *_: Any) -> None:
         self.release()
 
-    def on_data_offer(self, handler: Callable[[WlDataOffer], bool]) -> Optional[Callable[[WlDataOffer], bool]]:
+    def on_data_offer(self, handler: Callable[[WlDataOffer], bool]) -> Callable[[WlDataOffer], bool] | None:
         """introduce a new wl_data_offer"""
         _opcode = OpCode(0)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    def on_enter(self, handler: Callable[[int, WlSurface, float, float, Optional[WlDataOffer]], bool]) -> Optional[Callable[[int, WlSurface, float, float, Optional[WlDataOffer]], bool]]:
+    def on_enter(self, handler: Callable[[int, WlSurface, float, float, WlDataOffer | None], bool]) -> Callable[[int, WlSurface, float, float, WlDataOffer | None], bool] | None:
         """initiate drag-and-drop session"""
         _opcode = OpCode(1)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    def on_leave(self, handler: Callable[[], bool]) -> Optional[Callable[[], bool]]:
+    def on_leave(self, handler: Callable[[], bool]) -> Callable[[], bool] | None:
         """end drag-and-drop session"""
         _opcode = OpCode(2)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    def on_motion(self, handler: Callable[[int, float, float], bool]) -> Optional[Callable[[int, float, float], bool]]:
+    def on_motion(self, handler: Callable[[int, float, float], bool]) -> Callable[[int, float, float], bool] | None:
         """drag-and-drop session motion"""
         _opcode = OpCode(3)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    def on_drop(self, handler: Callable[[], bool]) -> Optional[Callable[[], bool]]:
+    def on_drop(self, handler: Callable[[], bool]) -> Callable[[], bool] | None:
         """end drag-and-drop session successfully"""
         _opcode = OpCode(4)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    def on_selection(self, handler: Callable[[Optional[WlDataOffer]], bool]) -> Optional[Callable[[Optional[WlDataOffer]], bool]]:
+    def on_selection(self, handler: Callable[[WlDataOffer | None], bool]) -> Callable[[WlDataOffer | None], bool] | None:
         """advertise new selection"""
         _opcode = OpCode(5)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
@@ -1059,7 +1060,7 @@ class WlShellSurface(Proxy):
         self._call(OpCode(4), (parent, x, y, flags,))
         return None
 
-    def set_fullscreen(self, method: FullscreenMethod, framerate: int, output: Optional[WlOutput]) -> None:
+    def set_fullscreen(self, method: FullscreenMethod, framerate: int, output: WlOutput | None) -> None:
         """make the surface a fullscreen surface"""
         self._call(OpCode(5), (method, framerate, output,))
         return None
@@ -1069,7 +1070,7 @@ class WlShellSurface(Proxy):
         self._call(OpCode(6), (seat, serial, parent, x, y, flags,))
         return None
 
-    def set_maximized(self, output: Optional[WlOutput]) -> None:
+    def set_maximized(self, output: WlOutput | None) -> None:
         """make the surface a maximized surface"""
         self._call(OpCode(7), (output,))
         return None
@@ -1084,19 +1085,19 @@ class WlShellSurface(Proxy):
         self._call(OpCode(9), (class_,))
         return None
 
-    def on_ping(self, handler: Callable[[int], bool]) -> Optional[Callable[[int], bool]]:
+    def on_ping(self, handler: Callable[[int], bool]) -> Callable[[int], bool] | None:
         """ping client"""
         _opcode = OpCode(0)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    def on_configure(self, handler: Callable[[Resize, int, int], bool]) -> Optional[Callable[[Resize, int, int], bool]]:
+    def on_configure(self, handler: Callable[[Resize, int, int], bool]) -> Callable[[Resize, int, int], bool] | None:
         """suggest resize"""
         _opcode = OpCode(1)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    def on_popup_done(self, handler: Callable[[], bool]) -> Optional[Callable[[], bool]]:
+    def on_popup_done(self, handler: Callable[[], bool]) -> Callable[[], bool] | None:
         """popup interaction is done"""
         _opcode = OpCode(2)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
@@ -1179,7 +1180,7 @@ class WlSurface(Proxy):
         self._call(OpCode(0), tuple())
         return None
 
-    def attach(self, buffer: Optional[WlBuffer], x: int, y: int) -> None:
+    def attach(self, buffer: WlBuffer | None, x: int, y: int) -> None:
         """set the surface contents"""
         self._call(OpCode(1), (buffer, x, y,))
         return None
@@ -1195,12 +1196,12 @@ class WlSurface(Proxy):
         self._call(OpCode(3), (callback,))
         return callback
 
-    def set_opaque_region(self, region: Optional[WlRegion]) -> None:
+    def set_opaque_region(self, region: WlRegion | None) -> None:
         """set opaque region"""
         self._call(OpCode(4), (region,))
         return None
 
-    def set_input_region(self, region: Optional[WlRegion]) -> None:
+    def set_input_region(self, region: WlRegion | None) -> None:
         """set input region"""
         self._call(OpCode(5), (region,))
         return None
@@ -1236,25 +1237,25 @@ class WlSurface(Proxy):
     def __exit__(self, *_: Any) -> None:
         self.destroy()
 
-    def on_enter(self, handler: Callable[[WlOutput], bool]) -> Optional[Callable[[WlOutput], bool]]:
+    def on_enter(self, handler: Callable[[WlOutput], bool]) -> Callable[[WlOutput], bool] | None:
         """surface enters an output"""
         _opcode = OpCode(0)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    def on_leave(self, handler: Callable[[WlOutput], bool]) -> Optional[Callable[[WlOutput], bool]]:
+    def on_leave(self, handler: Callable[[WlOutput], bool]) -> Callable[[WlOutput], bool] | None:
         """surface leaves an output"""
         _opcode = OpCode(1)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    def on_preferred_buffer_scale(self, handler: Callable[[int], bool]) -> Optional[Callable[[int], bool]]:
+    def on_preferred_buffer_scale(self, handler: Callable[[int], bool]) -> Callable[[int], bool] | None:
         """preferred buffer scale for the surface"""
         _opcode = OpCode(2)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    def on_preferred_buffer_transform(self, handler: Callable[[WlOutput.Transform], bool]) -> Optional[Callable[[WlOutput.Transform], bool]]:
+    def on_preferred_buffer_transform(self, handler: Callable[[WlOutput.Transform], bool]) -> Callable[[WlOutput.Transform], bool] | None:
         """preferred buffer transform for the surface"""
         _opcode = OpCode(3)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
@@ -1340,13 +1341,13 @@ class WlSeat(Proxy):
     def __exit__(self, *_: Any) -> None:
         self.release()
 
-    def on_capabilities(self, handler: Callable[[Capability], bool]) -> Optional[Callable[[Capability], bool]]:
+    def on_capabilities(self, handler: Callable[[Capability], bool]) -> Callable[[Capability], bool] | None:
         """seat capabilities changed"""
         _opcode = OpCode(0)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    def on_name(self, handler: Callable[[str], bool]) -> Optional[Callable[[str], bool]]:
+    def on_name(self, handler: Callable[[str], bool]) -> Callable[[str], bool] | None:
         """unique identifier for this seat"""
         _opcode = OpCode(1)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
@@ -1434,7 +1435,7 @@ class WlPointer(Proxy):
     def __init__(self, id: Id, connection: Connection) -> None:
         super().__init__(id, connection, self.interface)
 
-    def set_cursor(self, serial: int, surface: Optional[WlSurface], hotspot_x: int, hotspot_y: int) -> None:
+    def set_cursor(self, serial: int, surface: WlSurface | None, hotspot_x: int, hotspot_y: int) -> None:
         """set the pointer surface"""
         self._call(OpCode(0), (serial, surface, hotspot_x, hotspot_y,))
         return None
@@ -1450,67 +1451,67 @@ class WlPointer(Proxy):
     def __exit__(self, *_: Any) -> None:
         self.release()
 
-    def on_enter(self, handler: Callable[[int, WlSurface, float, float], bool]) -> Optional[Callable[[int, WlSurface, float, float], bool]]:
+    def on_enter(self, handler: Callable[[int, WlSurface, float, float], bool]) -> Callable[[int, WlSurface, float, float], bool] | None:
         """enter event"""
         _opcode = OpCode(0)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    def on_leave(self, handler: Callable[[int, WlSurface], bool]) -> Optional[Callable[[int, WlSurface], bool]]:
+    def on_leave(self, handler: Callable[[int, WlSurface], bool]) -> Callable[[int, WlSurface], bool] | None:
         """leave event"""
         _opcode = OpCode(1)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    def on_motion(self, handler: Callable[[int, float, float], bool]) -> Optional[Callable[[int, float, float], bool]]:
+    def on_motion(self, handler: Callable[[int, float, float], bool]) -> Callable[[int, float, float], bool] | None:
         """pointer motion event"""
         _opcode = OpCode(2)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    def on_button(self, handler: Callable[[int, int, int, ButtonState], bool]) -> Optional[Callable[[int, int, int, ButtonState], bool]]:
+    def on_button(self, handler: Callable[[int, int, int, ButtonState], bool]) -> Callable[[int, int, int, ButtonState], bool] | None:
         """pointer button event"""
         _opcode = OpCode(3)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    def on_axis(self, handler: Callable[[int, Axis, float], bool]) -> Optional[Callable[[int, Axis, float], bool]]:
+    def on_axis(self, handler: Callable[[int, Axis, float], bool]) -> Callable[[int, Axis, float], bool] | None:
         """axis event"""
         _opcode = OpCode(4)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    def on_frame(self, handler: Callable[[], bool]) -> Optional[Callable[[], bool]]:
+    def on_frame(self, handler: Callable[[], bool]) -> Callable[[], bool] | None:
         """end of a pointer event sequence"""
         _opcode = OpCode(5)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    def on_axis_source(self, handler: Callable[[AxisSource], bool]) -> Optional[Callable[[AxisSource], bool]]:
+    def on_axis_source(self, handler: Callable[[AxisSource], bool]) -> Callable[[AxisSource], bool] | None:
         """axis source event"""
         _opcode = OpCode(6)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    def on_axis_stop(self, handler: Callable[[int, Axis], bool]) -> Optional[Callable[[int, Axis], bool]]:
+    def on_axis_stop(self, handler: Callable[[int, Axis], bool]) -> Callable[[int, Axis], bool] | None:
         """axis stop event"""
         _opcode = OpCode(7)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    def on_axis_discrete(self, handler: Callable[[Axis, int], bool]) -> Optional[Callable[[Axis, int], bool]]:
+    def on_axis_discrete(self, handler: Callable[[Axis, int], bool]) -> Callable[[Axis, int], bool] | None:
         """axis click event"""
         _opcode = OpCode(8)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    def on_axis_value120(self, handler: Callable[[Axis, int], bool]) -> Optional[Callable[[Axis, int], bool]]:
+    def on_axis_value120(self, handler: Callable[[Axis, int], bool]) -> Callable[[Axis, int], bool] | None:
         """axis high-resolution scroll event"""
         _opcode = OpCode(9)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    def on_axis_relative_direction(self, handler: Callable[[Axis, AxisRelativeDirection], bool]) -> Optional[Callable[[Axis, AxisRelativeDirection], bool]]:
+    def on_axis_relative_direction(self, handler: Callable[[Axis, AxisRelativeDirection], bool]) -> Callable[[Axis, AxisRelativeDirection], bool] | None:
         """axis relative physical direction event"""
         _opcode = OpCode(10)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
@@ -1600,37 +1601,37 @@ class WlKeyboard(Proxy):
     def __exit__(self, *_: Any) -> None:
         self.release()
 
-    def on_keymap(self, handler: Callable[[KeymapFormat, Fd, int], bool]) -> Optional[Callable[[KeymapFormat, Fd, int], bool]]:
+    def on_keymap(self, handler: Callable[[KeymapFormat, Fd, int], bool]) -> Callable[[KeymapFormat, Fd, int], bool] | None:
         """keyboard mapping"""
         _opcode = OpCode(0)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    def on_enter(self, handler: Callable[[int, WlSurface, bytes], bool]) -> Optional[Callable[[int, WlSurface, bytes], bool]]:
+    def on_enter(self, handler: Callable[[int, WlSurface, bytes], bool]) -> Callable[[int, WlSurface, bytes], bool] | None:
         """enter event"""
         _opcode = OpCode(1)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    def on_leave(self, handler: Callable[[int, WlSurface], bool]) -> Optional[Callable[[int, WlSurface], bool]]:
+    def on_leave(self, handler: Callable[[int, WlSurface], bool]) -> Callable[[int, WlSurface], bool] | None:
         """leave event"""
         _opcode = OpCode(2)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    def on_key(self, handler: Callable[[int, int, int, KeyState], bool]) -> Optional[Callable[[int, int, int, KeyState], bool]]:
+    def on_key(self, handler: Callable[[int, int, int, KeyState], bool]) -> Callable[[int, int, int, KeyState], bool] | None:
         """key event"""
         _opcode = OpCode(3)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    def on_modifiers(self, handler: Callable[[int, int, int, int, int], bool]) -> Optional[Callable[[int, int, int, int, int], bool]]:
+    def on_modifiers(self, handler: Callable[[int, int, int, int, int], bool]) -> Callable[[int, int, int, int, int], bool] | None:
         """modifier and group state"""
         _opcode = OpCode(4)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    def on_repeat_info(self, handler: Callable[[int, int], bool]) -> Optional[Callable[[int, int], bool]]:
+    def on_repeat_info(self, handler: Callable[[int, int], bool]) -> Callable[[int, int], bool] | None:
         """repeat rate and delay"""
         _opcode = OpCode(5)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
@@ -1688,43 +1689,43 @@ class WlTouch(Proxy):
     def __exit__(self, *_: Any) -> None:
         self.release()
 
-    def on_down(self, handler: Callable[[int, int, WlSurface, int, float, float], bool]) -> Optional[Callable[[int, int, WlSurface, int, float, float], bool]]:
+    def on_down(self, handler: Callable[[int, int, WlSurface, int, float, float], bool]) -> Callable[[int, int, WlSurface, int, float, float], bool] | None:
         """touch down event and beginning of a touch sequence"""
         _opcode = OpCode(0)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    def on_up(self, handler: Callable[[int, int, int], bool]) -> Optional[Callable[[int, int, int], bool]]:
+    def on_up(self, handler: Callable[[int, int, int], bool]) -> Callable[[int, int, int], bool] | None:
         """end of a touch event sequence"""
         _opcode = OpCode(1)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    def on_motion(self, handler: Callable[[int, int, float, float], bool]) -> Optional[Callable[[int, int, float, float], bool]]:
+    def on_motion(self, handler: Callable[[int, int, float, float], bool]) -> Callable[[int, int, float, float], bool] | None:
         """update of touch point coordinates"""
         _opcode = OpCode(2)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    def on_frame(self, handler: Callable[[], bool]) -> Optional[Callable[[], bool]]:
+    def on_frame(self, handler: Callable[[], bool]) -> Callable[[], bool] | None:
         """end of touch frame event"""
         _opcode = OpCode(3)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    def on_cancel(self, handler: Callable[[], bool]) -> Optional[Callable[[], bool]]:
+    def on_cancel(self, handler: Callable[[], bool]) -> Callable[[], bool] | None:
         """touch session cancelled"""
         _opcode = OpCode(4)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    def on_shape(self, handler: Callable[[int, float, float], bool]) -> Optional[Callable[[int, float, float], bool]]:
+    def on_shape(self, handler: Callable[[int, float, float], bool]) -> Callable[[int, float, float], bool] | None:
         """update shape of touch point"""
         _opcode = OpCode(5)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    def on_orientation(self, handler: Callable[[int, float], bool]) -> Optional[Callable[[int, float], bool]]:
+    def on_orientation(self, handler: Callable[[int, float], bool]) -> Callable[[int, float], bool] | None:
         """update orientation of touch point"""
         _opcode = OpCode(6)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
@@ -1797,37 +1798,37 @@ class WlOutput(Proxy):
     def __exit__(self, *_: Any) -> None:
         self.release()
 
-    def on_geometry(self, handler: Callable[[int, int, int, int, int, str, str, int], bool]) -> Optional[Callable[[int, int, int, int, int, str, str, int], bool]]:
+    def on_geometry(self, handler: Callable[[int, int, int, int, int, str, str, int], bool]) -> Callable[[int, int, int, int, int, str, str, int], bool] | None:
         """properties of the output"""
         _opcode = OpCode(0)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    def on_mode(self, handler: Callable[[Mode, int, int, int], bool]) -> Optional[Callable[[Mode, int, int, int], bool]]:
+    def on_mode(self, handler: Callable[[Mode, int, int, int], bool]) -> Callable[[Mode, int, int, int], bool] | None:
         """advertise available modes for the output"""
         _opcode = OpCode(1)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    def on_done(self, handler: Callable[[], bool]) -> Optional[Callable[[], bool]]:
+    def on_done(self, handler: Callable[[], bool]) -> Callable[[], bool] | None:
         """sent all information about output"""
         _opcode = OpCode(2)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    def on_scale(self, handler: Callable[[int], bool]) -> Optional[Callable[[int], bool]]:
+    def on_scale(self, handler: Callable[[int], bool]) -> Callable[[int], bool] | None:
         """output scaling properties"""
         _opcode = OpCode(3)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    def on_name(self, handler: Callable[[str], bool]) -> Optional[Callable[[str], bool]]:
+    def on_name(self, handler: Callable[[str], bool]) -> Callable[[str], bool] | None:
         """name of this output"""
         _opcode = OpCode(4)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
-    def on_description(self, handler: Callable[[str], bool]) -> Optional[Callable[[str], bool]]:
+    def on_description(self, handler: Callable[[str], bool]) -> Callable[[str], bool] | None:
         """human-readable description of this output"""
         _opcode = OpCode(5)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler

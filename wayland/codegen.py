@@ -23,7 +23,8 @@ def generate_client(
         "# pyright: reportPrivateUsage=false\n"
         "from __future__ import annotations\n"
         "from enum import Enum, Flag\n"
-        "from typing import Any, Callable, ClassVar, Optional\n"
+        "from typing import Any, ClassVar\n"
+        "from collections.abc import Callable\n"
         f"from {wayland_base} import *",
         file=module,
     )
@@ -148,7 +149,7 @@ def _generate_request(
             else:
                 arg_type = _camle_case(arg_desc.interface)
             if arg_desc.optional:
-                arg_type = f"Optional[{arg_type}]"
+                arg_type = f"{arg_type} | None"
             args_types.append(f"{arg_desc.name}: {arg_type}")
         elif isinstance(arg_desc, ArgNewId):
             if arg_desc.interface is None:
@@ -226,7 +227,7 @@ def _generate_events(
             else:
                 arg_type = _camle_case(arg_desc.interface)
             if isinstance(arg_desc, ArgObject) and arg_desc.optional:
-                arg_type = f"Optional[{arg_type}]"
+                arg_type = f"{arg_type} | None"
             args_types.append(arg_type)
         elif isinstance(arg_desc, ArgUInt) and arg_desc.enum:
             args_types.append(_camle_case(arg_desc.enum))
@@ -234,7 +235,7 @@ def _generate_events(
             args_types.append(arg_desc.type_name)
     handler_sig = "Callable[[{}], bool]".format(", ".join(args_types))
     print(
-        f"    def on_{event.name}(self, handler: {handler_sig}) -> Optional[{handler_sig}]:",
+        f"    def on_{event.name}(self, handler: {handler_sig}) -> {handler_sig} | None:",
         file=module,
     )
     if event.summary:
