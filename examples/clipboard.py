@@ -5,7 +5,7 @@ from wayland.client import ClientConnection
 from wayland.protocol.wayland import WlDataDeviceManager, WlSeat
 
 
-async def main():
+async def main() -> None:
     async with ClientConnection() as conn:
         await conn.sync()
         seat = conn.get_global(WlSeat)

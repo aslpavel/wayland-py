@@ -7,7 +7,8 @@ import os
 import socket
 import tempfile
 import unittest
-from typing import Any, Callable, Dict, Set, Tuple
+from typing import Any
+from collections.abc import Callable
 from unittest.mock import Mock
 
 from .base import (
@@ -69,7 +70,7 @@ class TestClient(unittest.IsolatedAsyncioTestCase):
         def bind(proxy: Proxy) -> None:
             binds.add(proxy._interface.name)
 
-        binds: Set[str] = set()
+        binds: set[str] = set()
         server, client = await create_connection_pair({"wl_compositor": bind})
         _compositor = client.get_global(WlCompositor)
         await client.sync()
@@ -159,8 +160,8 @@ def ignore(*_: Any) -> bool:
 
 
 async def create_connection_pair(
-    binds: Dict[str, Callable[[Proxy], Any]],
-) -> Tuple[ServerConnection, ClientConnection]:
+    binds: dict[str, Callable[[Proxy], Any]],
+) -> tuple[ServerConnection, ClientConnection]:
     """Create wayland server/client connection pair"""
     with tempfile.TemporaryDirectory() as tempdir:
         path = os.path.join(tempdir, "wayland-test")
@@ -181,12 +182,12 @@ class ServerConnection(Connection):
     display: Proxy
     serial: int
     server_sock: socket.socket
-    binds: Dict[str, Callable[[Proxy], Any]]
+    binds: dict[str, Callable[[Proxy], Any]]
 
     def __init__(
         self,
         server_sock: socket.socket,
-        binds: Dict[str, Callable[[Proxy], Any]],
+        binds: dict[str, Callable[[Proxy], Any]],
     ):
         super().__init__(is_server=True)
         self.binds = binds

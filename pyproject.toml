@@ -2,12 +2,10 @@
 name = "wayland"
 version = "0.1.0"
 description = "Pure python implementation of wayland protocol"
-authors = [
-    {name = "Pavel Aslanov", email = "asl.pavel@gmail.com"},
-]
+authors = [{ name = "Pavel Aslanov", email = "asl.pavel@gmail.com" }]
 dependencies = []
 requires-python = ">=3.9"
-license = {text = "MIT"}
+license = { text = "MIT" }
 
 [project.urls]
 Homepage = "https://github.com/aslpavel/wayland-py"
@@ -16,9 +14,7 @@ Repository = "https://github.com/aslpavel/wayland-py.git"
 [project.optional-dependencies]
 
 [tool.pdm.dev-dependencies]
-dev = [
-    "numpy>=1.21.1",
-]
+dev = ["numpy>=1.21.1"]
 
 [build-system]
 requires = ["pdm-pep517"]
@@ -27,13 +23,17 @@ build-backend = "pdm.pep517.api"
 [tool.pyright]
 typeCheckingMode = "strict"
 extraPaths = ["."]
-exclude = [
-    "**/__pypackages__",
-]
+exclude = ["**/__pypackages__"]
 ignore = [
-    "examples/metaballs.py"  #TODO: try again with numpy 1.22
+    # "examples/metaballs.py", #TODO: try again with numpy 1.22
 ]
 
 [tool.mypy]
 exclude = "^(__pypackages__/.*|examples/metaballs\\.py)$"
 
+[tool.ruff]
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["ANN", "UP"]
+ignore = ["ANN102", "ANN101", "ANN204", "ANN401", "UP038"]

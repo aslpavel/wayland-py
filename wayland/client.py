@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 import sys
 import socket
-from typing import Optional, Set, TypeVar, Type, Dict, Tuple, List
+from typing import TypeVar
 from .base import Connection, Interface, Proxy, Id
 from .protocol.wayland import WlDisplay, WlRegistry, WlShm
 
@@ -15,10 +15,10 @@ class ClientConnection(Connection):
     _display: WlDisplay
     _registry: WlRegistry
     # interface_name -> (name, version, proxy)
-    _registry_globals: Dict[str, List[Tuple[int, int, Optional[Proxy]]]]
-    _shm_formats: Set[WlShm.Format]
+    _registry_globals: dict[str, list[tuple[int, int, Proxy | None]]]
+    _shm_formats: set[WlShm.Format]
 
-    def __init__(self, path: Optional[str] = None):
+    def __init__(self, path: str | None = None):
         super().__init__()
 
         if path is not None:
@@ -47,16 +47,16 @@ class ClientConnection(Connection):
         return self._display
 
     @property
-    def shm_formats(self) -> Set[WlShm.Format]:
+    def shm_formats(self) -> set[WlShm.Format]:
         return self._shm_formats
 
-    def add_global(self, interface_name : str, values):
+    def add_global(self, interface_name: str, values) -> None:
         if interface_name in self._registry_globals:
             self._registry_globals[interface_name].append(values)
         else:
-            self._registry_globals[interface_name] = [ values ]
+            self._registry_globals[interface_name] = [values]
 
-    def get_global(self, proxy_type: Type[P]) -> P:
+    def get_global(self, proxy_type: type[P]) -> P:
         """Get global by proxy type"""
         if not hasattr(proxy_type, "interface"):
             raise TypeError("cannot get untyped proxy")
@@ -76,7 +76,7 @@ class ClientConnection(Connection):
             raise ValueError("global has already been bound by untyped proxy")
         return proxy
 
-    def get_globals(self, proxy_type: Type[P]) -> List[P]:
+    def get_globals(self, proxy_type: type[P]) -> list[P]:
         """Get global by proxy type"""
         if not hasattr(proxy_type, "interface"):
             raise TypeError("cannot get untyped proxy")
@@ -170,7 +170,7 @@ class ClientConnection(Connection):
     def _on_registry_global_remove(self, target_name: int) -> bool:
         """Unregister name from registry globals"""
         for interface, values in self._registry_globals.items():
-            for (name, _, proxy) in values:
+            for name, _, proxy in values:
                 if target_name == name:
                     self._registry_globals.pop(interface)
                     if proxy is not None:

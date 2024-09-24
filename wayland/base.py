@@ -1,5 +1,5 @@
-"""Base wayland abstractions
-"""
+"""Base wayland abstractions"""
+
 # private variables used between classes in file
 # pyright: reportPrivateUsage=false
 from __future__ import annotations
@@ -21,23 +21,16 @@ from struct import Struct
 from weakref import WeakSet
 from typing import (
     Any,
-    Callable,
     ClassVar,
-    Deque,
-    Dict,
-    List,
     NamedTuple,
     NewType,
-    Optional,
     Protocol as Proto,
-    Set,
-    Tuple,
-    Type,
     TypeVar,
     Union,
     cast,
     runtime_checkable,
 )
+from collections.abc import Callable
 
 __all__ = [
     "Id",
@@ -67,7 +60,7 @@ __all__ = [
 Id = NewType("Id", int)
 OpCode = NewType("OpCode", int)
 MSG_HEADER = Struct("IHH")
-PROXIES: Dict[str, Type[Proxy]] = {}
+PROXIES: dict[str, type[Proxy]] = {}
 
 P = TypeVar("P", bound="Proxy")
 C = TypeVar("C", bound="Connection")
@@ -79,7 +72,7 @@ class Message(NamedTuple):
     id: Id
     opcode: OpCode
     data: bytes
-    fds: List[Fd]
+    fds: list[Fd]
 
 
 class Connection(ABC):
@@ -102,26 +95,26 @@ class Connection(ABC):
         "_debug",
     ]
 
-    _socket: Optional[socket.socket]
+    _socket: socket.socket | None
     _loop: asyncio.AbstractEventLoop
     _is_terminated: bool
     _is_server: bool
     _on_terminated: asyncio.Event
     _debug: bool
 
-    _write_fds: List[Fd]
+    _write_fds: list[Fd]
     _write_buff: bytearray
-    _write_queue: Deque[Message]
+    _write_queue: deque[Message]
     _write_done: asyncio.Event
 
     _read_buff: bytearray
-    _read_fds: Deque[Fd]
+    _read_fds: deque[Fd]
 
     _id_last: Id
-    _id_free: List[Id]
-    _proxies: Dict[Id, "Proxy"]
+    _id_free: list[Id]
+    _proxies: dict[Id, Proxy]
 
-    def __init__(self, debug: Optional[bool] = None, is_server: bool = False) -> None:
+    def __init__(self, debug: bool | None = None, is_server: bool = False) -> None:
         self._socket = None
         self._loop = asyncio.get_running_loop()
         self._is_terminated = False
@@ -142,7 +135,7 @@ class Connection(ABC):
         self._id_free = []
         self._proxies = {}
 
-    def create_proxy(self, proxy_type: Type[P]) -> P:
+    def create_proxy(self, proxy_type: type[P]) -> P:
         """Create proxy by proxy type"""
         if self._is_terminated:
             raise RuntimeError("connection has already been terminated")
@@ -167,7 +160,7 @@ class Connection(ABC):
     async def on_terminated(self) -> None:
         await self._on_terminated.wait()
 
-    def terminate(self, msg: Optional[Any] = None) -> None:
+    def terminate(self, msg: Any | None = None) -> None:
         """Terminate wayland connection"""
         is_terminated, self._is_terminated = self._is_terminated, True
         if is_terminated:
@@ -250,7 +243,7 @@ class Connection(ABC):
         try:
             while offset < len(self._write_buff):
                 try:
-                    fds: List[int] = []
+                    fds: list[int] = []
                     for fd in self._write_fds:
                         if isinstance(fd, FdFile):
                             fds.append(fd.fileno())
@@ -341,7 +334,7 @@ class Connection(ABC):
             self._id_last = Id(self._id_last + 1)
             return self._id_last
 
-    def _fd_recv(self) -> Optional[Fd]:
+    def _fd_recv(self) -> Fd | None:
         """Pop next descriptor from file descriptor queue"""
         if self._read_fds:
             return self._read_fds.popleft()
@@ -362,7 +355,7 @@ class Connection(ABC):
         proxy._is_attached = True
         return proxy
 
-    def _delete_proxy(self, target: Union[Proxy, Id]) -> None:
+    def _delete_proxy(self, target: Proxy | Id) -> None:
         """Delete proxy"""
         id = target._id if isinstance(target, Proxy) else target
         proxy = self._proxies.pop(id, None)
@@ -394,7 +387,7 @@ class Arg(ABC):
         self,
         read: io.BytesIO,
         connection: Connection,
-        hint: Optional[Any] = None,
+        hint: Any | None = None,
     ) -> Any:
         pass
 
@@ -408,9 +401,9 @@ class Arg(ABC):
 class ArgUInt(Arg):
     type_name: ClassVar[str] = "int"
     struct: ClassVar[Struct] = Struct("I")
-    enum: Optional[str]
+    enum: str | None
 
-    def __init__(self, name: str, enum: Optional[str] = None):
+    def __init__(self, name: str, enum: str | None = None):
         super().__init__(name)
         self.enum = enum
 
@@ -426,7 +419,7 @@ class ArgUInt(Arg):
         self,
         read: io.BytesIO,
         connection: Connection,
-        hint: Optional[Any] = None,
+        hint: Any | None = None,
     ) -> Any:
         return self.struct.unpack(read.read(self.struct.size))[0]
 
@@ -449,7 +442,7 @@ class ArgInt(Arg):
         self,
         read: io.BytesIO,
         connection: Connection,
-        hint: Optional[Any] = None,
+        hint: Any | None = None,
     ) -> Any:
         return self.struct.unpack(read.read(self.struct.size))[0]
 
@@ -470,7 +463,7 @@ class ArgFixed(Arg):
         self,
         read: io.BytesIO,
         connection: Connection,
-        hint: Optional[Any] = None,
+        hint: Any | None = None,
     ) -> Any:
         value = self.struct.unpack(read.read(self.struct.size))[0]
         return float(value >> 8) + ((value & 0xFF) / 256.0)
@@ -504,7 +497,7 @@ class ArgStr(Arg):
         self,
         read: io.BytesIO,
         connection: Connection,
-        hint: Optional[Any] = None,
+        hint: Any | None = None,
     ) -> Any:
         size = self.struct.unpack(read.read(self.struct.size))[0]
         value = read.read(size - 1).decode()
@@ -538,7 +531,7 @@ class ArgArray(Arg):
         self,
         read: io.BytesIO,
         connection: Connection,
-        hint: Optional[Any] = None,
+        hint: Any | None = None,
     ) -> Any:
         size = self.struct.unpack(read.read(self.struct.size))[0]
         value = read.read(size)
@@ -549,9 +542,9 @@ class ArgArray(Arg):
 class ArgNewId(Arg):
     type_name: ClassVar[str] = "Proxy"
     struct: ClassVar[Struct] = Struct("I")
-    interface: Optional[str]
+    interface: str | None
 
-    def __init__(self, name: str, interface: Optional[str]):
+    def __init__(self, name: str, interface: str | None):
         super().__init__(name)
         self.interface = interface
 
@@ -572,12 +565,12 @@ class ArgNewId(Arg):
         self,
         read: io.BytesIO,
         connection: Connection,
-        hint: Optional[Any] = None,
+        hint: Any | None = None,
     ) -> Any:
         id = Id(self.struct.unpack(read.read(self.struct.size))[0])
         if id in connection._proxies:
             raise RuntimeError(f"[{self.name}] proxy with id={id} already exists")
-        interface: Optional[str] = self.interface or hint
+        interface: str | None = self.interface or hint
         if interface is None:
             raise RuntimeError(f"[{self.name}] cannot unpack proxy without intreface")
         return connection._new_id_recv(id, interface)
@@ -590,10 +583,10 @@ class ArgNewId(Arg):
 class ArgObject(Arg):
     type_name: ClassVar[str] = "Proxy"
     struct: ClassVar[Struct] = Struct("I")
-    interface: Optional[str]
+    interface: str | None
     optional: bool
 
-    def __init__(self, name: str, interface: Optional[str], optional: bool = False):
+    def __init__(self, name: str, interface: str | None, optional: bool = False):
         super().__init__(name)
         self.interface = interface
         self.optional = optional
@@ -614,7 +607,7 @@ class ArgObject(Arg):
         self,
         read: io.BytesIO,
         connection: Connection,
-        hint: Optional[Any] = None,
+        hint: Any | None = None,
     ) -> Any:
         id = self.struct.unpack(read.read(self.struct.size))[0]
         if self.optional and id == 0:
@@ -643,7 +636,7 @@ class ArgFd(Arg):
         self,
         read: io.BytesIO,
         connection: Connection,
-        hint: Optional[Any] = None,
+        hint: Any | None = None,
     ) -> Any:
         fd = connection._fd_recv()
         if fd is None:
@@ -663,21 +656,21 @@ class Interface:
         "unpack_enum",
     ]
     name: str
-    events: List[WEvent]
-    events_by_name: Dict[str, Tuple[OpCode, WEvent]]
-    requests: List[WRequest]
-    requests_by_name: Dict[str, Tuple[OpCode, WRequest]]
-    enums: List[WEnum]
-    summary: Optional[str]
-    unpack_enum: Optional[Callable[[str, int], Any]]
+    events: list[WEvent]
+    events_by_name: dict[str, tuple[OpCode, WEvent]]
+    requests: list[WRequest]
+    requests_by_name: dict[str, tuple[OpCode, WRequest]]
+    enums: list[WEnum]
+    summary: str | None
+    unpack_enum: Callable[[str, int], Any] | None
 
     def __init__(
         self,
         name: str,
-        requests: List[WRequest],
-        events: List[WEvent],
-        enums: List[WEnum],
-        summary: Optional[str] = None,
+        requests: list[WRequest],
+        events: list[WEvent],
+        enums: list[WEnum],
+        summary: str | None = None,
     ) -> None:
         self.name = name
         self.requests = requests
@@ -696,8 +689,8 @@ class Interface:
     def pack(
         self,
         opcode: OpCode,
-        args: Tuple[Any, ...],
-    ) -> Tuple[bytes, List[Fd]]:
+        args: tuple[Any, ...],
+    ) -> tuple[bytes, list[Fd]]:
         """Pack arguments for the specified opcode
 
         Returns bytes data and descriptors to be send
@@ -708,7 +701,7 @@ class Interface:
                 f"[{self.name}.{req.name}] takes {len(req.args)} arguments ({len(args)} given)"
             )
         write = io.BytesIO()
-        fds: List[Fd] = []
+        fds: list[Fd] = []
         for arg, arg_desc in zip(args, req.args):
             arg_desc.pack(write, arg)
             if isinstance(arg_desc, ArgFd):
@@ -726,13 +719,13 @@ class Interface:
         connection: Connection,
         opcode: OpCode,
         data: bytes,
-    ) -> List[Any]:
+    ) -> list[Any]:
         """Unpack opcode and data into request name and list of arguments"""
         if opcode >= len(self.events):
             raise RuntimeError(f"[{self.name}] received unknown event {opcode}")
         request = self.events[opcode]
         read = io.BytesIO(data)
-        args: List[Any] = []
+        args: list[Any] = []
         for index, arg_desc in enumerate(request.args):
             if (
                 isinstance(arg_desc, ArgUInt)
@@ -781,14 +774,14 @@ class Proxy:
     _connection: Connection
     _is_attached: bool
     _is_detached: bool
-    _handlers: List[Optional[EventHandler]]
+    _handlers: list[EventHandler | None]
     _futures: WeakSet[Future[Any]]
 
     def __init__(
         self,
         id: Id,
         connection: Connection,
-        interface: Optional[Interface] = None,
+        interface: Interface | None = None,
     ) -> None:
         if interface is None:
             # interface must always be provided and only seem optional for type checker
@@ -810,20 +803,20 @@ class Proxy:
         opcode, _ = desc
         self._call(opcode, args)
 
-    def _call(self, opcode: OpCode, args: Tuple[Any, ...]) -> None:
+    def _call(self, opcode: OpCode, args: tuple[Any, ...]) -> None:
         if self._connection._debug:
             print(f" -> {self._call_fmt(opcode, args)}", file=sys.stderr)
         data, fds = self._interface.pack(opcode, args)
         self._connection._message_submit(Message(self._id, opcode, data, fds))
 
-    def _call_fmt(self, opcode: OpCode, args: Tuple[Any, ...]) -> str:
+    def _call_fmt(self, opcode: OpCode, args: tuple[Any, ...]) -> str:
         request = self._interface.requests[opcode]
         args_repr = ", ".join(
             f"{arg.name}={repr(value)}" for arg, value in zip(request.args, args)
         )
         return f"{self}.{request.name}({args_repr})"
 
-    def on(self, name: str, handler: EventHandler) -> Optional[EventHandler]:
+    def on(self, name: str, handler: EventHandler) -> EventHandler | None:
         """Register handler for the event"""
         if self._is_detached:
             raise RuntimeError(f"[{self}] is deleted")
@@ -834,7 +827,7 @@ class Proxy:
         old_handler, self._handlers[opcode] = self._handlers[opcode], handler
         return old_handler
 
-    def on_async(self, name: str) -> Future[Tuple[Any, ...]]:
+    def on_async(self, name: str) -> Future[tuple[Any, ...]]:
         """Create future which is resolved on event"""
 
         def handler(*args: Any) -> bool:
@@ -842,12 +835,12 @@ class Proxy:
             return False
 
         self.on(name, handler)
-        future: Future[Tuple[Any, ...]] = asyncio.get_running_loop().create_future()
+        future: Future[tuple[Any, ...]] = asyncio.get_running_loop().create_future()
         self._futures.add(future)
 
         return future
 
-    def _dispatch(self, opcode: OpCode, args: List[Any]) -> None:
+    def _dispatch(self, opcode: OpCode, args: list[Any]) -> None:
         """Dispatch event to the handler"""
         if self._connection._debug:
             print(f"{self._dispatch_fmt(opcode, args)}", file=sys.stderr)
@@ -859,7 +852,9 @@ class Proxy:
         try:
             ret = handler(*args)
             if type(ret) != bool:
-                raise TypeError(f"[{self}.{event.name}] handlers should return a boolean value")
+                raise TypeError(
+                    f"[{self}.{event.name}] handlers should return a boolean value"
+                )
             if not ret:
                 self._handlers[opcode] = None
         except Exception:
@@ -867,7 +862,7 @@ class Proxy:
             logging.exception(f"[{self}.{event.name}] handler raised an error")
             self._handlers[opcode] = None
 
-    def _dispatch_fmt(self, opcode: OpCode, args: List[Any]) -> str:
+    def _dispatch_fmt(self, opcode: OpCode, args: list[Any]) -> str:
         """Format incoming message"""
         event = self._interface.events[opcode]
         args_repr = ", ".join(
@@ -892,8 +887,8 @@ class Proxy:
 
 class WRequest(NamedTuple):
     name: str
-    args: List[Arg]
-    summary: Optional[str] = None
+    args: list[Arg]
+    summary: str | None = None
     destructor: bool = False
 
     def to_event(self) -> WEvent:
@@ -903,8 +898,8 @@ class WRequest(NamedTuple):
 
 class WEvent(NamedTuple):
     name: str
-    args: List[Arg]
-    summary: Optional[str] = None
+    args: list[Arg]
+    summary: str | None = None
 
     def to_request(self) -> WRequest:
         """Convert event definition to request definition"""
@@ -913,10 +908,10 @@ class WEvent(NamedTuple):
 
 class WEnum:
     name: str
-    values: Dict[str, int]
+    values: dict[str, int]
     flag: bool
 
-    def __init__(self, name: str, values: Dict[str, int], flag: bool = False):
+    def __init__(self, name: str, values: dict[str, int], flag: bool = False):
         self.name = name
         self.values = values
         self.flag = flag
@@ -925,14 +920,14 @@ class WEnum:
 class Protocol:
     __slots__ = ["name", "interfaces", "extern"]
     name: str
-    interfaces: Dict[str, Interface]
-    extern: Set[str]
+    interfaces: dict[str, Interface]
+    extern: set[str]
 
     def __init__(
         self,
         name: str,
-        interfaces: Dict[str, Interface],
-        extern: Set[str],
+        interfaces: dict[str, Interface],
+        extern: set[str],
     ):
         self.name = name
         self.interfaces = interfaces
@@ -952,8 +947,8 @@ class Protocol:
         """Load interfaces from protocol XML file"""
         root = ElementTree.parse(path).getroot()
 
-        ifaces: Dict[str, Interface] = {}
-        extern: Set[str] = set()
+        ifaces: dict[str, Interface] = {}
+        extern: set[str] = set()
         protocol_name = root.get("name")
         if protocol_name is None:
             raise ValueError("protocol must define name attribute")
@@ -965,18 +960,18 @@ class Protocol:
             if iface_name is None:
                 raise ValueError("interface must have name attribute")
 
-            events: List[WEvent] = []
-            requests: List[WRequest] = []
-            enums: List[WEnum] = []
-            iface_summary: Optional[str] = None
+            events: list[WEvent] = []
+            requests: list[WRequest] = []
+            enums: list[WEnum] = []
+            iface_summary: str | None = None
 
             for child in node:
                 if child.tag in {"request", "event"}:
                     name = child.get("name")
                     if name is None:
                         raise ValueError(f"[{iface_name}] {child.tag} without a name")
-                    args: List[Arg] = []
-                    summary: Optional[str] = None
+                    args: list[Arg] = []
+                    summary: str | None = None
                     for arg_node in child:
                         if arg_node.tag == "description":
                             summary = arg_node.get("summary")
@@ -1034,7 +1029,7 @@ class Protocol:
                     name = child.get("name")
                     if name is None:
                         raise ValueError(f"[{iface_name}] `{child.tag}` without a name")
-                    enum: Dict[str, int] = {}
+                    enum: dict[str, int] = {}
                     for var in child:
                         if var.tag != "entry":
                             continue
@@ -1068,11 +1063,9 @@ class Protocol:
 
 @runtime_checkable
 class FdFile(Proto):
-    def fileno(self) -> int:
-        ...
+    def fileno(self) -> int: ...
 
-    def close(self) -> None:
-        ...
+    def close(self) -> None: ...
 
 
 Fd = Union[FdFile, int]
@@ -1091,7 +1084,7 @@ class SharedMemory:
     _mmap: mmap
     _is_closed: bool
 
-    def __init__(self, size: int, fd: Optional[Fd] = None) -> None:
+    def __init__(self, size: int, fd: Fd | None = None) -> None:
         self._is_closed = False
         if fd is None:
             name = secrets.token_hex(16)

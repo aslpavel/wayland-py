@@ -2,14 +2,13 @@ import io
 import sys
 import argparse
 from pathlib import Path
-from typing import Dict, List, Optional, Set
 from .base import ArgFd, ArgNewId, ArgObject, ArgUInt, Protocol, WEvent, WRequest
 
 
 def generate_client(
     proto: Protocol,
     reliative: bool,
-    deps: Set[str],
+    deps: set[str],
 ) -> str:
     """Generate client proxies from protocol"""
     interfaces = proto.interfaces
@@ -80,7 +79,7 @@ def generate_client(
         )
 
         # define requests
-        destructor: Optional[str] = None
+        destructor: str | None = None
         for opcode, request in enumerate(interface.requests):
             if request.destructor and not request.args:
                 destructor = request.name
@@ -102,7 +101,7 @@ def generate_client(
             _generate_events(module, opcode, event)
 
         # define enums
-        enums: Dict[str, str] = {}
+        enums: dict[str, str] = {}
         for enum in interface.enums:
             enum_name = _camle_case(enum.name)
             enums[enum.name] = enum_name
@@ -139,8 +138,8 @@ def _generate_request(
     opcode: int,
     request: WRequest,
 ) -> None:
-    results_desc: List[ArgNewId] = []
-    args_types: List[str] = []
+    results_desc: list[ArgNewId] = []
+    args_types: list[str] = []
     for arg_desc in request.args:
         if isinstance(arg_desc, ArgObject):
             arg_type: str
@@ -184,7 +183,7 @@ def _generate_request(
         print(f'        """{request.summary}"""', file=module)
 
     # proxies
-    result_vals: List[str] = []
+    result_vals: list[str] = []
     for result_desc in results_desc:
         name = result_desc.name
         if result_desc.interface is None:
@@ -218,7 +217,7 @@ def _generate_events(
     opcode: int,
     event: WEvent,
 ) -> None:
-    args_types: List[str] = []
+    args_types: list[str] = []
     for arg_desc in event.args:
         if isinstance(arg_desc, (ArgObject, ArgNewId)):
             arg_type: str
@@ -251,7 +250,7 @@ def _generate_events(
 def _camle_case(name: str) -> str:
     """Convert name to CamelCase"""
     upper = True
-    chars: List[str] = []
+    chars: list[str] = []
     for char in name:
         if char == "_":
             upper = True
@@ -276,14 +275,14 @@ def main() -> None:
         print(generate_client(protocol, reliative=False, deps=set()))
         return
 
-    protocols: List[Protocol] = []
+    protocols: list[Protocol] = []
     path = Path("protocol")
     for proto_file in path.iterdir():
         if proto_file.suffix != ".xml":
             continue
         protocols.append(Protocol.load(str(proto_file)))
 
-    deps: Dict[str, Set[str]] = {proto.name: set() for proto in protocols}
+    deps: dict[str, set[str]] = {proto.name: set() for proto in protocols}
     for protocol in protocols:
         for extern in protocol.extern:
             for dep in protocols:

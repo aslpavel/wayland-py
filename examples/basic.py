@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 import asyncio
-from typing import Optional, Tuple
 from wayland.client import ClientConnection
 from wayland.protocol.wayland import WlBuffer, WlShm, WlCompositor
 from wayland.protocol.xdg_shell import XdgWmBase
@@ -52,12 +51,12 @@ async def main() -> None:
         conn.terminate()
         return True
 
-    size: Optional[Tuple[int, int]] = None
+    size: tuple[int, int] | None = None
 
     @xdg_toplevel.on_configure
     def _(new_width: int, new_height: int, _: bytes) -> bool:
         nonlocal size
-        new_size: Optional[Tuple[int, int]] = None
+        new_size: tuple[int, int] | None = None
         if size is None:
             new_size = (new_width or 640, new_height or 480)
         elif new_width != 0 and new_height != 0 and size != (new_width, new_height):

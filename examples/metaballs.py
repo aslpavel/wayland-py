@@ -6,7 +6,7 @@ import time
 import numpy as np
 import numpy.linalg as la
 import numpy.typing as npt
-from typing import Callable, Optional, List, Tuple
+from collections.abc import Callable
 from wayland import SharedMemory
 from wayland.client import ClientConnection
 from wayland.protocol.wayland import WlBuffer, WlShm, WlCompositor, WlSurface
@@ -33,9 +33,9 @@ class Window:
     _wl_surf: WlSurface
     _xdg_surf: XdgSurface
     _xdg_toplevel: XdgToplevel
-    _buf_mem: Optional[SharedMemory]
+    _buf_mem: SharedMemory | None
     _buf_index: int
-    _bufs: List[WlBuffer]
+    _bufs: list[WlBuffer]
     _width: int
     _height: int
     _is_closed: bool
@@ -103,12 +103,12 @@ class Window:
     def height(self) -> int:
         return self._height
 
-    def render(self, image: npt.NDArray[np.uint8], now: Optional[int] = None) -> None:
+    def render(self, image: npt.NDArray[np.uint8], now: int | None = None) -> None:
         image[:, :] = [211, 134, 155, 255]
 
     async def animate(self) -> None:
         await self._conn.sync()  # wait for first xdg_sruface.configure
-        now: Optional[int] = None
+        now: int | None = None
         while not self._is_closed and not self._conn.is_terminated:
             callback = self._wl_surf.frame()
             done = callback.on_async("done")
@@ -139,7 +139,7 @@ class Window:
         self._xdg_surf.destroy()
         self._wl_surf.destroy()
 
-    def draw(self, now: Optional[int] = None) -> None:
+    def draw(self, now: int | None = None) -> None:
         size = self._width * self._height * COLOR_SIZE
         if self._buf_mem is None or not self._bufs:
             return
@@ -175,14 +175,14 @@ class Window:
 class Metaball:
     __slots__ = ["position", "velocity", "radius"]
     radius: float
-    position: Tuple[float, float]
-    velocity: Tuple[float, float]
+    position: tuple[float, float]
+    velocity: tuple[float, float]
 
     def __init__(
         self,
         radius: float,
-        position: Tuple[float, float],
-        velocity: Tuple[float, float],
+        position: tuple[float, float],
+        velocity: tuple[float, float],
     ) -> None:
         self.radius = radius
         self.position = position
@@ -214,23 +214,23 @@ WIDTH = 10.0
 
 class Metaballs(Window):
     __slots__ = ["metaballs", "_grid", "_now"]
-    metaballs: List[Metaball]
+    metaballs: list[Metaball]
     _grid: npt.NDArray[np.float64]
-    _now: Optional[int]
+    _now: int | None
 
-    def __init__(self, conn: ClientConnection, metaballs: List[Metaball]):
+    def __init__(self, conn: ClientConnection, metaballs: list[Metaball]):
         self.metaballs = metaballs
-        self._grid = np.array([], dtype=np.uint8)
+        self._grid = np.array([], dtype=np.float64)
         self._now = None
         super().__init__(conn)
 
-    def tick(self, delta: int):
+    def tick(self, delta: int) -> None:
         width = WIDTH
         height = width / self.width * self.height
         for metaball in self.metaballs:
             metaball.tick(height, width, delta)
 
-    def render(self, image: npt.NDArray[np.uint8], now: Optional[int] = None) -> None:
+    def render(self, image: npt.NDArray[np.uint8], now: int | None = None) -> None:
         if self._grid.shape[:2] != image.shape[:2]:
             self._grid = self._make_grid()
 
@@ -246,9 +246,7 @@ class Metaballs(Window):
         render_time = time.time() - render_start
 
         print(
-            "\x1b[Kfps={:.2f} render={:.2f}ms\r".format(
-                1000 / delta, render_time * 1000
-            ),
+            f"\x1b[Kfps={1000 / delta:.2f} render={render_time * 1000:.2f}ms\r",
             end="",
         )
 
