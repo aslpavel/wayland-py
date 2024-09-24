@@ -122,8 +122,7 @@ class WlRegistry(Proxy):
         """bind an object to the display"""
         _proxy_iface = id._interface.name
         if _proxy_iface != id_interface:
-            raise TypeError("[{}(id)] expected {} (got {})"
-                            .format(self, id_interface, _proxy_iface))
+            raise TypeError("[{}(id)] expected {} (got {})".format(self, id_interface, _proxy_iface))
         self._call(OpCode(0), (name, id_interface, id_version, id,))
         return None
 

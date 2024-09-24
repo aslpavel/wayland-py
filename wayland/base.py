@@ -31,7 +31,7 @@ from typing import (
 )
 from typing import Protocol as Proto
 from weakref import WeakSet
-from xml.etree import ElementTree  # nosec
+from xml.etree import ElementTree
 
 __all__ = [
     "Id",
@@ -77,6 +77,8 @@ class Message(NamedTuple):
 
 
 class Connection(ABC):
+    """Base connection responsible for reading and writing messages"""
+
     __slots__ = [
         "_socket",
         "_loop",
@@ -312,9 +314,8 @@ class Connection(ABC):
     def _id_alloc(self) -> Id:
         if self._id_free:
             return self._id_free.pop()
-        else:
-            self._id_last = Id(self._id_last + 1)
-            return self._id_last
+        self._id_last = Id(self._id_last + 1)
+        return self._id_last
 
     def _fd_recv(self) -> Fd | None:
         """Pop next descriptor from file descriptor queue"""
@@ -354,7 +355,9 @@ class Connection(ABC):
 
 
 class Arg(ABC):
-    type_name: ClassVar[str]
+    """Abstract argument type"""
+
+    type_name: ClassVar[str]  # corresponding python type
 
     def __init__(self, name: str):
         self.name: str = name
@@ -813,16 +816,10 @@ class Proxy:
         handler = self._handlers[opcode]
         if handler is None:
             fmt = self._dispatch_fmt(opcode, args)
-            print(f"\x1b[93mUNHANDLED: {fmt}\x1b[m", file=sys.stderr)
+            print(f"\x1b[93m[unhandled] {fmt}\x1b[m", file=sys.stderr)
             return
         try:
-            ret = handler(*args)
-            if type(ret) is bool:
-                event = self._interface.events[opcode]
-                raise TypeError(
-                    f"[{self}.{event.name}] handlers should return a boolean value"
-                )
-            if not ret:
+            if not handler(*args):
                 self._handlers[opcode] = None
         except Exception:
             event = self._interface.events[opcode]

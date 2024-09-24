@@ -132,7 +132,7 @@ def generate_client(
 
         module.write(f'PROXIES["{iface_name}"] = {class_name}\n\n')
 
-    module.write("# fmt: on")
+    module.write("# fmt: on\n")
     return module.getvalue()
 
 
@@ -193,8 +193,8 @@ def _generate_request(
             print(
                 f"        _proxy_iface = {name}._interface.name\n"
                 f"        if _proxy_iface != {name}_interface:\n"
-                f'            raise TypeError("[{{}}({name})] expected {{}} (got {{}})"\n'
-                f"                            .format(self, {name}_interface, _proxy_iface))",
+                f'            raise TypeError("[{{}}({name})] expected {{}} (got {{}})"'
+                f".format(self, {name}_interface, _proxy_iface))",
                 file=module,
             )
             continue
