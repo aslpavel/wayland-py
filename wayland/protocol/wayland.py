@@ -36,6 +36,7 @@ class WlDisplay(Proxy):
     """core global object"""
     interface: ClassVar[Interface] = Interface(
         name="wl_display",
+        version=1,
         requests=[
             WRequest("sync", [ArgNewId("callback", "wl_callback")]),
             WRequest("get_registry", [ArgNewId("registry", "wl_registry")]),
@@ -102,6 +103,7 @@ class WlRegistry(Proxy):
     """global registry object"""
     interface: ClassVar[Interface] = Interface(
         name="wl_registry",
+        version=1,
         requests=[
             WRequest("bind", [ArgUInt("name"), ArgStr("id_interface"), ArgUInt("id_version"), ArgNewId("id", None)]),
         ],
@@ -143,6 +145,7 @@ class WlCallback(Proxy):
     """callback object"""
     interface: ClassVar[Interface] = Interface(
         name="wl_callback",
+        version=1,
         requests=[
         ],
         events=[
@@ -167,6 +170,7 @@ class WlCompositor(Proxy):
     """the compositor singleton"""
     interface: ClassVar[Interface] = Interface(
         name="wl_compositor",
+        version=6,
         requests=[
             WRequest("create_surface", [ArgNewId("id", "wl_surface")]),
             WRequest("create_region", [ArgNewId("id", "wl_region")]),
@@ -198,6 +202,7 @@ class WlShmPool(Proxy):
     """a shared memory pool"""
     interface: ClassVar[Interface] = Interface(
         name="wl_shm_pool",
+        version=2,
         requests=[
             WRequest("create_buffer", [ArgNewId("id", "wl_buffer"), ArgInt("offset"), ArgInt("width"), ArgInt("height"), ArgInt("stride"), ArgUInt("format", "wl_shm.format")]),
             WRequest("destroy", []),
@@ -240,6 +245,7 @@ class WlShm(Proxy):
     """shared memory support"""
     interface: ClassVar[Interface] = Interface(
         name="wl_shm",
+        version=2,
         requests=[
             WRequest("create_pool", [ArgNewId("id", "wl_shm_pool"), ArgFd("fd"), ArgInt("size")]),
             WRequest("release", []),
@@ -557,6 +563,7 @@ class WlBuffer(Proxy):
     """content for a wl_surface"""
     interface: ClassVar[Interface] = Interface(
         name="wl_buffer",
+        version=1,
         requests=[
             WRequest("destroy", []),
         ],
@@ -593,6 +600,7 @@ class WlDataOffer(Proxy):
     """offer to transfer data"""
     interface: ClassVar[Interface] = Interface(
         name="wl_data_offer",
+        version=3,
         requests=[
             WRequest("accept", [ArgUInt("serial"), ArgStr("mime_type")]),
             WRequest("receive", [ArgStr("mime_type"), ArgFd("fd")]),
@@ -688,6 +696,7 @@ class WlDataSource(Proxy):
     """offer to transfer data"""
     interface: ClassVar[Interface] = Interface(
         name="wl_data_source",
+        version=3,
         requests=[
             WRequest("offer", [ArgStr("mime_type")]),
             WRequest("destroy", []),
@@ -788,6 +797,7 @@ class WlDataDevice(Proxy):
     """data transfer device"""
     interface: ClassVar[Interface] = Interface(
         name="wl_data_device",
+        version=3,
         requests=[
             WRequest("start_drag", [ArgObject("source", "wl_data_source", True), ArgObject("origin", "wl_surface"), ArgObject("icon", "wl_surface", True), ArgUInt("serial")]),
             WRequest("set_selection", [ArgObject("source", "wl_data_source", True), ArgUInt("serial")]),
@@ -888,6 +898,7 @@ class WlDataDeviceManager(Proxy):
     """data transfer interface"""
     interface: ClassVar[Interface] = Interface(
         name="wl_data_device_manager",
+        version=3,
         requests=[
             WRequest("create_data_source", [ArgNewId("id", "wl_data_source")]),
             WRequest("get_data_device", [ArgNewId("id", "wl_data_device"), ArgObject("seat", "wl_seat")]),
@@ -941,6 +952,7 @@ class WlShell(Proxy):
     """create desktop-style surfaces"""
     interface: ClassVar[Interface] = Interface(
         name="wl_shell",
+        version=1,
         requests=[
             WRequest("get_shell_surface", [ArgNewId("id", "wl_shell_surface"), ArgObject("surface", "wl_surface")]),
         ],
@@ -980,6 +992,7 @@ class WlShellSurface(Proxy):
     """desktop-style metadata interface"""
     interface: ClassVar[Interface] = Interface(
         name="wl_shell_surface",
+        version=1,
         requests=[
             WRequest("pong", [ArgUInt("serial")]),
             WRequest("move", [ArgObject("seat", "wl_seat"), ArgUInt("serial")]),
@@ -1139,6 +1152,7 @@ class WlSurface(Proxy):
     """an onscreen surface"""
     interface: ClassVar[Interface] = Interface(
         name="wl_surface",
+        version=6,
         requests=[
             WRequest("destroy", []),
             WRequest("attach", [ArgObject("buffer", "wl_buffer", True), ArgInt("x"), ArgInt("y")]),
@@ -1280,6 +1294,7 @@ class WlSeat(Proxy):
     """group of input devices"""
     interface: ClassVar[Interface] = Interface(
         name="wl_seat",
+        version=9,
         requests=[
             WRequest("get_pointer", [ArgNewId("id", "wl_pointer")]),
             WRequest("get_keyboard", [ArgNewId("id", "wl_keyboard")]),
@@ -1375,6 +1390,7 @@ class WlPointer(Proxy):
     """pointer input device"""
     interface: ClassVar[Interface] = Interface(
         name="wl_pointer",
+        version=9,
         requests=[
             WRequest("set_cursor", [ArgUInt("serial"), ArgObject("surface", "wl_surface", True), ArgInt("hotspot_x"), ArgInt("hotspot_y")]),
             WRequest("release", []),
@@ -1558,6 +1574,7 @@ class WlKeyboard(Proxy):
     """keyboard input device"""
     interface: ClassVar[Interface] = Interface(
         name="wl_keyboard",
+        version=9,
         requests=[
             WRequest("release", []),
         ],
@@ -1659,6 +1676,7 @@ class WlTouch(Proxy):
     """touchscreen input device"""
     interface: ClassVar[Interface] = Interface(
         name="wl_touch",
+        version=9,
         requests=[
             WRequest("release", []),
         ],
@@ -1737,6 +1755,7 @@ class WlOutput(Proxy):
     """compositor output region"""
     interface: ClassVar[Interface] = Interface(
         name="wl_output",
+        version=4,
         requests=[
             WRequest("release", []),
         ],
@@ -1872,6 +1891,7 @@ class WlRegion(Proxy):
     """region interface"""
     interface: ClassVar[Interface] = Interface(
         name="wl_region",
+        version=1,
         requests=[
             WRequest("destroy", []),
             WRequest("add", [ArgInt("x"), ArgInt("y"), ArgInt("width"), ArgInt("height")]),
@@ -1913,6 +1933,7 @@ class WlSubcompositor(Proxy):
     """sub-surface compositing"""
     interface: ClassVar[Interface] = Interface(
         name="wl_subcompositor",
+        version=1,
         requests=[
             WRequest("destroy", []),
             WRequest("get_subsurface", [ArgNewId("id", "wl_subsurface"), ArgObject("surface", "wl_surface"), ArgObject("parent", "wl_surface")]),
@@ -1966,6 +1987,7 @@ class WlSubsurface(Proxy):
     """sub-surface interface to a wl_surface"""
     interface: ClassVar[Interface] = Interface(
         name="wl_subsurface",
+        version=1,
         requests=[
             WRequest("destroy", []),
             WRequest("set_position", [ArgInt("x"), ArgInt("y")]),

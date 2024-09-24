@@ -48,6 +48,7 @@ def generate_client(
         # define interface
         print(f"    interface: ClassVar[Interface] = Interface(", file=module)
         print(f'        name="{iface_name}",', file=module)
+        print(f"        version={interface.version},", file=module)
         print(f"        requests=[", file=module)
         for request in interface.requests:
             print(

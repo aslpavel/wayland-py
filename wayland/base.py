@@ -624,6 +624,7 @@ class ArgFd(Arg):
 class Interface:
     __slots__ = [
         "name",
+        "version",
         "events",
         "requests",
         "requests_by_name",
@@ -636,12 +637,14 @@ class Interface:
     def __init__(
         self,
         name: str,
+        version: int,
         requests: list[WRequest],
         events: list[WEvent],
         enums: list[WEnum],
         summary: str | None = None,
     ) -> None:
         self.name: str = name
+        self.version: int = version
         self.requests: list[WRequest] = requests
         self.events: list[WEvent] = events
         self.enums: list[WEnum] = enums
@@ -714,6 +717,7 @@ class Interface:
         """Create new interface with swapped events and requests"""
         return Interface(
             name=self.name,
+            version=self.version,
             requests=[event.to_request() for event in self.events],
             events=[request.to_event() for request in self.requests],
             enums=self.enums,
@@ -922,6 +926,7 @@ class Protocol:
             iface_name = node.get("name")
             if iface_name is None:
                 raise ValueError("interface must have name attribute")
+            iface_version = int(node.attrib["version"])
 
             events: list[WEvent] = []
             requests: list[WRequest] = []
@@ -1017,7 +1022,14 @@ class Protocol:
                 elif child.tag == "description":
                     iface_summary = child.get("summary")
 
-            iface = Interface(iface_name, requests, events, enums, iface_summary)
+            iface = Interface(
+                iface_name,
+                iface_version,
+                requests,
+                events,
+                enums,
+                iface_summary,
+            )
             ifaces[iface_name] = iface
 
         extern -= set(ifaces)

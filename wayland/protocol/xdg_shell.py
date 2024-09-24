@@ -20,6 +20,7 @@ class XdgWmBase(Proxy):
     """create desktop-style surfaces"""
     interface: ClassVar[Interface] = Interface(
         name="xdg_wm_base",
+        version=6,
         requests=[
             WRequest("destroy", []),
             WRequest("create_positioner", [ArgNewId("id", "xdg_positioner")]),
@@ -103,6 +104,7 @@ class XdgPositioner(Proxy):
     """child surface positioner"""
     interface: ClassVar[Interface] = Interface(
         name="xdg_positioner",
+        version=6,
         requests=[
             WRequest("destroy", []),
             WRequest("set_size", [ArgInt("width"), ArgInt("height")]),
@@ -278,6 +280,7 @@ class XdgSurface(Proxy):
     """desktop user interface surface base interface"""
     interface: ClassVar[Interface] = Interface(
         name="xdg_surface",
+        version=6,
         requests=[
             WRequest("destroy", []),
             WRequest("get_toplevel", [ArgNewId("id", "xdg_toplevel")]),
@@ -365,6 +368,7 @@ class XdgToplevel(Proxy):
     """toplevel surface"""
     interface: ClassVar[Interface] = Interface(
         name="xdg_toplevel",
+        version=6,
         requests=[
             WRequest("destroy", []),
             WRequest("set_parent", [ArgObject("parent", "xdg_toplevel", True)]),
@@ -590,6 +594,7 @@ class XdgPopup(Proxy):
     """short-lived, popup surfaces for menus"""
     interface: ClassVar[Interface] = Interface(
         name="xdg_popup",
+        version=6,
         requests=[
             WRequest("destroy", []),
             WRequest("grab", [ArgObject("seat", "wl_seat"), ArgUInt("serial")]),
