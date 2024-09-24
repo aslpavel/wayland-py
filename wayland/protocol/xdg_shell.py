@@ -38,6 +38,7 @@ class XdgWmBase(Proxy):
                     "invalid_popup_parent": 3,
                     "invalid_surface_state": 4,
                     "invalid_positioner": 5,
+                    "unresponsive": 6,
                 },
             ),
         ],
@@ -87,6 +88,7 @@ class XdgWmBase(Proxy):
         INVALID_POPUP_PARENT = 3
         INVALID_SURFACE_STATE = 4
         INVALID_POSITIONER = 5
+        UNRESPONSIVE = 6
 
 def _unpack_enum_xdg_wm_base(name: str, value: int) -> Any:
     if name == "error":
@@ -106,7 +108,7 @@ class XdgPositioner(Proxy):
             WRequest("set_anchor_rect", [ArgInt("x"), ArgInt("y"), ArgInt("width"), ArgInt("height")]),
             WRequest("set_anchor", [ArgUInt("anchor", "anchor")]),
             WRequest("set_gravity", [ArgUInt("gravity", "gravity")]),
-            WRequest("set_constraint_adjustment", [ArgUInt("constraint_adjustment")]),
+            WRequest("set_constraint_adjustment", [ArgUInt("constraint_adjustment", "constraint_adjustment")]),
             WRequest("set_offset", [ArgInt("x"), ArgInt("y")]),
             WRequest("set_reactive", []),
             WRequest("set_parent_size", [ArgInt("parent_width"), ArgInt("parent_height")]),
@@ -193,7 +195,7 @@ class XdgPositioner(Proxy):
         self._call(OpCode(4), (gravity,))
         return None
 
-    def set_constraint_adjustment(self, constraint_adjustment: int) -> None:
+    def set_constraint_adjustment(self, constraint_adjustment: ConstraintAdjustment) -> None:
         """set the adjustment to be done when constrained"""
         self._call(OpCode(5), (constraint_adjustment,))
         return None
@@ -292,6 +294,9 @@ class XdgSurface(Proxy):
                     "not_constructed": 1,
                     "already_constructed": 2,
                     "unconfigured_buffer": 3,
+                    "invalid_serial": 4,
+                    "invalid_size": 5,
+                    "defunct_role_object": 6,
                 },
             ),
         ],
@@ -343,6 +348,9 @@ class XdgSurface(Proxy):
         NOT_CONSTRUCTED = 1
         ALREADY_CONSTRUCTED = 2
         UNCONFIGURED_BUFFER = 3
+        INVALID_SERIAL = 4
+        INVALID_SIZE = 5
+        DEFUNCT_ROLE_OBJECT = 6
 
 def _unpack_enum_xdg_surface(name: str, value: int) -> Any:
     if name == "error":
@@ -376,12 +384,15 @@ class XdgToplevel(Proxy):
             WEvent("configure", [ArgInt("width"), ArgInt("height"), ArgArray("states")]),
             WEvent("close", []),
             WEvent("configure_bounds", [ArgInt("width"), ArgInt("height")]),
+            WEvent("wm_capabilities", [ArgArray("capabilities")]),
         ],
         enums=[
             WEnum(
                 name="error",
                 values={
                     "invalid_resize_edge": 0,
+                    "invalid_parent": 1,
+                    "invalid_size": 2,
                 },
             ),
             WEnum(
@@ -409,6 +420,16 @@ class XdgToplevel(Proxy):
                     "tiled_right": 6,
                     "tiled_top": 7,
                     "tiled_bottom": 8,
+                    "suspended": 9,
+                },
+            ),
+            WEnum(
+                name="wm_capabilities",
+                values={
+                    "window_menu": 1,
+                    "maximize": 2,
+                    "fullscreen": 3,
+                    "minimize": 4,
                 },
             ),
         ],
@@ -511,8 +532,16 @@ class XdgToplevel(Proxy):
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
+    def on_wm_capabilities(self, handler: Callable[[bytes], bool]) -> Optional[Callable[[bytes], bool]]:
+        """compositor capabilities"""
+        _opcode = OpCode(3)
+        old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
+        return old_handler
+
     class Error(Enum):
         INVALID_RESIZE_EDGE = 0
+        INVALID_PARENT = 1
+        INVALID_SIZE = 2
 
     class ResizeEdge(Enum):
         NONE = 0
@@ -534,6 +563,13 @@ class XdgToplevel(Proxy):
         TILED_RIGHT = 6
         TILED_TOP = 7
         TILED_BOTTOM = 8
+        SUSPENDED = 9
+
+    class WmCapabilities(Enum):
+        WINDOW_MENU = 1
+        MAXIMIZE = 2
+        FULLSCREEN = 3
+        MINIMIZE = 4
 
 def _unpack_enum_xdg_toplevel(name: str, value: int) -> Any:
     if name == "error":
@@ -542,6 +578,8 @@ def _unpack_enum_xdg_toplevel(name: str, value: int) -> Any:
         return XdgToplevel.ResizeEdge(value)
     if name == "state":
         return XdgToplevel.State(value)
+    if name == "wm_capabilities":
+        return XdgToplevel.WmCapabilities(value)
     return None
 XdgToplevel.interface.unpack_enum = _unpack_enum_xdg_toplevel
 

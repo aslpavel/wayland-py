@@ -857,7 +857,10 @@ class Proxy:
             print(f"\x1b[93mUNHANDLED: {fmt}\x1b[m", file=sys.stderr)
             return
         try:
-            if not handler(*args):
+            ret = handler(*args)
+            if type(ret) != bool:
+                raise TypeError(f"[{self}.{event.name}] handlers should return a boolean value")
+            if not ret:
                 self._handlers[opcode] = None
         except Exception:
             event = self._interface.events[opcode]

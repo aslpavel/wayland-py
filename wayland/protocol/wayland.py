@@ -241,6 +241,7 @@ class WlShm(Proxy):
         name="wl_shm",
         requests=[
             WRequest("create_pool", [ArgNewId("id", "wl_shm_pool"), ArgFd("fd"), ArgInt("size")]),
+            WRequest("release", []),
         ],
         events=[
             WEvent("format", [ArgUInt("format", "format")]),
@@ -365,6 +366,21 @@ class WlShm(Proxy):
                     "xbgr16161616": 942948952,
                     "argb16161616": 942953025,
                     "abgr16161616": 942948929,
+                    "c1": 538980675,
+                    "c2": 538980931,
+                    "c4": 538981443,
+                    "d1": 538980676,
+                    "d2": 538980932,
+                    "d4": 538981444,
+                    "d8": 538982468,
+                    "r1": 538980690,
+                    "r2": 538980946,
+                    "r4": 538981458,
+                    "r10": 540029266,
+                    "r12": 540160338,
+                    "avuy8888": 1498764865,
+                    "xvuy8888": 1498764888,
+                    "p030": 808661072,
                 },
             ),
         ],
@@ -378,6 +394,17 @@ class WlShm(Proxy):
         id = self._connection.create_proxy(WlShmPool)
         self._call(OpCode(0), (id, fd, size,))
         return id
+
+    def release(self) -> None:
+        """release the shm object"""
+        self._call(OpCode(1), tuple())
+        return None
+
+    def __enter__(self) -> WlShm:
+        return self
+
+    def __exit__(self, *_: Any) -> None:
+        self.release()
 
     def on_format(self, handler: Callable[[Format], bool]) -> Optional[Callable[[Format], bool]]:
         """pixel format description"""
@@ -499,6 +526,21 @@ class WlShm(Proxy):
         XBGR16161616 = 942948952
         ARGB16161616 = 942953025
         ABGR16161616 = 942948929
+        C1 = 538980675
+        C2 = 538980931
+        C4 = 538981443
+        D1 = 538980676
+        D2 = 538980932
+        D4 = 538981444
+        D8 = 538982468
+        R1 = 538980690
+        R2 = 538980946
+        R4 = 538981458
+        R10 = 540029266
+        R12 = 540160338
+        AVUY8888 = 1498764865
+        XVUY8888 = 1498764888
+        P030 = 808661072
 
 def _unpack_enum_wl_shm(name: str, value: int) -> Any:
     if name == "error":
@@ -763,6 +805,7 @@ class WlDataDevice(Proxy):
                 name="error",
                 values={
                     "role": 0,
+                    "used_source": 1,
                 },
             ),
         ],
@@ -830,6 +873,7 @@ class WlDataDevice(Proxy):
 
     class Error(Enum):
         ROLE = 0
+        USED_SOURCE = 1
 
 def _unpack_enum_wl_data_device(name: str, value: int) -> Any:
     if name == "error":
@@ -1110,6 +1154,8 @@ class WlSurface(Proxy):
         events=[
             WEvent("enter", [ArgObject("output", "wl_output")]),
             WEvent("leave", [ArgObject("output", "wl_output")]),
+            WEvent("preferred_buffer_scale", [ArgInt("factor")]),
+            WEvent("preferred_buffer_transform", [ArgUInt("transform", "wl_output.transform")]),
         ],
         enums=[
             WEnum(
@@ -1119,6 +1165,7 @@ class WlSurface(Proxy):
                     "invalid_transform": 1,
                     "invalid_size": 2,
                     "invalid_offset": 3,
+                    "defunct_role_object": 4,
                 },
             ),
         ],
@@ -1201,11 +1248,24 @@ class WlSurface(Proxy):
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
+    def on_preferred_buffer_scale(self, handler: Callable[[int], bool]) -> Optional[Callable[[int], bool]]:
+        """preferred buffer scale for the surface"""
+        _opcode = OpCode(2)
+        old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
+        return old_handler
+
+    def on_preferred_buffer_transform(self, handler: Callable[[WlOutput.Transform], bool]) -> Optional[Callable[[WlOutput.Transform], bool]]:
+        """preferred buffer transform for the surface"""
+        _opcode = OpCode(3)
+        old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
+        return old_handler
+
     class Error(Enum):
         INVALID_SCALE = 0
         INVALID_TRANSFORM = 1
         INVALID_SIZE = 2
         INVALID_OFFSET = 3
+        DEFUNCT_ROLE_OBJECT = 4
 
 def _unpack_enum_wl_surface(name: str, value: int) -> Any:
     if name == "error":
@@ -1328,6 +1388,8 @@ class WlPointer(Proxy):
             WEvent("axis_source", [ArgUInt("axis_source", "axis_source")]),
             WEvent("axis_stop", [ArgUInt("time"), ArgUInt("axis", "axis")]),
             WEvent("axis_discrete", [ArgUInt("axis", "axis"), ArgInt("discrete")]),
+            WEvent("axis_value120", [ArgUInt("axis", "axis"), ArgInt("value120")]),
+            WEvent("axis_relative_direction", [ArgUInt("axis", "axis"), ArgUInt("direction", "axis_relative_direction")]),
         ],
         enums=[
             WEnum(
@@ -1357,6 +1419,13 @@ class WlPointer(Proxy):
                     "finger": 1,
                     "continuous": 2,
                     "wheel_tilt": 3,
+                },
+            ),
+            WEnum(
+                name="axis_relative_direction",
+                values={
+                    "identical": 0,
+                    "inverted": 1,
                 },
             ),
         ],
@@ -1435,6 +1504,18 @@ class WlPointer(Proxy):
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
 
+    def on_axis_value120(self, handler: Callable[[Axis, int], bool]) -> Optional[Callable[[Axis, int], bool]]:
+        """axis high-resolution scroll event"""
+        _opcode = OpCode(9)
+        old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
+        return old_handler
+
+    def on_axis_relative_direction(self, handler: Callable[[Axis, AxisRelativeDirection], bool]) -> Optional[Callable[[Axis, AxisRelativeDirection], bool]]:
+        """axis relative physical direction event"""
+        _opcode = OpCode(10)
+        old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
+        return old_handler
+
     class Error(Enum):
         ROLE = 0
 
@@ -1452,6 +1533,10 @@ class WlPointer(Proxy):
         CONTINUOUS = 2
         WHEEL_TILT = 3
 
+    class AxisRelativeDirection(Enum):
+        IDENTICAL = 0
+        INVERTED = 1
+
 def _unpack_enum_wl_pointer(name: str, value: int) -> Any:
     if name == "error":
         return WlPointer.Error(value)
@@ -1461,6 +1546,8 @@ def _unpack_enum_wl_pointer(name: str, value: int) -> Any:
         return WlPointer.Axis(value)
     if name == "axis_source":
         return WlPointer.AxisSource(value)
+    if name == "axis_relative_direction":
+        return WlPointer.AxisRelativeDirection(value)
     return None
 WlPointer.interface.unpack_enum = _unpack_enum_wl_pointer
 
@@ -1836,6 +1923,7 @@ class WlSubcompositor(Proxy):
                 name="error",
                 values={
                     "bad_surface": 0,
+                    "bad_parent": 1,
                 },
             ),
         ],
@@ -1863,6 +1951,7 @@ class WlSubcompositor(Proxy):
 
     class Error(Enum):
         BAD_SURFACE = 0
+        BAD_PARENT = 1
 
 def _unpack_enum_wl_subcompositor(name: str, value: int) -> Any:
     if name == "error":
