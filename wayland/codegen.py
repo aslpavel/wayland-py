@@ -1,7 +1,8 @@
+import argparse
 import io
 import sys
-import argparse
 from pathlib import Path
+
 from .base import ArgFd, ArgNewId, ArgObject, ArgUInt, Protocol, WEvent, WRequest
 
 

@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 import asyncio
-from wayland.client import ClientConnection
-from wayland.protocol.wayland import WlBuffer, WlShm, WlCompositor
-from wayland.protocol.xdg_shell import XdgWmBase
+
 from wayland import SharedMemory
+from wayland.client import ClientConnection
+from wayland.protocol.wayland import WlBuffer, WlCompositor, WlShm
+from wayland.protocol.xdg_shell import XdgWmBase
 
 
 def draw(wl_shm: WlShm, width: int, height: int) -> WlBuffer:

@@ -1,15 +1,18 @@
 #!/usr/bin/env python
 from __future__ import annotations
+
 import asyncio
 import math
 import time
+from collections.abc import Callable
+
 import numpy as np
 import numpy.linalg as la
 import numpy.typing as npt
-from collections.abc import Callable
+
 from wayland import SharedMemory
 from wayland.client import ClientConnection
-from wayland.protocol.wayland import WlBuffer, WlShm, WlCompositor, WlSurface
+from wayland.protocol.wayland import WlBuffer, WlCompositor, WlShm, WlSurface
 from wayland.protocol.xdg_shell import XdgSurface, XdgToplevel, XdgWmBase
 
 COLOR_SIZE = 4  # WlShm.Format.XRGB8888
@@ -29,35 +32,26 @@ class Window:
         "_height",
         "_is_closed",
     ]
-    _conn: ClientConnection
-    _wl_surf: WlSurface
-    _xdg_surf: XdgSurface
-    _xdg_toplevel: XdgToplevel
-    _buf_mem: SharedMemory | None
-    _buf_index: int
-    _bufs: list[WlBuffer]
-    _width: int
-    _height: int
-    _is_closed: bool
 
     def __init__(self, conn: ClientConnection) -> None:
-        self._conn = conn
-        self._is_closed = False
+        self._conn: ClientConnection = conn
+        self._is_closed: bool = False
+        self._buf_index = 0
         wl_compositor = conn.get_global(WlCompositor)
         xdg_wm_base = conn.get_global(XdgWmBase)
 
-        self._wl_surf = wl_compositor.create_surface()
-        self._xdg_surf = xdg_wm_base.get_xdg_surface(self._wl_surf)
+        self._wl_surf: WlSurface = wl_compositor.create_surface()
+        self._xdg_surf: XdgSurface = xdg_wm_base.get_xdg_surface(self._wl_surf)
         self._xdg_surf.on_configure(self._on_xdg_surf_configure)
-        self._xdg_toplevel = self._xdg_surf.get_toplevel()
+        self._xdg_toplevel: XdgToplevel = self._xdg_surf.get_toplevel()
         self._xdg_toplevel.set_app_id("metaballs")
         self._xdg_toplevel.on_configure(self._on_tolevel_configure)
         self._wl_surf.commit()
 
-        self._width = 0
-        self._height = 0
-        self._buf_mem = None
-        self._bufs = []
+        self._width: int = 0
+        self._height: int = 0
+        self._buf_mem: SharedMemory | None = None
+        self._bufs: list[WlBuffer] = []
         self.resize(640, 480)
 
     def resize(self, width: int, height: int) -> bool:

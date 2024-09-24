@@ -3,34 +3,35 @@
 # private variables used between classes in file
 # pyright: reportPrivateUsage=false
 from __future__ import annotations
+
 import asyncio
 import io
 import logging
-from mmap import mmap
-import sys
 import os
-import socket
 import secrets
-from enum import Enum
+import socket
+import sys
 from _posixshmem import shm_open, shm_unlink
-from xml.etree import ElementTree  # nosec
 from abc import ABC, abstractmethod
 from asyncio import Future
 from collections import deque
+from collections.abc import Callable
+from enum import Enum
+from mmap import mmap
 from struct import Struct
-from weakref import WeakSet
 from typing import (
     Any,
     ClassVar,
     NamedTuple,
     NewType,
-    Protocol as Proto,
+    TypeAlias,
     TypeVar,
-    Union,
     cast,
     runtime_checkable,
 )
-from collections.abc import Callable
+from typing import Protocol as Proto
+from weakref import WeakSet
+from xml.etree import ElementTree  # nosec
 
 __all__ = [
     "Id",
@@ -95,45 +96,26 @@ class Connection(ABC):
         "_debug",
     ]
 
-    _socket: socket.socket | None
-    _loop: asyncio.AbstractEventLoop
-    _is_terminated: bool
-    _is_server: bool
-    _on_terminated: asyncio.Event
-    _debug: bool
-
-    _write_fds: list[Fd]
-    _write_buff: bytearray
-    _write_queue: deque[Message]
-    _write_done: asyncio.Event
-
-    _read_buff: bytearray
-    _read_fds: deque[Fd]
-
-    _id_last: Id
-    _id_free: list[Id]
-    _proxies: dict[Id, Proxy]
-
     def __init__(self, debug: bool | None = None, is_server: bool = False) -> None:
-        self._socket = None
-        self._loop = asyncio.get_running_loop()
-        self._is_terminated = False
-        self._is_server = is_server
-        self._on_terminated = asyncio.Event()
-        self._debug = bool(os.getenv("WAYLAND_DEBUG")) if debug is None else debug
+        self._socket: socket.socket | None = None
+        self._loop: asyncio.AbstractEventLoop = asyncio.get_running_loop()
+        self._is_terminated: bool = False
+        self._is_server: bool = is_server
+        self._on_terminated: asyncio.Event = asyncio.Event()
+        self._debug: bool = bool(os.getenv("WAYLAND_DEBUG")) if debug is None else debug
 
-        self._write_fds = []
-        self._write_buff = bytearray()
-        self._write_queue = deque()
-        self._write_done = asyncio.Event()
+        self._write_fds: list[Fd] = []
+        self._write_buff: bytearray = bytearray()
+        self._write_queue: deque[Message] = deque()
+        self._write_done: asyncio.Event = asyncio.Event()
         self._write_done.set()
 
-        self._read_fds = deque()
-        self._read_buff = bytearray()
+        self._read_fds: deque[Fd] = deque()
+        self._read_buff: bytearray = bytearray()
 
-        self._id_last = Id(0)
-        self._id_free = []
-        self._proxies = {}
+        self._id_last: Id = Id(0)
+        self._id_free: list[Id] = []
+        self._proxies: dict[Id, Proxy] = {}
 
     def create_proxy(self, proxy_type: type[P]) -> P:
         """Create proxy by proxy type"""
@@ -306,7 +288,7 @@ class Connection(ABC):
             message = Message(
                 Id(id),
                 OpCode(opcode),
-                self._read_buff[MSG_HEADER.size : size],
+                bytes(self._read_buff[MSG_HEADER.size : size]),
                 [],
             )
             # consume data and reset size
@@ -373,10 +355,9 @@ class Connection(ABC):
 
 class Arg(ABC):
     type_name: ClassVar[str]
-    name: str
 
     def __init__(self, name: str):
-        self.name = name
+        self.name: str = name
 
     @abstractmethod
     def pack(self, write: io.BytesIO, value: Any) -> None:
@@ -401,11 +382,10 @@ class Arg(ABC):
 class ArgUInt(Arg):
     type_name: ClassVar[str] = "int"
     struct: ClassVar[Struct] = Struct("I")
-    enum: str | None
 
     def __init__(self, name: str, enum: str | None = None):
         super().__init__(name)
-        self.enum = enum
+        self.enum: str | None = enum
 
     def pack(self, write: io.BytesIO, value: Any) -> None:
         if isinstance(value, Enum):
@@ -542,11 +522,10 @@ class ArgArray(Arg):
 class ArgNewId(Arg):
     type_name: ClassVar[str] = "Proxy"
     struct: ClassVar[Struct] = Struct("I")
-    interface: str | None
 
     def __init__(self, name: str, interface: str | None):
         super().__init__(name)
-        self.interface = interface
+        self.interface: str | None = interface
 
     def pack(self, write: io.BytesIO, value: Any) -> None:
         if not isinstance(value, Proxy):
@@ -583,13 +562,11 @@ class ArgNewId(Arg):
 class ArgObject(Arg):
     type_name: ClassVar[str] = "Proxy"
     struct: ClassVar[Struct] = Struct("I")
-    interface: str | None
-    optional: bool
 
     def __init__(self, name: str, interface: str | None, optional: bool = False):
         super().__init__(name)
-        self.interface = interface
-        self.optional = optional
+        self.interface: str | None = interface
+        self.optional: bool = optional
 
     def pack(self, write: io.BytesIO, value: Any) -> None:
         if self.optional and value is None:
@@ -655,14 +632,6 @@ class Interface:
         "summary",
         "unpack_enum",
     ]
-    name: str
-    events: list[WEvent]
-    events_by_name: dict[str, tuple[OpCode, WEvent]]
-    requests: list[WRequest]
-    requests_by_name: dict[str, tuple[OpCode, WRequest]]
-    enums: list[WEnum]
-    summary: str | None
-    unpack_enum: Callable[[str, int], Any] | None
 
     def __init__(
         self,
@@ -672,17 +641,17 @@ class Interface:
         enums: list[WEnum],
         summary: str | None = None,
     ) -> None:
-        self.name = name
-        self.requests = requests
-        self.events = events
-        self.enums = enums
-        self.summary = summary
-        self.unpack_enum = None
+        self.name: str = name
+        self.requests: list[WRequest] = requests
+        self.events: list[WEvent] = events
+        self.enums: list[WEnum] = enums
+        self.summary: str | None = summary
+        self.unpack_enum: Callable[[str, int], Any] | None = None
 
-        self.requests_by_name = {}
+        self.requests_by_name: dict[str, tuple[OpCode, WRequest]] = {}
         for opcode, request in enumerate(requests):
             self.requests_by_name[request.name] = (OpCode(opcode), request)
-        self.events_by_name = {}
+        self.events_by_name: dict[str, tuple[OpCode, WEvent]] = {}
         for opcode, event in enumerate(events):
             self.events_by_name[event.name] = (OpCode(opcode), event)
 
@@ -769,13 +738,6 @@ class Proxy:
         "_futures",
     ]
     interface: ClassVar[Interface]
-    _id: Id
-    _interface: Interface
-    _connection: Connection
-    _is_attached: bool
-    _is_detached: bool
-    _handlers: list[EventHandler | None]
-    _futures: WeakSet[Future[Any]]
 
     def __init__(
         self,
@@ -786,13 +748,13 @@ class Proxy:
         if interface is None:
             # interface must always be provided and only seem optional for type checker
             raise RuntimeError("interface must be providied")
-        self._id = id
-        self._interface = interface
-        self._connection = connection
-        self._is_attached = False
-        self._is_detached = False
-        self._handlers = [None] * len(interface.events)
-        self._futures = WeakSet()
+        self._id: Id = id
+        self._interface: Interface = interface
+        self._connection: Connection = connection
+        self._is_attached: bool = False
+        self._is_detached: bool = False
+        self._handlers: list[EventHandler | None] = [None] * len(interface.events)
+        self._futures: WeakSet[Future[Any]] = WeakSet()
 
     def __call__(self, name: str, *args: Any) -> None:
         if not self._is_attached or self._is_detached:
@@ -851,7 +813,8 @@ class Proxy:
             return
         try:
             ret = handler(*args)
-            if type(ret) != bool:
+            if type(ret) is bool:
+                event = self._interface.events[opcode]
                 raise TypeError(
                     f"[{self}.{event.name}] handlers should return a boolean value"
                 )
@@ -1068,7 +1031,7 @@ class FdFile(Proto):
     def close(self) -> None: ...
 
 
-Fd = Union[FdFile, int]
+Fd: TypeAlias = FdFile | int
 
 
 class SharedMemory:

@@ -1,45 +1,40 @@
 # pyright: reportPrivateUsage=false
 from __future__ import annotations
+
 import os
-import sys
 import socket
-from typing import TypeVar
-from .base import Connection, Interface, Proxy, Id
+import sys
+from typing import TypeVar, TypeAlias
+
+from .base import Connection, Id, Interface, Proxy
 from .protocol.wayland import WlDisplay, WlRegistry, WlShm
 
 P = TypeVar("P", bound="Proxy")
-Global = tuple[int, int, Proxy | None]  # (name, version, proxy)
+Global: TypeAlias = tuple[int, int, Proxy | None]  # (name, version, proxy)
 
 
 class ClientConnection(Connection):
-    _path: str
-    _display: WlDisplay
-    _registry: WlRegistry
-    # interface_name -> (name, version, proxy)
-    _registry_globals: dict[str, list[Global]]
-    _shm_formats: set[WlShm.Format]
-
     def __init__(self, path: str | None = None):
         super().__init__()
 
         if path is not None:
-            self._path = path
+            self._path: str = path
         else:
             runtime_dir = os.getenv("XDG_RUNTIME_DIR")
             if runtime_dir is None:
                 raise RuntimeError("XDG_RUNTIME_DIR is not set")
             display = os.getenv("WAYLAND_DISPLAY", "wayland-0")
-            self._path = os.path.join(runtime_dir, display)
+            self._path: str = os.path.join(runtime_dir, display)
 
-        self._shm_formats = set()
+        self._shm_formats: set[WlShm.Format] = set()
 
-        self._display = self.create_proxy(WlDisplay)
+        self._display: WlDisplay = self.create_proxy(WlDisplay)
         self._display._is_attached = True  # display is always attached
         self._display.on_error(self._on_display_error)
         self._display.on_delete_id(self._on_display_delete_id)
 
-        self._registry_globals = {}
-        self._registry = self._display.get_registry()
+        self._registry_globals: dict[str, list[Global]] = {}
+        self._registry: WlRegistry = self._display.get_registry()
         self._registry.on_global(self._on_registry_global)
         self._registry.on_global_remove(self._on_registry_global_remove)
 
