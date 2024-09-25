@@ -4,17 +4,21 @@ from __future__ import annotations
 import os
 import socket
 import sys
-from typing import NamedTuple, TypeVar
+from typing import NamedTuple, TypeVar, Any, overload
+from collections.abc import Iterable
 
 from .base import Connection, Id, Proxy
 from .protocol.wayland import WlDisplay, WlRegistry, WlShm
 
+O = TypeVar("O")
 P = TypeVar("P", bound="Proxy")
+_guard: Any = object()
 
 
 class Global(NamedTuple):
     iface_name: str
     version: int
+    name: int
     proxy: Proxy | None  # None means has not been allocated
 
 
@@ -22,14 +26,15 @@ class ClientConnection(Connection):
     def __init__(self, path: str | None = None):
         super().__init__()
 
+        self._path: str
         if path is not None:
-            self._path: str = path
+            self._path = path
         else:
             runtime_dir = os.getenv("XDG_RUNTIME_DIR")
             if runtime_dir is None:
                 raise RuntimeError("XDG_RUNTIME_DIR is not set")
             display = os.getenv("WAYLAND_DISPLAY", "wayland-0")
-            self._path: str = os.path.join(runtime_dir, display)
+            self._path = os.path.join(runtime_dir, display)
 
         self._shm_formats: set[WlShm.Format] = set()
 
@@ -52,11 +57,19 @@ class ClientConnection(Connection):
     def shm_formats(self) -> set[WlShm.Format]:
         return self._shm_formats
 
-    def get_global(self, proxy_type: type[P]) -> P:
+    @overload
+    def get_global(self, proxy_type: type[P]) -> P: ...
+
+    @overload
+    def get_global(self, proxy_type: type[P], default: O) -> P | O: ...
+
+    def get_global(self, proxy_type: type[P], default: O = _guard) -> P | O:
         """Get global by proxy type"""
         proxies = self.get_globals(proxy_type)
         if not proxies:
-            raise RuntimeError(f"no globals provide: {proxy_type.interface.name}")
+            if default is _guard:
+                raise RuntimeError(f"no globals provide: {proxy_type.interface.name}")
+            return default
         elif len(proxies) > 1:
             raise RuntimeError(
                 f"multiple globals {proxy_type.interface.name}, use `get_globals`"
@@ -71,14 +84,14 @@ class ClientConnection(Connection):
         # find/bind proxies by interface name
         globals: list[P] = []
         globals_new: dict[int, Global] = {}
-        for num_name, (iface_name, version, proxy) in self._registry_globals.items():
+        for num_name, (iface_name, version, _, proxy) in self._registry_globals.items():
             if iface_name != interface.name:
                 continue
             if proxy is None:
                 proxy = self.create_proxy(proxy_type)
                 self._registry.bind(num_name, iface_name, version, proxy)
                 self._proxy_setup(proxy)
-                globals_new[num_name] = Global(iface_name, version, proxy)
+                globals_new[num_name] = Global(iface_name, version, num_name, proxy)
             if not isinstance(proxy, proxy_type):
                 raise ValueError("global has already been bound by untyped proxy")
             globals.append(proxy)
@@ -86,6 +99,9 @@ class ClientConnection(Connection):
             self._registry_globals.update(globals_new)
 
         return globals
+
+    def all_globals(self) -> Iterable[Global]:
+        return self._registry_globals.values()
 
     async def connect(self) -> ClientConnection:
         await super().connect()
@@ -140,7 +156,7 @@ class ClientConnection(Connection):
 
     def _on_registry_global(self, name: int, interface: str, version: int) -> bool:
         """Register name in registry globals"""
-        self._registry_globals[name] = Global(interface, version, None)
+        self._registry_globals[name] = Global(interface, version, name, None)
         return True
 
     def _on_registry_global_remove(self, target_name: int) -> bool:

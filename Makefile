@@ -24,3 +24,6 @@ basic:
 metaballs:
 	PYTHONPATH=. python ./examples/metaballs.py
 
+.PHONY: globals
+globals:
+	PYTHONPATH=. python ./examples/globals.py

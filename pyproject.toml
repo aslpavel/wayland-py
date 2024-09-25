@@ -24,12 +24,10 @@ build-backend = "pdm.pep517.api"
 typeCheckingMode = "strict"
 extraPaths = ["."]
 exclude = ["**/__pypackages__"]
-ignore = [
-    # "examples/metaballs.py", #TODO: try again with numpy 1.22
-]
+ignore = []
 
 [tool.mypy]
-exclude = "^(__pypackages__/.*|examples/metaballs\\.py)$"
+exclude = "^__pypackages__/.*$"
 
 [tool.ruff]
 target-version = "py312"

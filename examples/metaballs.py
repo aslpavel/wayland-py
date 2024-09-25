@@ -259,7 +259,7 @@ class Metaballs(Window):
     def at(self, points: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
         """Iso surface of 0 represent metaballs
 
-        Function defined as f(point) = \\sum radii_i/||coors_i - point||_2 - 1
+        Function defined as f(point) = \\sum radii_i/||coords_i - point||_2 - 1
         radii: (balls_count, 1) radii of metaballs
         coords: (balls_count, 2) coordinates of metaballs
         points: (points_shape, coord) coordinate of a point where we computing value
