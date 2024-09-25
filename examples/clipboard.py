@@ -2,7 +2,10 @@
 from __future__ import annotations
 
 import asyncio
+import os
+import sys
 
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 from wayland.client import ClientConnection
 from wayland.protocol.wayland import WlDataDeviceManager, WlSeat
 

@@ -1,5 +1,11 @@
-import asyncio
+#!/usr/bin/env python
+from __future__ import annotations
 
+import asyncio
+import sys
+import os
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 from wayland.client import ClientConnection
 
 

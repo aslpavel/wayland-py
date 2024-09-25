@@ -3,8 +3,12 @@ from __future__ import annotations
 
 import asyncio
 import math
+import os
+import sys
 import time
 from collections.abc import Callable
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 import numpy as np
 import numpy.linalg as la

@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 import asyncio
+import os
+import sys
 
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 from wayland import SharedMemory
 from wayland.client import ClientConnection
 from wayland.protocol.wayland import WlBuffer, WlCompositor, WlShm
