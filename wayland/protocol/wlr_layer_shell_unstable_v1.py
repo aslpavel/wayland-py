@@ -7,8 +7,8 @@ import typing
 from typing import Any, ClassVar
 from collections.abc import Callable
 from ..base import *
-from .xdg_shell import *
 from .wayland import *
+from .xdg_shell import *
 
 __all__ = [
     "ZwlrLayerShellV1",

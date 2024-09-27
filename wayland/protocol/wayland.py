@@ -1171,7 +1171,7 @@ class WlSurface(Proxy):
             WRequest("set_opaque_region", [ArgObject("region", "wl_region", True)]),
             WRequest("set_input_region", [ArgObject("region", "wl_region", True)]),
             WRequest("commit", []),
-            WRequest("set_buffer_transform", [ArgInt("transform")]),
+            WRequest("set_buffer_transform", [ArgInt("transform", "wl_output.transform")]),
             WRequest("set_buffer_scale", [ArgInt("scale")]),
             WRequest("damage_buffer", [ArgInt("x"), ArgInt("y"), ArgInt("width"), ArgInt("height")]),
             WRequest("offset", [ArgInt("x"), ArgInt("y")]),
@@ -1235,7 +1235,7 @@ class WlSurface(Proxy):
         self._call(OpCode(6), tuple())
         return None
 
-    def set_buffer_transform(self, transform: int) -> None:
+    def set_buffer_transform(self, transform: WlOutput.Transform) -> None:
         """sets the buffer transformation"""
         self._call(OpCode(7), (transform,))
         return None
@@ -1770,7 +1770,7 @@ class WlOutput(Proxy):
             WRequest("release", []),
         ],
         events=[
-            WEvent("geometry", [ArgInt("x"), ArgInt("y"), ArgInt("physical_width"), ArgInt("physical_height"), ArgInt("subpixel"), ArgStr("make"), ArgStr("model"), ArgInt("transform")]),
+            WEvent("geometry", [ArgInt("x"), ArgInt("y"), ArgInt("physical_width"), ArgInt("physical_height"), ArgInt("subpixel", "subpixel"), ArgStr("make"), ArgStr("model"), ArgInt("transform", "transform")]),
             WEvent("mode", [ArgUInt("flags", "mode"), ArgInt("width"), ArgInt("height"), ArgInt("refresh")]),
             WEvent("done", []),
             WEvent("scale", [ArgInt("factor")]),
@@ -1827,7 +1827,7 @@ class WlOutput(Proxy):
     def __exit__(self, *_: Any) -> None:
         self.release()
 
-    def on_geometry(self, handler: Callable[[int, int, int, int, int, str, str, int], bool]) -> Callable[[int, int, int, int, int, str, str, int], bool] | None:
+    def on_geometry(self, handler: Callable[[int, int, int, int, Subpixel, str, str, Transform], bool]) -> Callable[[int, int, int, int, Subpixel, str, str, Transform], bool] | None:
         """properties of the output"""
         _opcode = OpCode(0)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler

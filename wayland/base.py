@@ -388,15 +388,15 @@ class ArgUInt(Arg):
 
     def __init__(self, name: str, enum: str | None = None):
         super().__init__(name)
-        self.enum: str | None = enum
+        self.enum: str | None = enum  # it is enum represented as integer
 
     def pack(self, write: io.BytesIO, value: Any) -> None:
         if isinstance(value, Enum):
             write.write(self.struct.pack(value.value))
-        elif isinstance(value, int) and value >= 0:
+        elif isinstance(value, int):
             write.write(self.struct.pack(value))
         else:
-            raise TypeError(f"[{self.name}] unsigend integer expected")
+            raise TypeError(f"[{self.name}] integer expected")
 
     def unpack(
         self,
@@ -407,27 +407,14 @@ class ArgUInt(Arg):
         return self.struct.unpack(read.read(self.struct.size))[0]
 
     def __str__(self) -> str:
+        type_name = self.__class__.__name__
         if self.enum:
-            return f'ArgUInt("{self.name}", "{self.enum}")'
-        return f'ArgUInt("{self.name}")'
+            return f'{type_name}("{self.name}", "{self.enum}")'
+        return f'{type_name}("{self.name}")'
 
 
-class ArgInt(Arg):
-    type_name: ClassVar[str] = "int"
+class ArgInt(ArgUInt):
     struct: ClassVar[Struct] = Struct("i")
-
-    def pack(self, write: io.BytesIO, value: Any) -> None:
-        if not isinstance(value, int):
-            raise TypeError(f"[{self.name}] signed integer expected")
-        write.write(self.struct.pack(value))
-
-    def unpack(
-        self,
-        read: io.BytesIO,
-        connection: Connection,
-        hint: Any | None = None,
-    ) -> Any:
-        return self.struct.unpack(read.read(self.struct.size))[0]
 
 
 class ArgFixed(Arg):
@@ -957,7 +944,8 @@ class Protocol:
                             enum_name = arg_node.get("enum")
                             args.append(ArgUInt(arg_name, enum_name))
                         elif arg_type == "int":
-                            args.append(ArgInt(arg_name))
+                            enum_name = arg_node.get("enum")
+                            args.append(ArgInt(arg_name, enum_name))
                         elif arg_type == "fixed":
                             args.append(ArgFixed(arg_name))
                         elif arg_type == "string":
