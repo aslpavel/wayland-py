@@ -108,11 +108,10 @@ class Window:
         await self._conn.sync()  # wait for first xdg_sruface.configure
         now: int | None = None
         while not self._is_closed and not self._conn.is_terminated:
-            callback = self._wl_surf.frame()
-            done = callback.on_async("done")
+            frame = self._wl_surf.frame()
             self.draw(now)
             self._wl_surf.commit()
-            now = (await done)[0]
+            now = await frame
 
     def on_close(self, handler: Callable[[], None]) -> None:
         @self._xdg_toplevel.on_close

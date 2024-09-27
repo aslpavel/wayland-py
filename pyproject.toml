@@ -22,9 +22,8 @@ build-backend = "pdm.pep517.api"
 
 [tool.pyright]
 typeCheckingMode = "strict"
-extraPaths = ["."]
-exclude = ["**/__pypackages__"]
-ignore = []
+venvPath = "."
+venv = ".venv"
 
 [tool.mypy]
 exclude = "^__pypackages__/.*$"

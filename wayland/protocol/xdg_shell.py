@@ -1,8 +1,9 @@
 # Auto generated do not edit manually
 # fmt: off
-# pyright: reportPrivateUsage=false
+# pyright: reportPrivateUsage=false,reportUnusedImport=false
 from __future__ import annotations
 from enum import Enum, Flag
+import typing
 from typing import Any, ClassVar
 from collections.abc import Callable
 from ..base import *

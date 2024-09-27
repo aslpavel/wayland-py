@@ -89,6 +89,7 @@ class ClientConnection(Connection):
                 continue
             if proxy is None:
                 proxy = self.create_proxy(proxy_type)
+                version = min(interface.version, version)
                 self._registry.bind(num_name, iface_name, version, proxy)
                 self._proxy_setup(proxy)
                 globals_new[num_name] = Global(iface_name, version, num_name, proxy)
@@ -114,8 +115,7 @@ class ClientConnection(Connection):
         This function can be used as a barrier to ensure all previous
         requests and resulting events have been handled.
         """
-        callback = self.display.sync()
-        await callback.on_async("done")
+        await self.display.sync()
 
     async def _create_socket(self) -> socket.socket:
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM, 0)

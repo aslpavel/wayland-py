@@ -1,8 +1,9 @@
 # Auto generated do not edit manually
 # fmt: off
-# pyright: reportPrivateUsage=false
+# pyright: reportPrivateUsage=false,reportUnusedImport=false
 from __future__ import annotations
 from enum import Enum, Flag
+import typing
 from typing import Any, ClassVar
 from collections.abc import Callable
 from ..base import *
@@ -122,7 +123,7 @@ class WlRegistry(Proxy):
         """bind an object to the display"""
         _proxy_iface = id._interface.name
         if _proxy_iface != id_interface:
-            raise TypeError("[{}(id)] expected {} (got {})".format(self, id_interface, _proxy_iface))
+            raise TypeError("[{self}(id)] expected {id_interface} (got {_proxy_iface})")
         self._call(OpCode(0), (name, id_interface, id_version, id,))
         return None
 
@@ -162,6 +163,16 @@ class WlCallback(Proxy):
         _opcode = OpCode(0)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler
         return old_handler
+
+    def __await__(self) -> typing.Generator[Any, None, int]:
+        import asyncio
+        def callback_done_handler(value: int) -> bool:
+            future.set_result(value)
+            return False
+        future: asyncio.Future[int] = asyncio.get_running_loop().create_future()
+        self.on_done(callback_done_handler)
+        self._futures.add(future)
+        return future.__await__()
 
 PROXIES["wl_callback"] = WlCallback
 

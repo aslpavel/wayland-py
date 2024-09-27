@@ -21,9 +21,10 @@ def generate_client(
     print(
         "# Auto generated do not edit manually\n"
         "# fmt: off\n"
-        "# pyright: reportPrivateUsage=false\n"
+        "# pyright: reportPrivateUsage=false,reportUnusedImport=false\n"
         "from __future__ import annotations\n"
         "from enum import Enum, Flag\n"
+        "import typing\n"
         "from typing import Any, ClassVar\n"
         "from collections.abc import Callable\n"
         f"from {wayland_base} import *",
@@ -102,6 +103,21 @@ def generate_client(
         # define events
         for opcode, event in enumerate(interface.events):
             _generate_events(module, opcode, event)
+
+        # special handling for `wayland.wl_callback`, to make it [Awaitable]
+        if iface_name == "wl_callback" and proto.name == "wayland":
+            print(
+                "    def __await__(self) -> typing.Generator[Any, None, int]:\n"
+                "        import asyncio\n"
+                "        def callback_done_handler(value: int) -> bool:\n"
+                "            future.set_result(value)\n"
+                "            return False\n"
+                "        future: asyncio.Future[int] = asyncio.get_running_loop().create_future()\n"
+                "        self.on_done(callback_done_handler)\n"
+                "        self._futures.add(future)\n"
+                "        return future.__await__()\n",
+                file=module,
+            )
 
         # define enums
         enums: dict[str, str] = {}
@@ -193,8 +209,7 @@ def _generate_request(
             print(
                 f"        _proxy_iface = {name}._interface.name\n"
                 f"        if _proxy_iface != {name}_interface:\n"
-                f'            raise TypeError("[{{}}({name})] expected {{}} (got {{}})"'
-                f".format(self, {name}_interface, _proxy_iface))",
+                f'            raise TypeError("[{{self}}({name})] expected {{{name}_interface}} (got {{_proxy_iface}})")',
                 file=module,
             )
             continue
