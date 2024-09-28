@@ -561,6 +561,7 @@ class ArgObject(Arg):
     def pack(self, write: io.BytesIO, value: Any) -> None:
         if self.optional and value is None:
             write.write(self.struct.pack(0))
+            return
         if not isinstance(value, Proxy):
             raise TypeError(f"[{self.name}] proxy object expected {value}")
         if self.interface is not None and self.interface != value._interface.name:

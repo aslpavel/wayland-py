@@ -150,7 +150,7 @@ class Window:
         self._buf_index = (self._buf_index + 1) % len(self._bufs)
         self.render(image, now)
         self._wl_surf.attach(buf, 0, 0)
-        self._wl_surf.damage_buffer(0, 0, INT32_MAX, INT32_MAX)
+        self._wl_surf.damage_buffer(0, 0, self._width, self._height)
 
     def _on_buf_release(self, index: int) -> Callable[[], bool]:
         def _on_buf_release() -> bool:
