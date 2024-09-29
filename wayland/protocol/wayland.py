@@ -235,10 +235,10 @@ class WlShmPool(Proxy):
 
     def destroy(self) -> None:
         """destroy the pool"""
-        if self._is_destroyed or self._is_detached or self._connection.is_terminated:
+        if self._is_destroyed or not self._is_attached or self._is_detached or self._connection.is_terminated:
             return None
         self._is_destroyed = True
-        self._call(OpCode(1), tuple())
+        self._call(OpCode(1), ())
         return None
 
     def resize(self, size: int) -> None:
@@ -420,10 +420,10 @@ class WlShm(Proxy):
 
     def release(self) -> None:
         """release the shm object"""
-        if self._is_destroyed or self._is_detached or self._connection.is_terminated:
+        if self._is_destroyed or not self._is_attached or self._is_detached or self._connection.is_terminated:
             return None
         self._is_destroyed = True
-        self._call(OpCode(1), tuple())
+        self._call(OpCode(1), ())
         return None
 
     def __enter__(self) -> WlShm:
@@ -601,10 +601,10 @@ class WlBuffer(Proxy):
 
     def destroy(self) -> None:
         """destroy a buffer"""
-        if self._is_destroyed or self._is_detached or self._connection.is_terminated:
+        if self._is_destroyed or not self._is_attached or self._is_detached or self._connection.is_terminated:
             return None
         self._is_destroyed = True
-        self._call(OpCode(0), tuple())
+        self._call(OpCode(0), ())
         return None
 
     def __enter__(self) -> WlBuffer:
@@ -669,15 +669,15 @@ class WlDataOffer(Proxy):
 
     def destroy(self) -> None:
         """destroy data offer"""
-        if self._is_destroyed or self._is_detached or self._connection.is_terminated:
+        if self._is_destroyed or not self._is_attached or self._is_detached or self._connection.is_terminated:
             return None
         self._is_destroyed = True
-        self._call(OpCode(2), tuple())
+        self._call(OpCode(2), ())
         return None
 
     def finish(self) -> None:
         """the offer will no longer be used"""
-        self._call(OpCode(3), tuple())
+        self._call(OpCode(3), ())
         return None
 
     def set_actions(self, dnd_actions: WlDataDeviceManager.DndAction, preferred_action: WlDataDeviceManager.DndAction) -> None:
@@ -765,10 +765,10 @@ class WlDataSource(Proxy):
 
     def destroy(self) -> None:
         """destroy the data source"""
-        if self._is_destroyed or self._is_detached or self._connection.is_terminated:
+        if self._is_destroyed or not self._is_attached or self._is_detached or self._connection.is_terminated:
             return None
         self._is_destroyed = True
-        self._call(OpCode(1), tuple())
+        self._call(OpCode(1), ())
         return None
 
     def set_actions(self, dnd_actions: WlDataDeviceManager.DndAction) -> None:
@@ -877,10 +877,10 @@ class WlDataDevice(Proxy):
 
     def release(self) -> None:
         """destroy data device"""
-        if self._is_destroyed or self._is_detached or self._connection.is_terminated:
+        if self._is_destroyed or not self._is_attached or self._is_detached or self._connection.is_terminated:
             return None
         self._is_destroyed = True
-        self._call(OpCode(2), tuple())
+        self._call(OpCode(2), ())
         return None
 
     def __enter__(self) -> WlDataDevice:
@@ -1111,7 +1111,7 @@ class WlShellSurface(Proxy):
 
     def set_toplevel(self) -> None:
         """make the surface a toplevel surface"""
-        self._call(OpCode(3), tuple())
+        self._call(OpCode(3), ())
         return None
 
     def set_transient(self, parent: WlSurface, x: int, y: int, flags: Transient) -> None:
@@ -1237,10 +1237,10 @@ class WlSurface(Proxy):
 
     def destroy(self) -> None:
         """delete surface"""
-        if self._is_destroyed or self._is_detached or self._connection.is_terminated:
+        if self._is_destroyed or not self._is_attached or self._is_detached or self._connection.is_terminated:
             return None
         self._is_destroyed = True
-        self._call(OpCode(0), tuple())
+        self._call(OpCode(0), ())
         return None
 
     def attach(self, buffer: WlBuffer | None, x: int, y: int) -> None:
@@ -1271,7 +1271,7 @@ class WlSurface(Proxy):
 
     def commit(self) -> None:
         """commit pending surface state"""
-        self._call(OpCode(6), tuple())
+        self._call(OpCode(6), ())
         return None
 
     def set_buffer_transform(self, transform: WlOutput.Transform) -> None:
@@ -1399,10 +1399,10 @@ class WlSeat(Proxy):
 
     def release(self) -> None:
         """release the seat object"""
-        if self._is_destroyed or self._is_detached or self._connection.is_terminated:
+        if self._is_destroyed or not self._is_attached or self._is_detached or self._connection.is_terminated:
             return None
         self._is_destroyed = True
-        self._call(OpCode(3), tuple())
+        self._call(OpCode(3), ())
         return None
 
     def __enter__(self) -> WlSeat:
@@ -1516,10 +1516,10 @@ class WlPointer(Proxy):
 
     def release(self) -> None:
         """release the pointer object"""
-        if self._is_destroyed or self._is_detached or self._connection.is_terminated:
+        if self._is_destroyed or not self._is_attached or self._is_detached or self._connection.is_terminated:
             return None
         self._is_destroyed = True
-        self._call(OpCode(1), tuple())
+        self._call(OpCode(1), ())
         return None
 
     def __enter__(self) -> WlPointer:
@@ -1673,10 +1673,10 @@ class WlKeyboard(Proxy):
 
     def release(self) -> None:
         """release the keyboard object"""
-        if self._is_destroyed or self._is_detached or self._connection.is_terminated:
+        if self._is_destroyed or not self._is_attached or self._is_detached or self._connection.is_terminated:
             return None
         self._is_destroyed = True
-        self._call(OpCode(0), tuple())
+        self._call(OpCode(0), ())
         return None
 
     def __enter__(self) -> WlKeyboard:
@@ -1768,10 +1768,10 @@ class WlTouch(Proxy):
 
     def release(self) -> None:
         """release the touch object"""
-        if self._is_destroyed or self._is_detached or self._connection.is_terminated:
+        if self._is_destroyed or not self._is_attached or self._is_detached or self._connection.is_terminated:
             return None
         self._is_destroyed = True
-        self._call(OpCode(0), tuple())
+        self._call(OpCode(0), ())
         return None
 
     def __enter__(self) -> WlTouch:
@@ -1884,10 +1884,10 @@ class WlOutput(Proxy):
 
     def release(self) -> None:
         """release the output object"""
-        if self._is_destroyed or self._is_detached or self._connection.is_terminated:
+        if self._is_destroyed or not self._is_attached or self._is_detached or self._connection.is_terminated:
             return None
         self._is_destroyed = True
-        self._call(OpCode(0), tuple())
+        self._call(OpCode(0), ())
         return None
 
     def __enter__(self) -> WlOutput:
@@ -1990,10 +1990,10 @@ class WlRegion(Proxy):
 
     def destroy(self) -> None:
         """destroy region"""
-        if self._is_destroyed or self._is_detached or self._connection.is_terminated:
+        if self._is_destroyed or not self._is_attached or self._is_detached or self._connection.is_terminated:
             return None
         self._is_destroyed = True
-        self._call(OpCode(0), tuple())
+        self._call(OpCode(0), ())
         return None
 
     def add(self, x: int, y: int, width: int, height: int) -> None:
@@ -2044,10 +2044,10 @@ class WlSubcompositor(Proxy):
 
     def destroy(self) -> None:
         """unbind from the subcompositor interface"""
-        if self._is_destroyed or self._is_detached or self._connection.is_terminated:
+        if self._is_destroyed or not self._is_attached or self._is_detached or self._connection.is_terminated:
             return None
         self._is_destroyed = True
-        self._call(OpCode(0), tuple())
+        self._call(OpCode(0), ())
         return None
 
     def get_subsurface(self, surface: WlSurface, parent: WlSurface) -> WlSubsurface:
@@ -2107,10 +2107,10 @@ class WlSubsurface(Proxy):
 
     def destroy(self) -> None:
         """remove sub-surface interface"""
-        if self._is_destroyed or self._is_detached or self._connection.is_terminated:
+        if self._is_destroyed or not self._is_attached or self._is_detached or self._connection.is_terminated:
             return None
         self._is_destroyed = True
-        self._call(OpCode(0), tuple())
+        self._call(OpCode(0), ())
         return None
 
     def set_position(self, x: int, y: int) -> None:
@@ -2130,12 +2130,12 @@ class WlSubsurface(Proxy):
 
     def set_sync(self) -> None:
         """set sub-surface to synchronized mode"""
-        self._call(OpCode(4), tuple())
+        self._call(OpCode(4), ())
         return None
 
     def set_desync(self) -> None:
         """set sub-surface to desynchronized mode"""
-        self._call(OpCode(5), tuple())
+        self._call(OpCode(5), ())
         return None
 
     def __enter__(self) -> WlSubsurface:

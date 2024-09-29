@@ -52,10 +52,10 @@ class XdgWmBase(Proxy):
 
     def destroy(self) -> None:
         """destroy xdg_wm_base"""
-        if self._is_destroyed or self._is_detached or self._connection.is_terminated:
+        if self._is_destroyed or not self._is_attached or self._is_detached or self._connection.is_terminated:
             return None
         self._is_destroyed = True
-        self._call(OpCode(0), tuple())
+        self._call(OpCode(0), ())
         return None
 
     def create_positioner(self) -> XdgPositioner:
@@ -182,10 +182,10 @@ class XdgPositioner(Proxy):
 
     def destroy(self) -> None:
         """destroy the xdg_positioner object"""
-        if self._is_destroyed or self._is_detached or self._connection.is_terminated:
+        if self._is_destroyed or not self._is_attached or self._is_detached or self._connection.is_terminated:
             return None
         self._is_destroyed = True
-        self._call(OpCode(0), tuple())
+        self._call(OpCode(0), ())
         return None
 
     def set_size(self, width: int, height: int) -> None:
@@ -220,7 +220,7 @@ class XdgPositioner(Proxy):
 
     def set_reactive(self) -> None:
         """continuously reconstrain the surface"""
-        self._call(OpCode(7), tuple())
+        self._call(OpCode(7), ())
         return None
 
     def set_parent_size(self, parent_width: int, parent_height: int) -> None:
@@ -324,10 +324,10 @@ class XdgSurface(Proxy):
 
     def destroy(self) -> None:
         """destroy the xdg_surface"""
-        if self._is_destroyed or self._is_detached or self._connection.is_terminated:
+        if self._is_destroyed or not self._is_attached or self._is_detached or self._connection.is_terminated:
             return None
         self._is_destroyed = True
-        self._call(OpCode(0), tuple())
+        self._call(OpCode(0), ())
         return None
 
     def get_toplevel(self) -> XdgToplevel:
@@ -464,10 +464,10 @@ class XdgToplevel(Proxy):
 
     def destroy(self) -> None:
         """destroy the xdg_toplevel"""
-        if self._is_destroyed or self._is_detached or self._connection.is_terminated:
+        if self._is_destroyed or not self._is_attached or self._is_detached or self._connection.is_terminated:
             return None
         self._is_destroyed = True
-        self._call(OpCode(0), tuple())
+        self._call(OpCode(0), ())
         return None
 
     def set_parent(self, parent: XdgToplevel | None) -> None:
@@ -512,12 +512,12 @@ class XdgToplevel(Proxy):
 
     def set_maximized(self) -> None:
         """maximize the window"""
-        self._call(OpCode(9), tuple())
+        self._call(OpCode(9), ())
         return None
 
     def unset_maximized(self) -> None:
         """unmaximize the window"""
-        self._call(OpCode(10), tuple())
+        self._call(OpCode(10), ())
         return None
 
     def set_fullscreen(self, output: WlOutput | None) -> None:
@@ -527,12 +527,12 @@ class XdgToplevel(Proxy):
 
     def unset_fullscreen(self) -> None:
         """unset the window as fullscreen"""
-        self._call(OpCode(12), tuple())
+        self._call(OpCode(12), ())
         return None
 
     def set_minimized(self) -> None:
         """set the window as minimized"""
-        self._call(OpCode(13), tuple())
+        self._call(OpCode(13), ())
         return None
 
     def __enter__(self) -> XdgToplevel:
@@ -645,10 +645,10 @@ class XdgPopup(Proxy):
 
     def destroy(self) -> None:
         """remove xdg_popup interface"""
-        if self._is_destroyed or self._is_detached or self._connection.is_terminated:
+        if self._is_destroyed or not self._is_attached or self._is_detached or self._connection.is_terminated:
             return None
         self._is_destroyed = True
-        self._call(OpCode(0), tuple())
+        self._call(OpCode(0), ())
         return None
 
     def grab(self, seat: WlSeat, serial: int) -> None:

@@ -7,8 +7,8 @@ import typing
 from typing import Any, ClassVar
 from collections.abc import Callable
 from ..base import *
-from .xdg_shell import *
 from .wayland import *
+from .xdg_shell import *
 
 __all__ = [
     "ZwlrLayerShellV1",
@@ -58,10 +58,10 @@ class ZwlrLayerShellV1(Proxy):
 
     def destroy(self) -> None:
         """destroy the layer_shell object"""
-        if self._is_destroyed or self._is_detached or self._connection.is_terminated:
+        if self._is_destroyed or not self._is_attached or self._is_detached or self._connection.is_terminated:
             return None
         self._is_destroyed = True
-        self._call(OpCode(1), tuple())
+        self._call(OpCode(1), ())
         return None
 
     def __enter__(self) -> ZwlrLayerShellV1:
@@ -187,10 +187,10 @@ class ZwlrLayerSurfaceV1(Proxy):
 
     def destroy(self) -> None:
         """destroy the layer_surface"""
-        if self._is_destroyed or self._is_detached or self._connection.is_terminated:
+        if self._is_destroyed or not self._is_attached or self._is_detached or self._connection.is_terminated:
             return None
         self._is_destroyed = True
-        self._call(OpCode(7), tuple())
+        self._call(OpCode(7), ())
         return None
 
     def set_layer(self, layer: ZwlrLayerShellV1.Layer) -> None:

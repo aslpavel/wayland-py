@@ -209,7 +209,7 @@ def _generate_request(
         # no-op for disconnected destructor
         # fmt: off
         print(
-            "        if self._is_destroyed or self._is_detached or self._connection.is_terminated:\n"
+            "        if self._is_destroyed or not self._is_attached or self._is_detached or self._connection.is_terminated:\n"
             "            return None\n"
             "        self._is_destroyed = True",
             file=module,
@@ -235,7 +235,7 @@ def _generate_request(
         result_vals.append(result_desc.name)
 
     # submit
-    values = "tuple()"
+    values = "()"
     if request.args:
         values = "({},)".format(", ".join(arg.name for arg in request.args))
     print(

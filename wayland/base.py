@@ -117,7 +117,7 @@ class Connection(ABC):
 
         self._id_last: Id = Id(0)
         self._id_free: list[Id] = []
-        self._proxies: dict[Id, Proxy] = {}
+        self._proxies: dict[Id, Proxy] = {}  # all known proxies
 
     def create_proxy(self, proxy_type: type[P]) -> P:
         """Create proxy by proxy type"""
