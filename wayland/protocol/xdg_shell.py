@@ -52,6 +52,9 @@ class XdgWmBase(Proxy):
 
     def destroy(self) -> None:
         """destroy xdg_wm_base"""
+        if self._is_destroyed or self._is_detached or self._connection.is_terminated:
+            return None
+        self._is_destroyed = True
         self._call(OpCode(0), tuple())
         return None
 
@@ -76,6 +79,9 @@ class XdgWmBase(Proxy):
         return self
 
     def __exit__(self, *_: Any) -> None:
+        self.destroy()
+
+    def __del__(self) -> None:
         self.destroy()
 
     def on_ping(self, handler: Callable[[int], bool]) -> Callable[[int], bool] | None:
@@ -176,6 +182,9 @@ class XdgPositioner(Proxy):
 
     def destroy(self) -> None:
         """destroy the xdg_positioner object"""
+        if self._is_destroyed or self._is_detached or self._connection.is_terminated:
+            return None
+        self._is_destroyed = True
         self._call(OpCode(0), tuple())
         return None
 
@@ -227,6 +236,9 @@ class XdgPositioner(Proxy):
         return self
 
     def __exit__(self, *_: Any) -> None:
+        self.destroy()
+
+    def __del__(self) -> None:
         self.destroy()
 
     class Error(Enum):
@@ -312,6 +324,9 @@ class XdgSurface(Proxy):
 
     def destroy(self) -> None:
         """destroy the xdg_surface"""
+        if self._is_destroyed or self._is_detached or self._connection.is_terminated:
+            return None
+        self._is_destroyed = True
         self._call(OpCode(0), tuple())
         return None
 
@@ -341,6 +356,9 @@ class XdgSurface(Proxy):
         return self
 
     def __exit__(self, *_: Any) -> None:
+        self.destroy()
+
+    def __del__(self) -> None:
         self.destroy()
 
     def on_configure(self, handler: Callable[[int], bool]) -> Callable[[int], bool] | None:
@@ -446,6 +464,9 @@ class XdgToplevel(Proxy):
 
     def destroy(self) -> None:
         """destroy the xdg_toplevel"""
+        if self._is_destroyed or self._is_detached or self._connection.is_terminated:
+            return None
+        self._is_destroyed = True
         self._call(OpCode(0), tuple())
         return None
 
@@ -518,6 +539,9 @@ class XdgToplevel(Proxy):
         return self
 
     def __exit__(self, *_: Any) -> None:
+        self.destroy()
+
+    def __del__(self) -> None:
         self.destroy()
 
     def on_configure(self, handler: Callable[[int, int, bytes], bool]) -> Callable[[int, int, bytes], bool] | None:
@@ -621,6 +645,9 @@ class XdgPopup(Proxy):
 
     def destroy(self) -> None:
         """remove xdg_popup interface"""
+        if self._is_destroyed or self._is_detached or self._connection.is_terminated:
+            return None
+        self._is_destroyed = True
         self._call(OpCode(0), tuple())
         return None
 
@@ -638,6 +665,9 @@ class XdgPopup(Proxy):
         return self
 
     def __exit__(self, *_: Any) -> None:
+        self.destroy()
+
+    def __del__(self) -> None:
         self.destroy()
 
     def on_configure(self, handler: Callable[[int, int, int, int], bool]) -> Callable[[int, int, int, int], bool] | None:

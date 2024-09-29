@@ -87,15 +87,18 @@ def generate_client(
         for opcode, request in enumerate(interface.requests):
             if request.destructor and not request.args:
                 destructor = request.name
-            _generate_request(module, opcode, request)
+            _generate_request(module, opcode, request, request.destructor)
 
         # destroy scope
         if destructor:
             print(
                 f"    def __enter__(self) -> {class_name}:\n"
-                f"        return self\n"
+                "        return self\n"
                 "\n"
-                f"    def __exit__(self, *_: Any) -> None:\n"
+                "    def __exit__(self, *_: Any) -> None:\n"
+                f"        self.{destructor}()\n"
+                "\n"
+                "    def __del__(self) -> None:\n"
                 f"        self.{destructor}()\n",
                 file=module,
             )
@@ -156,6 +159,7 @@ def _generate_request(
     module: io.StringIO,
     opcode: int,
     request: WRequest,
+    is_destructor: bool,
 ) -> None:
     results_desc: list[ArgNewId] = []
     args_types: list[str] = []
@@ -200,6 +204,17 @@ def _generate_request(
     print(f"    def {request.name}(self{args}) -> {result_type}:", file=module)
     if request.summary:
         print(f'        """{request.summary}"""', file=module)
+
+    if is_destructor:
+        # no-op for disconnected destructor
+        # fmt: off
+        print(
+            "        if self._is_destroyed or self._is_detached or self._connection.is_terminated:\n"
+            "            return None\n"
+            "        self._is_destroyed = True",
+            file=module,
+        )
+        # fmt: on
 
     # proxies
     result_vals: list[str] = []

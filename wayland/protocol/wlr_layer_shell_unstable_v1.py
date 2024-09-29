@@ -7,8 +7,8 @@ import typing
 from typing import Any, ClassVar
 from collections.abc import Callable
 from ..base import *
-from .wayland import *
 from .xdg_shell import *
+from .wayland import *
 
 __all__ = [
     "ZwlrLayerShellV1",
@@ -58,6 +58,9 @@ class ZwlrLayerShellV1(Proxy):
 
     def destroy(self) -> None:
         """destroy the layer_shell object"""
+        if self._is_destroyed or self._is_detached or self._connection.is_terminated:
+            return None
+        self._is_destroyed = True
         self._call(OpCode(1), tuple())
         return None
 
@@ -65,6 +68,9 @@ class ZwlrLayerShellV1(Proxy):
         return self
 
     def __exit__(self, *_: Any) -> None:
+        self.destroy()
+
+    def __del__(self) -> None:
         self.destroy()
 
     class Error(Enum):
@@ -181,6 +187,9 @@ class ZwlrLayerSurfaceV1(Proxy):
 
     def destroy(self) -> None:
         """destroy the layer_surface"""
+        if self._is_destroyed or self._is_detached or self._connection.is_terminated:
+            return None
+        self._is_destroyed = True
         self._call(OpCode(7), tuple())
         return None
 
@@ -198,6 +207,9 @@ class ZwlrLayerSurfaceV1(Proxy):
         return self
 
     def __exit__(self, *_: Any) -> None:
+        self.destroy()
+
+    def __del__(self) -> None:
         self.destroy()
 
     def on_configure(self, handler: Callable[[int, int, int], bool]) -> Callable[[int, int, int], bool] | None:

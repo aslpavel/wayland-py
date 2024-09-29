@@ -729,6 +729,7 @@ class Proxy:
         "_connection",
         "_is_attached",
         "_is_detached",
+        "_is_destroyed",
         "_handlers",
         "_futures",
     ]
@@ -746,10 +747,14 @@ class Proxy:
         self._id: Id = id
         self._interface: Interface = interface
         self._connection: Connection = connection
-        self._is_attached: bool = False
-        self._is_detached: bool = False
         self._handlers: list[EventHandler | None] = [None] * len(interface.events)
         self._futures: WeakSet[Future[Any]] = WeakSet()
+        # `new_id` has been send to the other side
+        self._is_attached: bool = False
+        # release by the other side and will no longer be identified by its id
+        self._is_detached: bool = False
+        # destructor has been called
+        self._is_destroyed: bool = False
 
     def __call__(self, name: str, *args: Any) -> None:
         if not self._is_attached or self._is_detached:
