@@ -11,8 +11,9 @@ from wayland.client import ClientConnection
 
 async def main() -> None:
     async with ClientConnection() as conn:
+        name_width = max(len(desc.iface_name) for desc in conn.all_globals())
         for desc in conn.all_globals():
-            print(f"{desc.name:<2} {desc.version:<2} {desc.iface_name}")
+            print(f"{desc.iface_name:<{name_width}} {desc.version:<2} {desc.name}")
         conn.terminate()
 
 

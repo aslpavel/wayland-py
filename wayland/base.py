@@ -142,7 +142,11 @@ class Connection(ABC):
         return self._is_terminated
 
     async def on_terminated(self) -> None:
-        await self._on_terminated.wait()
+        try:
+            await self._on_terminated.wait()
+        finally:
+            # if above was cancelled/interrupted
+            self.terminate()
 
     def terminate(self, msg: Any | None = None) -> None:
         """Terminate wayland connection"""
@@ -188,8 +192,7 @@ class Connection(ABC):
     async def __aexit__(self, et: Any, *_: Any) -> None:
         if et is None:
             await self.on_terminated()
-        else:
-            self.terminate()
+        self.terminate()
 
     def _writer_enable(self) -> None:
         if self._is_terminated:

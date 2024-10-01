@@ -1,11 +1,12 @@
 # pyright: reportPrivateUsage=false
 from __future__ import annotations
 
+import asyncio
 import os
 import socket
 import sys
-from typing import NamedTuple, TypeVar, Any, overload
-from collections.abc import Iterable
+from typing import NamedTuple, Self, TypeVar, Any, overload
+from collections.abc import Awaitable, Callable, Iterable
 
 from .base import Connection, Id, Proxy
 from .protocol.wayland import WlDisplay, WlRegistry, WlShm
@@ -108,6 +109,14 @@ class ClientConnection(Connection):
         await super().connect()
         await self.sync()
         return self
+
+    @classmethod
+    def run(cls, init: Callable[[Self], Awaitable[None]]) -> None:
+        async def run_coro() -> None:
+            async with cls() as conn:
+                await init(conn)
+
+        return asyncio.run(run_coro())
 
     async def sync(self) -> None:
         """Ensures all requests are processed

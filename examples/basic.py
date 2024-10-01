@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-import asyncio
 import os
 import sys
 
@@ -35,9 +34,8 @@ def draw(wl_shm: WlShm, width: int, height: int) -> WlBuffer:
     return buf
 
 
-async def main() -> None:
+async def main(conn: ClientConnection) -> None:
     # globals
-    conn = await ClientConnection().connect()
     wl_shm = conn.get_global(WlShm)
     wl_compositor = conn.get_global(WlCompositor)
     xdg_wm_base = conn.get_global(XdgWmBase)
@@ -77,8 +75,6 @@ async def main() -> None:
         wl_surf.commit()
         return True
 
-    await conn.on_terminated()
-
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    ClientConnection.run(main)
