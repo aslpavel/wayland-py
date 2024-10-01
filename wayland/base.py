@@ -11,7 +11,7 @@ import os
 import secrets
 import socket
 import sys
-from _posixshmem import shm_open, shm_unlink
+from _posixshmem import shm_open, shm_unlink  # pyright: ignore[reportMissingModuleSource]
 from abc import ABC, abstractmethod
 from asyncio import Future
 from collections import deque
@@ -19,16 +19,7 @@ from collections.abc import Callable
 from enum import Enum
 from mmap import mmap
 from struct import Struct
-from typing import (
-    Any,
-    ClassVar,
-    NamedTuple,
-    NewType,
-    TypeAlias,
-    TypeVar,
-    cast,
-    runtime_checkable,
-)
+from typing import Any, ClassVar, NamedTuple, NewType, Self, cast, runtime_checkable
 from typing import Protocol as Proto
 from weakref import WeakSet
 from xml.etree import ElementTree
@@ -60,11 +51,9 @@ __all__ = [
 
 Id = NewType("Id", int)
 OpCode = NewType("OpCode", int)
+type Fd = FdFile | int
 MSG_HEADER = Struct("IHH")
 PROXIES: dict[str, type[Proxy]] = {}
-
-P = TypeVar("P", bound="Proxy")
-C = TypeVar("C", bound="Connection")
 
 
 class Message(NamedTuple):
@@ -119,7 +108,7 @@ class Connection(ABC):
         self._id_free: list[Id] = []
         self._proxies: dict[Id, Proxy] = {}  # all known proxies
 
-    def create_proxy(self, proxy_type: type[P]) -> P:
+    def create_proxy[P: Proxy](self, proxy_type: type[P]) -> P:
         """Create proxy by proxy type"""
         if self._is_terminated:
             raise RuntimeError("connection has already been terminated")
@@ -172,7 +161,7 @@ class Connection(ABC):
     async def _create_socket(self) -> socket.socket:
         """Create connected wayland socket"""
 
-    async def connect(self: C) -> C:
+    async def connect(self) -> Self:
         """Start running wayland connection"""
         if self._socket is not None:
             raise RuntimeError("socket has already been set")
@@ -186,7 +175,7 @@ class Connection(ABC):
         """Wait for all pending events to be send"""
         await self._write_done.wait()
 
-    async def __aenter__(self: C) -> C:
+    async def __aenter__(self) -> Self:
         return await self.connect()
 
     async def __aexit__(self, et: Any, *_: Any) -> None:
@@ -1035,9 +1024,6 @@ class FdFile(Proto):
     def fileno(self) -> int: ...
 
     def close(self) -> None: ...
-
-
-Fd: TypeAlias = FdFile | int
 
 
 class SharedMemory:

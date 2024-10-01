@@ -5,14 +5,12 @@ import asyncio
 import os
 import socket
 import sys
-from typing import NamedTuple, Self, TypeVar, Any, overload
+from typing import NamedTuple, Self, Any, overload
 from collections.abc import Awaitable, Callable, Iterable
 
 from .base import Connection, Id, Proxy
 from .protocol.wayland import WlDisplay, WlRegistry, WlShm
 
-O = TypeVar("O")
-P = TypeVar("P", bound="Proxy")
 _guard: Any = object()
 
 
@@ -59,12 +57,16 @@ class ClientConnection(Connection):
         return self._shm_formats
 
     @overload
-    def get_global(self, proxy_type: type[P]) -> P: ...
+    def get_global[P: Proxy](self, proxy_type: type[P]) -> P: ...
 
     @overload
-    def get_global(self, proxy_type: type[P], default: O) -> P | O: ...
+    def get_global[P: Proxy, O](self, proxy_type: type[P], default: O) -> P | O: ...
 
-    def get_global(self, proxy_type: type[P], default: O = _guard) -> P | O:
+    def get_global[P: Proxy, O](
+        self,
+        proxy_type: type[P],
+        default: O = _guard,
+    ) -> P | O:
         """Get global by proxy type"""
         proxies = self.get_globals(proxy_type)
         if not proxies:
@@ -77,7 +79,7 @@ class ClientConnection(Connection):
             )
         return proxies[0]
 
-    def get_globals(self, proxy_type: type[P]) -> list[P]:
+    def get_globals[P: Proxy](self, proxy_type: type[P]) -> list[P]:
         """Get global by proxy type"""
         if (interface := getattr(proxy_type, "interface", None)) is None:
             raise TypeError("cannot get untyped proxy")
