@@ -630,7 +630,7 @@ class WlDataOffer(Proxy):
         name="wl_data_offer",
         version=3,
         requests=[
-            WRequest("accept", [ArgUInt("serial"), ArgStr("mime_type")]),
+            WRequest("accept", [ArgUInt("serial"), ArgStr("mime_type", True)]),
             WRequest("receive", [ArgStr("mime_type"), ArgFd("fd")]),
             WRequest("destroy", []),
             WRequest("finish", []),
@@ -657,7 +657,7 @@ class WlDataOffer(Proxy):
     def __init__(self, id: Id, connection: Connection) -> None:
         super().__init__(id, connection, self.interface)
 
-    def accept(self, serial: int, mime_type: str) -> None:
+    def accept(self, serial: int, mime_type: str | None) -> None:
         """accept one of the offered mime types"""
         self._call(OpCode(0), (serial, mime_type,))
         return None
@@ -737,7 +737,7 @@ class WlDataSource(Proxy):
             WRequest("set_actions", [ArgUInt("dnd_actions", "wl_data_device_manager.dnd_action")]),
         ],
         events=[
-            WEvent("target", [ArgStr("mime_type")]),
+            WEvent("target", [ArgStr("mime_type", True)]),
             WEvent("send", [ArgStr("mime_type"), ArgFd("fd")]),
             WEvent("cancelled", []),
             WEvent("dnd_drop_performed", []),
@@ -785,7 +785,7 @@ class WlDataSource(Proxy):
     def __del__(self) -> None:
         self.destroy()
 
-    def on_target(self, handler: Callable[[str], bool]) -> Callable[[str], bool] | None:
+    def on_target(self, handler: Callable[[str | None], bool]) -> Callable[[str | None], bool] | None:
         """a target accepts an offered mime type"""
         _opcode = OpCode(0)
         old_handler, self._handlers[_opcode] = self._handlers[_opcode], handler

@@ -440,12 +440,19 @@ class ArgStr(Arg):
     type_name: ClassVar[str] = "str"
     struct: ClassVar[Struct] = Struct("I")
 
+    def __init__(self, name: str, optional: bool = False):
+        self.name: str = name
+        self.optional: bool = optional
+
     def pack(self, write: io.BytesIO, value: Any) -> None:
         data: bytes
         if isinstance(value, str):
             data = value.encode()
         elif isinstance(value, bytes):
             data = value
+        elif value is None and self.optional:
+            write.write(self.struct.pack(0))
+            return
         else:
             raise TypeError(f"[{self.name}] string or bytes expected")
         size = len(data) + 1  # null terminated length
@@ -462,9 +469,18 @@ class ArgStr(Arg):
         hint: Any | None = None,
     ) -> Any:
         size = self.struct.unpack(read.read(self.struct.size))[0]
+        if size == 0:
+            if self.optional:
+                return None
+            raise ValueError(f"[{self.name}] string length cannot be zero")
         value = read.read(size - 1).decode()
         read.read((-size % 4) + 1)
         return value
+
+    def __str__(self) -> str:
+        if self.optional:
+            return f'ArgStr("{self.name}", True)'
+        return f'ArgStr("{self.name}")'
 
 
 class ArgArray(Arg):
@@ -947,7 +963,8 @@ class Protocol:
                         elif arg_type == "fixed":
                             args.append(ArgFixed(arg_name))
                         elif arg_type == "string":
-                            args.append(ArgStr(arg_name))
+                            optional = arg_node.get("allow-null") == "true"
+                            args.append(ArgStr(arg_name, optional))
                         elif arg_type == "array":
                             args.append(ArgArray(arg_name))
                         elif arg_type == "fd":

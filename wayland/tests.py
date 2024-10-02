@@ -55,6 +55,13 @@ class TestArgs(unittest.TestCase):
         self.assertEqual(file.getvalue(), b"\x07\x00\x00\x00string\x00\x00")
         file.seek(0)
         self.assertEqual(arg.unpack(file, self.conn), "string")
+        with self.assertRaises(TypeError):
+            arg.pack(file, None)
+
+        file = io.BytesIO()
+        arg = ArgStr("opt", True)
+        arg.pack(file, None)
+        self.assertEqual(file.getvalue(), b"\x00\x00\x00\x00")
 
     def test_array(self) -> None:
         file = io.BytesIO()

@@ -3,7 +3,16 @@ import io
 import sys
 from pathlib import Path
 
-from .base import ArgFd, ArgNewId, ArgObject, ArgUInt, Protocol, WEvent, WRequest
+from .base import (
+    ArgFd,
+    ArgNewId,
+    ArgObject,
+    ArgUInt,
+    ArgStr,
+    Protocol,
+    WEvent,
+    WRequest,
+)
 
 
 def generate_client(
@@ -184,6 +193,8 @@ def _generate_request(
                 args_types.append(f"{arg_desc.name}: {arg_desc.type_name}")
             else:
                 args_types.append(f"{arg_desc.name}: {_camle_case(arg_desc.enum)}")
+        elif isinstance(arg_desc, ArgStr) and arg_desc.optional:
+            args_types.append(f"{arg_desc.name}: {arg_desc.type_name} | None")
         else:
             args_types.append(f"{arg_desc.name}: {arg_desc.type_name}")
 
@@ -263,6 +274,8 @@ def _generate_events(
             args_types.append(arg_type)
         elif isinstance(arg_desc, ArgUInt) and arg_desc.enum:
             args_types.append(_camle_case(arg_desc.enum))
+        elif isinstance(arg_desc, ArgStr) and arg_desc.optional:
+            args_types.append(f"{arg_desc.type_name} | None")
         else:
             args_types.append(arg_desc.type_name)
     handler_sig = "Callable[[{}], bool]".format(", ".join(args_types))
