@@ -16,14 +16,5 @@ coverage:
 	coverage run -m unittest discover
 	coverage html
 
-.PHONY: basic
-basic:
-	PYTHONPATH=. python ./examples/basic.py
-
-.PHONY: metaballs
-metaballs:
-	PYTHONPATH=. python ./examples/metaballs.py
-
-.PHONY: globals
-globals:
-	PYTHONPATH=. python ./examples/globals.py
+%: ./examples/%.py
+	PYTHONPATH=. python $<
